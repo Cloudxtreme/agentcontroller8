@@ -54,17 +54,6 @@ type CommandMessage struct {
 	} `json:"args"`
 }
 
-// type Command struct {
-// 	ID     string   `json:"id"`
-// 	Gid    int      `json:"gid"`
-// 	Nid    int      `json:"nid"`
-// 	Cmd    string   `json:"cmd"`
-// 	Args   RunArgs  `json:"args"`
-// 	Data   string   `json:"data"`
-// 	Roles  []string `json:"roles"`
-// 	Fanout bool     `json:"fanout"`
-// }
-
 //CommandResult command result
 type CommandResult struct {
 	ID        string `json:"id"`
@@ -858,6 +847,7 @@ func main() {
 	internals["scheduler_add"] = scheduler.Add
 	internals["scheduler_list"] = scheduler.List
 	internals["scheduler_remove"] = scheduler.Remove
+	internals["scheduler_remove_prefix"] = scheduler.RemovePrefix
 
 	scheduler.Start()
 
