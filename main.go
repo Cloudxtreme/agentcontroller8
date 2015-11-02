@@ -49,6 +49,7 @@ type CommandMessage struct {
 	Roles  []string `json:"roles"`
 	Fanout bool     `json:"fanout"`
 	Data   string   `json:"data"`
+	Tags   string   `json:"tags"`
 	Args   struct {
 		Name string `json:"name"`
 	} `json:"args"`
