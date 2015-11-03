@@ -53,11 +53,12 @@ type Job struct {
 	Nid       int      `json:"nid"`
 	Cmd       string   `json:"cmd"`
 	Data      string   `json:"data"`
-	Streams   []string `json:"streams`
+	Streams   []string `json:"streams"`
 	Level     int      `json:"level"`
-	Starttime int      `json:"starttime"`
+	StartTime int      `json:"starttime"`
 	State     string   `json:"state"`
 	Time      int      `json:"time"`
+	Tags      string   `json:"tags"`
 
 	redis *redis.Pool
 }

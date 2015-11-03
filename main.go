@@ -57,14 +57,17 @@ type CommandMessage struct {
 
 //CommandResult command result
 type CommandResult struct {
-	ID        string `json:"id"`
-	Nid       int    `json:"nid"`
-	Gid       int    `json:"gid"`
-	State     string `json:"state"`
-	Data      string `json:"data"`
-	Tags      string `json:"tags"`
-	Level     int    `json:"level"`
-	StartTime int64  `json:"starttime"`
+	ID        string   `json:"id"`
+	Gid       int      `json:"gid"`
+	Nid       int      `json:"nid"`
+	Cmd       string   `json:"cmd"`
+	Data      string   `json:"data"`
+	Streams   []string `json:"streams"`
+	Tags      string   `json:"tags"`
+	Level     int      `json:"level"`
+	StartTime int64    `json:"starttime"`
+	State     string   `json:"state"`
+	Time      int      `json:"time"`
 }
 
 //StatsRequest stats request
@@ -149,20 +152,30 @@ func getActiveAgents(onlyGid int, roles []string) [][]int {
 	return agents
 }
 
-func sendResult(result *CommandResult) {
+func sendResult(result *CommandResult) error {
 	db := pool.Get()
 	defer db.Close()
 
 	key := fmt.Sprintf("%d:%d", result.Gid, result.Nid)
 	if data, err := json.Marshal(&result); err == nil {
-		db.Do("HSET",
+		err = db.Send("HSET",
 			fmt.Sprintf(hashCmdResults, result.ID),
 			key,
 			data)
 
+		if err != nil {
+			return err
+		}
 		// push message to client result queue queue
-		db.Do("RPUSH", getAgentResultQueue(result), data)
+		err = db.Send("RPUSH", getAgentResultQueue(result), data)
+		if err != nil {
+			return err
+		}
+	} else {
+		return err
 	}
+
+	return nil
 }
 
 func internalListAgents(cmd *CommandMessage) (interface{}, error) {
@@ -546,7 +559,6 @@ func result(c *gin.Context) {
 	gid := c.Param("gid")
 	nid := c.Param("nid")
 
-	key := fmt.Sprintf("%s:%s", gid, nid)
 	db := pool.Get()
 	defer db.Close()
 
@@ -573,14 +585,12 @@ func result(c *gin.Context) {
 
 	log.Println("Jobresult:", payload.ID)
 
-	// update jobresult
-	db.Do("HSET",
-		fmt.Sprintf(hashCmdResults, payload.ID),
-		key,
-		content)
-
-	// push message to client main result queue
-	db.Do("RPUSH", getAgentResultQueue(&payload), content)
+	err = sendResult(&payload)
+	if err != nil {
+		log.Println("Failed queue results")
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	c.JSON(http.StatusOK, "ok")
 }
