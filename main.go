@@ -62,6 +62,7 @@ type CommandResult struct {
 	Gid       int    `json:"gid"`
 	State     string `json:"state"`
 	Data      string `json:"data"`
+	Tags      string `json:"tags"`
 	Level     int    `json:"level"`
 	StartTime int64  `json:"starttime"`
 }
@@ -177,6 +178,7 @@ func processInternalCommand(command CommandMessage) {
 		ID:        command.ID,
 		Gid:       command.Gid,
 		Nid:       command.Nid,
+		Tags:      command.Tags,
 		State:     "ERROR",
 		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 	}
@@ -253,6 +255,7 @@ func readSingleCmd() bool {
 				ID:        payload.ID,
 				Gid:       payload.Gid,
 				Nid:       payload.Nid,
+				Tags:      payload.Tags,
 				State:     "ERROR",
 				Data:      fmt.Sprintf("No agents with role '%v' alive!", payload.Roles),
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
@@ -280,6 +283,7 @@ func readSingleCmd() bool {
 				ID:        payload.ID,
 				Gid:       payload.Gid,
 				Nid:       payload.Nid,
+				Tags:      payload.Tags,
 				State:     "ERROR",
 				Data:      fmt.Sprintf("Agent is not alive!"),
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
@@ -312,6 +316,7 @@ func readSingleCmd() bool {
 			ID:        payload.ID,
 			Gid:       gid,
 			Nid:       nid,
+			Tags:      payload.Tags,
 			State:     "QUEUED",
 			StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 		}
@@ -437,6 +442,7 @@ func getProducerChan(gid string, nid string) chan<- *PollData {
 							ID:        payload.ID,
 							Gid:       igid,
 							Nid:       inid,
+							Tags:      payload.Tags,
 							State:     "RUNNING",
 							StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 						}
