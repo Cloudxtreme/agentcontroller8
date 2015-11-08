@@ -7,6 +7,7 @@ import (
 	"github.com/robfig/cron"
 	"log"
 	"strings"
+	"github.com/Jumpscale/agentcontroller2/core"
 )
 
 const (
@@ -54,7 +55,7 @@ func NewScheduler(pool *redis.Pool) *Scheduler {
 }
 
 //Add create a schdule with the cmd ID (overrides old ones)
-func (sched *Scheduler) Add(cmd *CommandMessage) (interface{}, error) {
+func (sched *Scheduler) Add(cmd *core.Command) (interface{}, error) {
 	defer sched.restart()
 
 	db := sched.pool.Get()
@@ -82,7 +83,7 @@ func (sched *Scheduler) Add(cmd *CommandMessage) (interface{}, error) {
 }
 
 //List lists all scheduled jobs
-func (sched *Scheduler) List(cmd *CommandMessage) (interface{}, error) {
+func (sched *Scheduler) List(cmd *core.Command) (interface{}, error) {
 	db := sched.pool.Get()
 	defer db.Close()
 
@@ -90,7 +91,7 @@ func (sched *Scheduler) List(cmd *CommandMessage) (interface{}, error) {
 }
 
 //Remove removes the scheduled job that has this cmd.ID
-func (sched *Scheduler) Remove(cmd *CommandMessage) (interface{}, error) {
+func (sched *Scheduler) Remove(cmd *core.Command) (interface{}, error) {
 	db := sched.pool.Get()
 	defer db.Close()
 
@@ -105,7 +106,7 @@ func (sched *Scheduler) Remove(cmd *CommandMessage) (interface{}, error) {
 }
 
 //RemovePrefix removes all scheduled jobs that has the cmd.ID as a prefix
-func (sched *Scheduler) RemovePrefix(cmd *CommandMessage) (interface{}, error) {
+func (sched *Scheduler) RemovePrefix(cmd *core.Command) (interface{}, error) {
 	db := sched.pool.Get()
 	defer db.Close()
 

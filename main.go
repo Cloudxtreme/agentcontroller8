@@ -43,36 +43,6 @@ const (
 
 var influxDbTags = []string{"gid", "nid", "command", "domain", "name", "measurement"}
 
-//CommandMessage command message
-type CommandMessage struct {
-	ID     string   `json:"id"`
-	Gid    int      `json:"gid"`
-	Nid    int      `json:"nid"`
-	Cmd    string   `json:"cmd"`
-	Roles  []string `json:"roles"`
-	Fanout bool     `json:"fanout"`
-	Data   string   `json:"data"`
-	Tags   string   `json:"tags"`
-	Args   struct {
-		Name string `json:"name"`
-	} `json:"args"`
-}
-
-//CommandResult command result
-type CommandResult struct {
-	ID        string   `json:"id"`
-	Gid       int      `json:"gid"`
-	Nid       int      `json:"nid"`
-	Cmd       string   `json:"cmd"`
-	Data      string   `json:"data"`
-	Streams   []string `json:"streams"`
-	Tags      string   `json:"tags"`
-	Level     int      `json:"level"`
-	StartTime int64    `json:"starttime"`
-	State     string   `json:"state"`
-	Time      int      `json:"time"`
-}
-
 //StatsRequest stats request
 type StatsRequest struct {
 	Timestamp int64           `json:"timestamp"`
@@ -113,7 +83,7 @@ func getAgentQueue(id core.AgentID) string {
 	return fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
 }
 
-func getAgentResultQueue(result *CommandResult) string {
+func getAgentResultQueue(result *core.CommandResult) string {
 	return fmt.Sprintf(cmdQueueAgentResponse, result.ID, result.Gid, result.Nid)
 }
 
@@ -142,7 +112,7 @@ func getActiveAgents(onlyGid int, roles []string) [][]int {
 	return output
 }
 
-func sendResult(result *CommandResult) error {
+func sendResult(result *core.CommandResult) error {
 	db := pool.Get()
 	defer db.Close()
 
@@ -176,7 +146,7 @@ func sendResult(result *CommandResult) error {
 
 // Caller is expecting a map with keys "GID:NID" of each live agent and values being
 // the sequence of roles the agent declares.
-func internalListAgents(cmd *CommandMessage) (interface{}, error) {
+func internalListAgents(cmd *core.Command) (interface{}, error) {
 	output := make(map[string][]string)
 	for _, agentID := range liveAgents.ConnectedAgents() {
 		var roles []string
@@ -188,17 +158,17 @@ func internalListAgents(cmd *CommandMessage) (interface{}, error) {
 	return output, nil
 }
 
-var internals = map[string]func(*CommandMessage) (interface{}, error){
+var internals = map[string]func(*core.Command) (interface{}, error){
 	"list_agents": internalListAgents,
 }
 
-func processInternalCommand(command CommandMessage) {
-	result := &CommandResult{
+func processInternalCommand(command core.Command) {
+	result := &core.CommandResult{
 		ID:        command.ID,
 		Gid:       command.Gid,
 		Nid:       command.Nid,
 		Tags:      command.Tags,
-		State:     "ERROR",
+		State:     core.COMMAND_STATE_ERROR,
 		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 	}
 
@@ -248,7 +218,7 @@ func readSingleCmd() bool {
 	log.Println("Received message:", command)
 	command = InterceptCommand(command)
 	// parsing json data
-	var payload CommandMessage
+	var payload core.Command
 	err = json.Unmarshal([]byte(command), &payload)
 
 	if err != nil {
@@ -270,7 +240,7 @@ func readSingleCmd() bool {
 		active := getActiveAgents(payload.Gid, payload.Roles)
 		if len(active) == 0 {
 			//no active agents that saticifies this role.
-			result := &CommandResult{
+			result := &core.CommandResult{
 				ID:        payload.ID,
 				Gid:       payload.Gid,
 				Nid:       payload.Nid,
@@ -298,7 +268,7 @@ func readSingleCmd() bool {
 		_, ok := producers[key]
 		if !ok {
 			//send error message to
-			result := &CommandResult{
+			result := &core.CommandResult{
 				ID:        payload.ID,
 				Gid:       payload.Gid,
 				Nid:       payload.Nid,
@@ -332,12 +302,12 @@ func readSingleCmd() bool {
 			log.Println("[-] push error: ", err)
 		}
 
-		resultPlaceholder := CommandResult{
+		resultPlaceholder := core.CommandResult{
 			ID:        payload.ID,
 			Gid:       gid,
 			Nid:       nid,
 			Tags:      payload.Tags,
-			State:     "QUEUED",
+			State:     core.COMMAND_STATE_QUEUED,
 			StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 		}
 
@@ -448,17 +418,17 @@ func getProducerChan(gid string, nid string) chan<- *PollData {
 					select {
 					case msgChan <- pending[1]:
 						//caller consumed this job, it's safe to set it's state to RUNNING now.
-						var payload CommandMessage
+						var payload core.Command
 						if err := json.Unmarshal([]byte(pending[1]), &payload); err != nil {
 							break
 						}
 
-						resultPlacehoder := CommandResult{
+						resultPlacehoder := core.CommandResult {
 							ID:        payload.ID,
 							Gid:       igid,
 							Nid:       inid,
 							Tags:      payload.Tags,
-							State:     "RUNNING",
+							State:     core.COMMAND_STATE_RUNNING,
 							StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 						}
 
@@ -576,7 +546,7 @@ func result(c *gin.Context) {
 	}
 
 	// decode body
-	var payload CommandResult
+	var payload core.CommandResult
 	err = json.Unmarshal(content, &payload)
 
 	if err != nil {
