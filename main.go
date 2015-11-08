@@ -25,6 +25,8 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/gin-gonic/gin"
 	influxdb "github.com/influxdb/influxdb/client"
+	"github.com/amrhassan/agentcontroller2/core"
+	"github.com/amrhassan/agentcontroller2/agentdata"
 )
 
 const (
@@ -112,8 +114,8 @@ func isTimeout(err error) bool {
 	return strings.Contains(err.Error(), "timeout")
 }
 
-func getAgentQueue(gid int, nid int) string {
-	return fmt.Sprintf("cmds:%d:%d", gid, nid)
+func getAgentQueue(id core.AgentID) string {
+	return fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
 }
 
 func getAgentResultQueue(result *CommandResult) string {
@@ -319,9 +321,10 @@ func readSingleCmd() bool {
 		agent := e.Value.([]int)
 		gid := agent[0]
 		nid := agent[1]
+		agentID := core.AgentID{GID: uint(gid), NID: uint(nid)}
 
 		log.Println("Dispatching message to", agent)
-		if _, err := db.Do("RPUSH", getAgentQueue(gid, nid), command); err != nil {
+		if _, err := db.Do("RPUSH", getAgentQueue(agentID), command); err != nil {
 			log.Println("[-] push error: ", err)
 		}
 
@@ -369,6 +372,7 @@ func In(l []string, x string) bool {
 
 var producers = make(map[string]chan *PollData)
 var producersRoles = make(map[string][]string)
+var liveAgents = agentdata.NewAgentData()
 
 // var activeRoles map[string]int = make(map[string]int)
 // var activeGridRoles map[string]map[string]int = make(map[string]map[string]int)
@@ -394,6 +398,7 @@ func getProducerChan(gid string, nid string) chan<- *PollData {
 	if !ok {
 		igid, _ := strconv.Atoi(gid)
 		inid, _ := strconv.Atoi(nid)
+		agentID := core.AgentID{GID: uint(igid), NID: uint(inid)}
 		//start routine for this agent.
 		log.Printf("Agent %s:%s active, starting agent routine\n", gid, nid)
 
@@ -434,7 +439,7 @@ func getProducerChan(gid string, nid string) chan<- *PollData {
 					db := pool.Get()
 					defer db.Close()
 
-					pending, err := redis.Strings(db.Do("BLPOP", getAgentQueue(igid, inid), "0"))
+					pending, err := redis.Strings(db.Do("BLPOP", getAgentQueue(agentID), "0"))
 					if err != nil {
 						if !isTimeout(err) {
 							log.Println("Couldn't get new job for agent", key, err)
@@ -470,7 +475,7 @@ func getProducerChan(gid string, nid string) chan<- *PollData {
 						//caller didn't want to receive this command. have to repush it
 						//directly on the agent queue. to avoid doing the redispatching.
 						if pending[1] != "" {
-							db.Do("LPUSH", getAgentQueue(igid, inid), pending[1])
+							db.Do("LPUSH", getAgentQueue(agentID), pending[1])
 						}
 					}
 
