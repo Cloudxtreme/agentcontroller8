@@ -26,6 +26,7 @@ import (
 	influxdb "github.com/influxdb/influxdb/client"
 	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/Jumpscale/agentcontroller2/agentdata"
+	"github.com/Jumpscale/agentcontroller2/configs"
 )
 
 const (
@@ -755,7 +756,7 @@ func StartSyncthingHubbleAgent(hubblePort int) {
 	agent.Start(onExit)
 }
 
-var settings Settings
+var settings configs.Settings
 
 func main() {
 	var cfg string
@@ -770,7 +771,7 @@ func main() {
 	}
 
 	var err error
-	settings, err = LoadSettingsFromTomlFile(cfg)
+	settings, err = configs.LoadSettingsFromTomlFile(cfg)
 	if err != nil {
 		log.Panicln("Error loading configuration file:", err)
 	}
@@ -821,7 +822,7 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(len(settings.Listen))
 	for _, httpBinding := range settings.Listen {
-		go func(httpBinding HTTPBinding) {
+		go func(httpBinding configs.HTTPBinding) {
 			server := &http.Server{Addr: httpBinding.Address, Handler: router}
 			if httpBinding.TLSEnabled() {
 				server.TLSConfig = &tls.Config{}

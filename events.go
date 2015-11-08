@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"github.com/Jumpscale/agentcontroller2/configs"
 )
 
 type EventsHandler struct {
@@ -23,7 +24,7 @@ type EventRequest struct {
 	Data string `json:"data"`
 }
 
-func NewEventsHandler(settings *Events) (*EventsHandler, error) {
+func NewEventsHandler(settings *configs.Events) (*EventsHandler, error) {
 	opts := pygo.PyOpts{
 		PythonPath: settings.PythonPath,
 		Env: []string{
