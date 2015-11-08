@@ -13,7 +13,8 @@ import (
 )
 
 type EventsHandler struct {
-	module pygo.Pygo
+	module  pygo.Pygo
+	enabled bool
 }
 
 //EventRequest event request
@@ -30,25 +31,36 @@ func NewEventsHandler(settings *Events) (*EventsHandler, error) {
 		},
 	}
 
-	module, err := pygo.NewPy(settings.Module, &opts)
-	if err != nil {
-		return nil, err
+	var module pygo.Pygo
+	var err error
+	if settings.Enabled {
+		module, err = pygo.NewPy(settings.Module, &opts)
+		if err != nil {
+			return nil, err
+		}
+
+		log.Println("Calling handlers init")
+		_, err = module.Call("init", settings.Settings)
+		if err != nil {
+			return nil, err
+		}
+		log.Println("Init passed successfully")
 	}
 
 	handler := &EventsHandler{
-		module: module,
+		module:  module,
+		enabled: settings.Enabled,
 	}
-	log.Println("Calling handlers init")
-	_, err = handler.module.Call("init", settings.Settings)
-	if err != nil {
-		return nil, err
-	}
-	log.Println("Init passed successfully")
 
 	return handler, nil
 }
 
 func (handler *EventsHandler) Event(c *gin.Context) {
+	if !handler.enabled {
+		c.JSON(http.StatusOK, "ok")
+		return
+	}
+
 	gid := c.Param("gid")
 	nid := c.Param("nid")
 

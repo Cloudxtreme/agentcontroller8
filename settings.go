@@ -20,6 +20,7 @@ type HTTPBinding struct {
 }
 
 type Events struct {
+	Enabled    bool
 	Module     string
 	PythonPath string
 	Settings   map[string]string

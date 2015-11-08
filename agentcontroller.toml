@@ -28,6 +28,7 @@ password = "root"
 
 
 [events]
+enabled = true
 module = "handlers"
 python_path = "/opt/jumpscale7/lib:./events"
     [events.settings]
