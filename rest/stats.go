@@ -20,7 +20,7 @@ type StatsRequest struct {
 
 var influxDbTags = []string{"gid", "nid", "command", "domain", "name", "measurement"}
 
-func (r *RestInterface) stats(c *gin.Context) {
+func (r *Manager) stats(c *gin.Context) {
 	gid := c.Param("gid")
 	nid := c.Param("nid")
 

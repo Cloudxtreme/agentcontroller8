@@ -7,7 +7,7 @@ import (
 "github.com/Jumpscale/agentcontroller2/core"
 )
 
-func (r *RestInterface) cmd(c *gin.Context) {
+func (r *Manager) cmd(c *gin.Context) {
 	gid := c.Param("gid")
 	nid := c.Param("nid")
 

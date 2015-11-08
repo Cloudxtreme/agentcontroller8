@@ -7,7 +7,7 @@ import (
 )
 
 //Gets hashed scripts from redis.
-func (r *RestInterface) script(c *gin.Context) {
+func (r *Manager) script(c *gin.Context) {
 
 	query := c.Request.URL.Query()
 	hashes, ok := query["hash"]

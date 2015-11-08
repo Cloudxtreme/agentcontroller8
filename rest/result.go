@@ -8,7 +8,7 @@ import (
 "encoding/json"
 )
 
-func (r *RestInterface) result(c *gin.Context) {
+func (r *Manager) result(c *gin.Context) {
 	gid := c.Param("gid")
 	nid := c.Param("nid")
 

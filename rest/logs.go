@@ -8,7 +8,7 @@ import (
 )
 
 
-func (r *RestInterface) logs(c *gin.Context) {
+func (r *Manager) logs(c *gin.Context) {
 	gid := c.Param("gid")
 	nid := c.Param("nid")
 

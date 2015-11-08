@@ -7,7 +7,7 @@ import (
 	"github.com/Jumpscale/agentcontroller2/configs"
 )
 
-type RestInterface struct {
+type Manager struct {
 	engine *gin.Engine
 	eventHandler *happenings.EventsHandler
 	producerChanFactory core.ProducerChanFactory
@@ -16,15 +16,15 @@ type RestInterface struct {
 	settings 	*configs.Settings
 }
 
-func NewRestInterface(
+func NewManager(
 	eventHandler *happenings.EventsHandler,
 	producerChanFactory core.ProducerChanFactory,
 	redisPool *redis.Pool,
 	commandResponder core.CommandResponder,
 	settings *configs.Settings,
-	) *RestInterface {
+	) *Manager {
 
-	r := RestInterface{
+	r := Manager{
 		engine: gin.Default(),
 		eventHandler: eventHandler,
 		producerChanFactory: producerChanFactory,
@@ -45,6 +45,6 @@ func NewRestInterface(
 	return &r
 }
 
-func (r *RestInterface) Engine() *gin.Engine {
+func (r *Manager) Engine() *gin.Engine {
 	return r.engine
 }
