@@ -1,9 +1,9 @@
 package core
 
 const (
-	COMMAND_STATE_QUEUED = "QUEUED"
-	COMMAND_STATE_RUNNING = "RUNNING"
-	COMMAND_STATE_ERROR	= "ERROR"
+	CommandStateQueued = "QUEUED"
+	CommandStateRunning = "RUNNING"
+	CommandStateError = "ERROR"
 )
 
 type Command struct {

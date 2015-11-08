@@ -137,7 +137,7 @@ func (data *agentData) FilteredConnectedAgents(gid *uint, roles []core.AgentRole
 		ids = onlyInGrid(*gid, ids)
 	}
 
-	if roles != nil && ! containsRole(roles, core.AGENT_ROLE_ALL) {
+	if roles != nil && ! containsRole(roles, core.AgentRoleAll) {
 		ids = withAllRoles(roles, ids)
 	}
 

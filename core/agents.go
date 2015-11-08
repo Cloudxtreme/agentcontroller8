@@ -7,7 +7,7 @@ type AgentID struct {
 
 type AgentRole string
 
-const AGENT_ROLE_ALL = AgentRole("*")
+const AgentRoleAll = AgentRole("*")
 
 // Information about connected Agents
 type AgentInformationStorage interface {

@@ -81,9 +81,9 @@ func TestQueryingForConnectedAgentsWithFilters(t *testing.T) {
 
 	// Filtering with AGENT_ROLE_ALL
 	gid1 := uint(1)
-	gid1All := d.FilteredConnectedAgents(&gid1, []core.AgentRole{core.AGENT_ROLE_ALL, core.AgentRole("net")})
+	gid1All := d.FilteredConnectedAgents(&gid1, []core.AgentRole{core.AgentRoleAll, core.AgentRole("net")})
 	assert.Len(t, gid1All, 2)
 
-	all := d.FilteredConnectedAgents(nil, []core.AgentRole{core.AGENT_ROLE_ALL, core.AgentRole("net")})
+	all := d.FilteredConnectedAgents(nil, []core.AgentRole{core.AgentRoleAll, core.AgentRole("net")})
 	assert.Len(t, all, 4)
 }

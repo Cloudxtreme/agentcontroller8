@@ -158,7 +158,7 @@ func processInternalCommand(command core.Command) {
 		Gid:       command.Gid,
 		Nid:       command.Nid,
 		Tags:      command.Tags,
-		State:     core.COMMAND_STATE_ERROR,
+		State:     core.CommandStateError,
 		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 	}
 
@@ -297,7 +297,7 @@ func readSingleCmd() bool {
 			Gid:       gid,
 			Nid:       nid,
 			Tags:      payload.Tags,
-			State:     core.COMMAND_STATE_QUEUED,
+			State:     core.CommandStateQueued,
 			StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 		}
 
@@ -406,7 +406,7 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 							Gid:       igid,
 							Nid:       inid,
 							Tags:      payload.Tags,
-							State:     core.COMMAND_STATE_RUNNING,
+							State:     core.CommandStateRunning,
 							StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 						}
 
