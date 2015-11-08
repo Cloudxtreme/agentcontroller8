@@ -510,7 +510,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	restInterface := rest.NewRestInterface(
+	restInterface := rest.NewManager(
 		eventHandler,
 		getProducerChan,
 		pool,
