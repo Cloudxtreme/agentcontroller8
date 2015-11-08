@@ -24,6 +24,8 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/gin-gonic/gin"
 	influxdb "github.com/influxdb/influxdb/client"
+	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller2/agentdata"
 )
 
 const (
@@ -106,8 +108,8 @@ func isTimeout(err error) bool {
 	return strings.Contains(err.Error(), "timeout")
 }
 
-func getAgentQueue(gid int, nid int) string {
-	return fmt.Sprintf("cmds:%d:%d", gid, nid)
+func getAgentQueue(id core.AgentID) string {
+	return fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
 }
 
 func getAgentResultQueue(result *CommandResult) string {
@@ -115,35 +117,28 @@ func getAgentResultQueue(result *CommandResult) string {
 }
 
 func getActiveAgents(onlyGid int, roles []string) [][]int {
-	producersLock.Lock()
-	defer producersLock.Unlock()
+	var gidFilter *uint
+	var roleFilter []core.AgentRole
 
-	checkRole := len(roles) > 0 && roles[0] != roleAll
-	agents := make([][]int, 0, 10)
-	for key := range producers {
-		var gid, nid int
-		fmt.Sscanf(key, "%d:%d", &gid, &nid)
-		if onlyGid > 0 && onlyGid != gid {
-			continue
-		}
-
-		if checkRole {
-			agentRoles := producersRoles[key]
-			match := true
-			for _, r := range roles {
-				if !In(agentRoles, r) {
-					match = false
-					break
-				}
-			}
-			if !match {
-				continue
-			}
-		}
-		agents = append(agents, []int{gid, nid})
+	if onlyGid > 0 {
+		filterValue := uint(onlyGid)
+		gidFilter = &filterValue
 	}
 
-	return agents
+	if len(roles) > 0 {
+		for _, roleStr := range roles {
+			roleFilter = append(roleFilter, core.AgentRole(roleStr))
+		}
+	}
+
+	connectedAgents := liveAgents.FilteredConnectedAgents(gidFilter, roleFilter)
+
+	var output [][]int
+	for _, connectedAgent := range connectedAgents {
+		output = append(output, []int{int(connectedAgent.GID), int(connectedAgent.NID)})
+	}
+
+	return output
 }
 
 func sendResult(result *CommandResult) error {
@@ -178,8 +173,18 @@ func sendResult(result *CommandResult) error {
 	return nil
 }
 
+// Caller is expecting a map with keys "GID:NID" of each live agent and values being
+// the sequence of roles the agent declares.
 func internalListAgents(cmd *CommandMessage) (interface{}, error) {
-	return producersRoles, nil
+	output := make(map[string][]string)
+	for _, agentID := range liveAgents.ConnectedAgents() {
+		var roles []string
+		for _, role := range liveAgents.GetRoles(agentID) {
+			roles = append(roles, string(role))
+		}
+		output[fmt.Sprintf("%d:%d", agentID.GID, agentID.NID)] = roles
+	}
+	return output, nil
 }
 
 var internals = map[string]func(*CommandMessage) (interface{}, error){
@@ -319,9 +324,10 @@ func readSingleCmd() bool {
 		agent := e.Value.([]int)
 		gid := agent[0]
 		nid := agent[1]
+		agentID := core.AgentID{GID: uint(gid), NID: uint(nid)}
 
 		log.Println("Dispatching message to", agent)
-		if _, err := db.Do("RPUSH", getAgentQueue(gid, nid), command); err != nil {
+		if _, err := db.Do("RPUSH", getAgentQueue(agentID), command); err != nil {
 			log.Println("[-] push error: ", err)
 		}
 
@@ -368,7 +374,7 @@ func In(l []string, x string) bool {
 }
 
 var producers = make(map[string]chan *PollData)
-var producersRoles = make(map[string][]string)
+var liveAgents = agentdata.NewAgentData()
 
 // var activeRoles map[string]int = make(map[string]int)
 // var activeGridRoles map[string]map[string]int = make(map[string]map[string]int)
@@ -394,6 +400,7 @@ func getProducerChan(gid string, nid string) chan<- *PollData {
 	if !ok {
 		igid, _ := strconv.Atoi(gid)
 		inid, _ := strconv.Atoi(nid)
+		agentID := core.AgentID{GID: uint(igid), NID: uint(inid)}
 		//start routine for this agent.
 		log.Printf("Agent %s:%s active, starting agent routine\n", gid, nid)
 
@@ -410,7 +417,7 @@ func getProducerChan(gid string, nid string) chan<- *PollData {
 				producersLock.Lock()
 				defer producersLock.Unlock()
 				delete(producers, key)
-				delete(producersRoles, key)
+				liveAgents.DropAgent(agentID)
 			}()
 
 			for {
@@ -429,12 +436,17 @@ func getProducerChan(gid string, nid string) chan<- *PollData {
 					defer close(msgChan)
 
 					roles := data.Roles
-					producersRoles[key] = roles
+
+					var agentRoles []core.AgentRole
+					for _, role := range roles {
+						agentRoles = append(agentRoles, core.AgentRole(role))
+					}
+					liveAgents.SetRoles(agentID, agentRoles)
 
 					db := pool.Get()
 					defer db.Close()
 
-					pending, err := redis.Strings(db.Do("BLPOP", getAgentQueue(igid, inid), "0"))
+					pending, err := redis.Strings(db.Do("BLPOP", getAgentQueue(agentID), "0"))
 					if err != nil {
 						if !isTimeout(err) {
 							log.Println("Couldn't get new job for agent", key, err)
@@ -470,7 +482,7 @@ func getProducerChan(gid string, nid string) chan<- *PollData {
 						//caller didn't want to receive this command. have to repush it
 						//directly on the agent queue. to avoid doing the redispatching.
 						if pending[1] != "" {
-							db.Do("LPUSH", getAgentQueue(igid, inid), pending[1])
+							db.Do("LPUSH", getAgentQueue(agentID), pending[1])
 						}
 					}
 
