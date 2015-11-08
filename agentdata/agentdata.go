@@ -78,7 +78,7 @@ func (data *agentData) IsConnected(id core.AgentID) bool {
 	data.lock.RLock()
 	defer data.lock.RUnlock()
 
-	for agentID, _ := range data.roles {
+	for agentID := range data.roles {
 		if agentID == id {
 			return true
 		}
