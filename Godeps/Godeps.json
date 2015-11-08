@@ -12,6 +12,10 @@
 			"Rev": "b08456f213008d59d6591324f7841e2f93e8fbac"
 		},
 		{
+			"ImportPath": "github.com/Jumpscale/pygo",
+			"Rev": "0f334ba422254f4b4df94686569e7900804102db"
+		},
+		{
 			"ImportPath": "github.com/armon/go-metrics",
 			"Rev": "b2d95e5291cdbc26997d1301a5e467ecbb240e25"
 		},
