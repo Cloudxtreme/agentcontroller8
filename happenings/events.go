@@ -1,4 +1,4 @@
-package main
+package happenings
 
 import (
 	"encoding/json"
@@ -11,11 +11,13 @@ import (
 	"os"
 	"strconv"
 	"github.com/Jumpscale/agentcontroller2/configs"
+	"github.com/Jumpscale/agentcontroller2/core"
 )
 
 type EventsHandler struct {
 	module  pygo.Pygo
 	enabled bool
+	producerChanFactory core.ProducerChanFactory
 }
 
 //EventRequest event request
@@ -24,7 +26,7 @@ type EventRequest struct {
 	Data string `json:"data"`
 }
 
-func NewEventsHandler(settings *configs.Events) (*EventsHandler, error) {
+func NewEventsHandler(settings *configs.Events, producerChanFactory core.ProducerChanFactory) (*EventsHandler, error) {
 	opts := pygo.PyOpts{
 		PythonPath: settings.PythonPath,
 		Env: []string{
@@ -51,6 +53,7 @@ func NewEventsHandler(settings *configs.Events) (*EventsHandler, error) {
 	handler := &EventsHandler{
 		module:  module,
 		enabled: settings.Enabled,
+		producerChanFactory: producerChanFactory,
 	}
 
 	return handler, nil
@@ -69,7 +72,7 @@ func (handler *EventsHandler) Event(c *gin.Context) {
 
 	//force initializing of producer since the event is the first thing agent sends
 
-	getProducerChan(gid, nid)
+	handler.producerChanFactory(gid, nid)
 
 	content, err := ioutil.ReadAll(c.Request.Body)
 

@@ -33,3 +33,5 @@ type CommandResult struct {
 	State     string   `json:"state"`
 	Time      int      `json:"time"`
 }
+
+type CommandResponder func(result *CommandResult) error
