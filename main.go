@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
@@ -31,6 +30,7 @@ const (
 	agentInteractiveAfterOver = 30 * time.Second
 	roleAll                   = "*"
 	cmdQueueMain              = "cmds.queue"
+	resultsQueueMain          = "resutls.queue"
 	cmdQueueCmdQueued         = "cmd.%s.queued"
 	cmdQueueAgentResponse     = "cmd.%s.%d.%d"
 	logQueue                  = "joblog"
@@ -74,12 +74,6 @@ type CommandResult struct {
 type StatsRequest struct {
 	Timestamp int64           `json:"timestamp"`
 	Series    [][]interface{} `json:"series"`
-}
-
-//EvenRequest event request
-type EvenRequest struct {
-	Name string `json:"name"`
-	Data string `json:"data"`
 }
 
 // redis stuff
@@ -168,6 +162,12 @@ func sendResult(result *CommandResult) error {
 		}
 		// push message to client result queue queue
 		err = db.Send("RPUSH", getAgentResultQueue(result), data)
+		if err != nil {
+			return err
+		}
+
+		//main results queue for results processors
+		err = db.Send("RPUSH", resultsQueueMain, data)
 		if err != nil {
 			return err
 		}
@@ -689,87 +689,6 @@ func stats(c *gin.Context) {
 	c.JSON(http.StatusOK, "ok")
 }
 
-func event(c *gin.Context) {
-	gid := c.Param("gid")
-	nid := c.Param("nid")
-
-	log.Printf("[+] gin: event (gid: %s, nid: %s)\n", gid, nid)
-
-	//force initializing of producer since the event is the first thing agent sends
-
-	getProducerChan(gid, nid)
-
-	content, err := ioutil.ReadAll(c.Request.Body)
-
-	if err != nil {
-		log.Println("[-] cannot read body:", err)
-		c.JSON(http.StatusInternalServerError, "body error")
-		return
-	}
-
-	var payload EvenRequest
-	log.Printf("%s", content)
-	err = json.Unmarshal(content, &payload)
-	if err != nil {
-		log.Println(err)
-		c.JSON(http.StatusInternalServerError, "Error")
-	}
-
-	cmd := exec.Command(settings.Handlers.Binary,
-		fmt.Sprintf("%s.py", payload.Name), gid, nid)
-
-	cmd.Dir = settings.Handlers.Cwd
-	//build env string
-	var env []string
-	if len(settings.Handlers.Env) > 0 {
-		env = make([]string, 0, len(settings.Handlers.Env))
-		for ek, ev := range settings.Handlers.Env {
-			env = append(env, fmt.Sprintf("%v=%v", ek, ev))
-		}
-
-	}
-
-	cmd.Env = env
-
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		log.Println("Failed to open process stderr", err)
-	}
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		log.Println("Failed to open process stderr", err)
-	}
-
-	log.Println("Starting handler for", payload.Name, "event, for agent", gid, nid)
-	err = cmd.Start()
-	if err != nil {
-		log.Println(err)
-	} else {
-		go func() {
-			//wait for command to exit.
-			cmderrors, err := ioutil.ReadAll(stderr)
-			if err != nil {
-				log.Println(err)
-			}
-
-			cmdoutput, err := ioutil.ReadAll(stdout)
-			if err != nil {
-				log.Println(err)
-			}
-
-			err = cmd.Wait()
-			if err != nil {
-				log.Println("Failed to handle ", payload.Name, " event for agent: ", gid, nid, err)
-				log.Println(string(cmdoutput))
-				log.Println(string(cmderrors))
-			}
-		}()
-	}
-
-	c.JSON(http.StatusOK, "ok")
-}
-
 /*
 Gets hashed scripts from redis.
 */
@@ -868,12 +787,21 @@ func main() {
 
 	scheduler.Start()
 
+	eventHandler, err := NewEventsHandler(&settings.Events)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//start results processors
+	// processors := NewResultsProcessor(pool, resultsQueueMain)
+	// processors.Start()
+
 	hubbleAuth.Install(hubbleAuth.NewAcceptAllModule())
 	router.GET("/:gid/:nid/cmd", cmd)
 	router.POST("/:gid/:nid/log", logs)
 	router.POST("/:gid/:nid/result", result)
 	router.POST("/:gid/:nid/stats", stats)
-	router.POST("/:gid/:nid/event", event)
+	router.POST("/:gid/:nid/event", eventHandler.Event)
 	router.GET("/:gid/:nid/hubble", handlHubbleProxy)
 	router.GET("/:gid/:nid/script", script)
 	// router.Static("/doc", "./doc")

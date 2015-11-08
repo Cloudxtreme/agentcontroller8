@@ -28,6 +28,28 @@ SHARE_FOLDERS = {
     'jumpscripts': 'jumpscripts'
 }
 
+settings = {
+    'syncthing': {
+        'url': 'http://localhost:8384/',
+    },
+    'redis': {
+        'address': 'localhost',
+        'port': '6379',
+        'password': None
+    }
+}
+
+
+def init(config):
+    """
+    init gets called immediately when agent controller starts with the settings from the config file.
+    We use this to configure the module for the operations needed.
+    """
+    settings['syncthing']['url'] = config['syncthing_url']
+    settings['redis']['address'] = config['redis_address']
+    settings['redis']['port'] = config['redis_port']
+    settings['redis']['password'] = config['redis_password']
+
 
 def results_or_die(results):
     if results.state != 'SUCCESS':
@@ -38,7 +60,7 @@ def results_or_die(results):
 
 
 def get_url(endpoint):
-    base_url = utils.settings['syncthing']['url'].rstrip('/')
+    base_url = settings['syncthing']['url'].rstrip('/')
     return '%s%s' % (base_url, endpoint)
 
 
@@ -62,13 +84,7 @@ def startup(gid, nid):
         'content-type': 'application/json'
     }
 
-    syncthing = utils.settings['syncthing']
-    api_key = syncthing['api-key']
-
-    if api_key is not None:
-        headers['X-API-Key'] = api_key
-
-    client = j.clients.ac.getAdvanced(**utils.settings['redis'])
+    client = j.clients.ac.getAdvanced(**settings['redis'])
     default = j.clients.ac.getRunArgs(domain='jumpscale')
 
     get_id = client.cmd(gid, nid, 'sync', default.update({'name': 'get_id'}))
@@ -86,11 +102,10 @@ def startup(gid, nid):
     device_id_hash = hashlib.md5(local_device_id).hexdigest()
     config = response.json()
 
-    if api_key is None:
-        # if auth is off, we still need to use the API key to be able to use POST.
-        # in this case, get the API key from the get response
-        api_key = config['gui']['apiKey']
-        headers['X-API-Key'] = api_key
+    # if auth is off, we still need to use the API key to be able to use POST.
+    # in this case, get the API key from the get response
+    api_key = config['gui']['apiKey']
+    headers['X-API-Key'] = api_key
 
     devices = filter(lambda d: d['deviceID'] == agent_device_id, config['devices'])
 
@@ -159,6 +174,3 @@ def startup(gid, nid):
             continue
 
     client.cmd(gid, nid, 'sync', default.update({'name': 'restart'}))
-
-if __name__ == '__main__':
-    utils.run(startup)

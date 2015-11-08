@@ -19,6 +19,12 @@ type HTTPBinding struct {
 	}
 }
 
+type Events struct {
+	Module     string
+	PythonPath string
+	Settings   map[string]string
+}
+
 //Settings are the configurable options for the AgentController
 type Settings struct {
 	Main struct {
@@ -35,11 +41,7 @@ type Settings struct {
 		Password string
 	}
 
-	Handlers struct {
-		Binary string
-		Cwd    string
-		Env    map[string]string
-	}
+	Events Events
 
 	Syncthing struct {
 		Port int

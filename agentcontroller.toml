@@ -26,17 +26,15 @@ db   = "main"
 user = "root"
 password = "root"
 
-[handlers]
-binary = "python2.7"
-cwd = "./handlers"
-    [handlers.env]
-    PYTHONPATH = "/opt/jumpscale7/lib"
-    HOME = "/root"
-    SYNCTHING_URL = "http://localhost:18384/"
-    #SYNCTHING_API_KEY = ""
-    REDIS_ADDRESS = "localhost"
-    REDIS_PORT = "6379"
-    #REDIS_PASSWORD = ""
+
+[events]
+module = "handlers"
+python_path = "/opt/jumpscale7/lib:./events"
+    [events.settings]
+    syncthing_url = "http://localhost:18384/"
+    redis_address = "localhost"
+    redis_port = "9999"
+    redis_password = ""
 
 ##### The following 2 sections are supportive for syncthing operation
 ##### Please don't remove or edit unless you know what you are doing
