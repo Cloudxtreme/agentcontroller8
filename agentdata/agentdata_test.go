@@ -1,9 +1,9 @@
 package agentdata_test
 import (
 	"testing"
-	"github.com/amrhassan/agentcontroller2/agentdata"
 	"github.com/stretchr/testify/assert"
-	"github.com/amrhassan/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller2/agentdata"
 )
 
 // Note: These tests don't validate the thread-safety aspect of the implementation
@@ -78,4 +78,12 @@ func TestQueryingForConnectedAgentsWithFilters(t *testing.T) {
 	gid0Master := d.FilteredConnectedAgents(&gid0, []core.AgentRole{"master"})
 	assert.Len(t, gid0Master, 1)
 	assert.Contains(t, gid0Master, id1)
+
+	// Filtering with AGENT_ROLE_ALL
+	gid1 := uint(1)
+	gid1All := d.FilteredConnectedAgents(&gid1, []core.AgentRole{core.AGENT_ROLE_ALL, core.AgentRole("net")})
+	assert.Len(t, gid1All, 2)
+
+	all := d.FilteredConnectedAgents(nil, []core.AgentRole{core.AGENT_ROLE_ALL, core.AgentRole("net")})
+	assert.Len(t, all, 4)
 }

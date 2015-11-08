@@ -7,6 +7,8 @@ type AgentID struct {
 
 type AgentRole string
 
+const AGENT_ROLE_ALL = AgentRole("*")
+
 // Information about connected Agents
 type AgentInformationStorage interface {
 
@@ -28,6 +30,7 @@ type AgentInformationStorage interface {
 	// Queries for all the available agents that specify the given criteria:
 	//	- If gid is not nil, only returns IDs of Agents with that GID
 	//	- if roles is not nil, only returns IDs of Agents that have all of these roles
+	//	- if roles include AGENT_ROLE_ALL do not filter by roles at all
 	FilteredConnectedAgents(gid *uint, roles []AgentRole) []AgentID
 
 	IsConnected(id AgentID) bool

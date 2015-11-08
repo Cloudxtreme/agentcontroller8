@@ -1,6 +1,6 @@
 package agentdata
 import (
-	"github.com/amrhassan/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller2/core"
 	"sync"
 )
 
@@ -87,21 +87,21 @@ func (data *agentData) IsConnected(id core.AgentID) bool {
 	return false
 }
 
+func containsRole(ks []core.AgentRole, z core.AgentRole) bool {
+	for _, k := range ks {
+		if k == z {
+			return true
+		}
+	}
+	return false
+}
+
 // Returns true only if the two given arrays are equivalent as two sets.
 // O(n^2)
 func roleSetEquivalent(xs []core.AgentRole, ys []core.AgentRole) bool {
 
-	contains := func (ks []core.AgentRole, z core.AgentRole) bool {
-		for _, k := range ks {
-			if k == z {
-				return true
-			}
-		}
-		return false
-	}
-
 	for _, x := range xs {
-		if !contains(ys, x) {
+		if !containsRole(ys, x) {
 			return false
 		}
 	}
@@ -137,7 +137,7 @@ func (data *agentData) FilteredConnectedAgents(gid *uint, roles []core.AgentRole
 		ids = onlyInGrid(*gid, ids)
 	}
 
-	if roles != nil {
+	if roles != nil && ! containsRole(roles, core.AGENT_ROLE_ALL) {
 		ids = withAllRoles(roles, ids)
 	}
 
