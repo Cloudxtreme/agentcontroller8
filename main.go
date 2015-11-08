@@ -363,17 +363,6 @@ func cmdreader() {
 	}
 }
 
-//In checks if x is in l
-func In(l []string, x string) bool {
-	for i := 0; i < len(l); i++ {
-		if l[i] == x {
-			return true
-		}
-	}
-
-	return false
-}
-
 var producers = make(map[string]chan *PollData)
 var liveAgents = agentdata.NewAgentData()
 
