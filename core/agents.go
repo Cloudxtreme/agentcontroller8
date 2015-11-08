@@ -12,7 +12,7 @@ const AgentRoleAll = AgentRole("*")
 // Information about connected Agents
 type AgentInformationStorage interface {
 
-	// Sets the roles associated with an Agent
+	// Sets the roles associated with an Agent, overwriting any previously-set roles.
 	SetRoles(id AgentID, roles []AgentRole)
 
 	// Gets the roles associated with an Agent
