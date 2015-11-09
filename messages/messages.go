@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 )
 
-// A core.Command in transit. The payload is the JSON encoding of the content (it may contain
-// more data than represented in the command)
+// A core.Command in multiple formats.
+// The payload is the JSON encoding of the content (it may contain more data than represented in the command)
 type CommandMessage struct {
 	Content core.Command
 	Payload []byte
 	Raw		core.RawCommand
 }
 
-// A core.CommandResult in transit. The payload is the JSON encoding of the content (it may contain
-// more data than represented in the command result)
+// A core.CommandResult in multiple formats.
+// The payload is the JSON encoding of the content (it may contain more data than represented in the command result)
 type CommandResultMessage struct {
 	Content core.CommandResult
 	Payload []byte

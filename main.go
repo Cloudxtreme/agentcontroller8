@@ -26,12 +26,12 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/Jumpscale/agentcontroller2/interceptors"
 	"github.com/Jumpscale/agentcontroller2/messages"
+	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
 )
 
 const (
 	agentInteractiveAfterOver = 30 * time.Second
 	roleAll                   = "*"
-	cmdQueueMain              = "cmds.queue"
 	resultsQueueMain          = "resutls.queue"
 	cmdQueueCmdQueued         = "cmd.%s.queued"
 	cmdQueueAgentResponse     = "cmd.%s.%d.%d"
@@ -39,6 +39,8 @@ const (
 	hashCmdResults            = "jobresult:%s"
 	cmdInternal               = "controller"
 )
+
+var CommandRedisQueue = messages.RedisCommandList{List: ds.List{Name: "cmds.queue"}}
 
 // redis stuff
 func newPool(addr string, password string) *redis.Pool {
@@ -196,8 +198,7 @@ func readSingleCmd() bool {
 	db := pool.Get()
 	defer db.Close()
 
-	commandEntry, err := redis.Strings(db.Do("BLPOP", cmdQueueMain, "0"))
-
+	commandMessage, err := CommandRedisQueue.BlockingPop(pool, 0)
 	if err != nil {
 		if isTimeout(err) {
 			return true
@@ -205,25 +206,13 @@ func readSingleCmd() bool {
 
 		log.Fatal("Coulnd't read new commands from redis", err)
 	}
-	command := commandEntry[1]
 
-	log.Println("Received message:", command)
-	intermediateMessage, err := messages.CommandMessageFromJSON([]byte(command))
-	if err != nil {
-		panic(err)
-	}
-	command = string(commandInterceptors.Intercept(intermediateMessage).Payload)
-	// parsing json data
-	var payload core.Command
-	err = json.Unmarshal([]byte(command), &payload)
+	log.Println("Received message:", commandMessage)
 
-	if err != nil {
-		log.Println("message decoding error:", err)
-		return true
-	}
+	var command core.Command = commandMessage.Content
 
-	if payload.Cmd == cmdInternal {
-		go processInternalCommand(payload)
+	if command.Cmd == cmdInternal {
+		go processInternalCommand(command)
 		return true
 	}
 
@@ -231,24 +220,24 @@ func readSingleCmd() bool {
 	//either by role or by the gid/nid.
 	ids := list.New()
 
-	if len(payload.Roles) > 0 {
+	if len(command.Roles) > 0 {
 		//command has a given role
-		active := getActiveAgents(payload.Gid, payload.Roles)
+		active := getActiveAgents(command.Gid, command.Roles)
 		if len(active) == 0 {
 			//no active agents that saticifies this role.
 			result := &core.CommandResult{
-				ID:        payload.ID,
-				Gid:       payload.Gid,
-				Nid:       payload.Nid,
-				Tags:      payload.Tags,
+				ID:        command.ID,
+				Gid:       command.Gid,
+				Nid:       command.Nid,
+				Tags:      command.Tags,
 				State:     "ERROR",
-				Data:      fmt.Sprintf("No agents with role '%v' alive!", payload.Roles),
+				Data:      fmt.Sprintf("No agents with role '%v' alive!", command.Roles),
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 			}
 
 			sendResult(result)
 		} else {
-			if payload.Fanout {
+			if command.Fanout {
 				//fanning out.
 				for _, agent := range active {
 					ids.PushBack(agent)
@@ -260,15 +249,15 @@ func readSingleCmd() bool {
 			}
 		}
 	} else {
-		key := fmt.Sprintf("%d:%d", payload.Gid, payload.Nid)
+		key := fmt.Sprintf("%d:%d", command.Gid, command.Nid)
 		_, ok := producers[key]
 		if !ok {
 			//send error message to
 			result := &core.CommandResult{
-				ID:        payload.ID,
-				Gid:       payload.Gid,
-				Nid:       payload.Nid,
-				Tags:      payload.Tags,
+				ID:        command.ID,
+				Gid:       command.Gid,
+				Nid:       command.Nid,
+				Tags:      command.Tags,
 				State:     "ERROR",
 				Data:      fmt.Sprintf("Agent is not alive!"),
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
@@ -276,12 +265,12 @@ func readSingleCmd() bool {
 
 			sendResult(result)
 		} else {
-			ids.PushBack([]int{payload.Gid, payload.Nid})
+			ids.PushBack([]int{command.Gid, command.Nid})
 		}
 	}
 
 	// push logs
-	if _, err := db.Do("LPUSH", logQueue, command); err != nil {
+	if _, err := db.Do("LPUSH", logQueue, commandMessage.Payload); err != nil {
 		log.Println("[-] log push error: ", err)
 	}
 
@@ -294,28 +283,28 @@ func readSingleCmd() bool {
 		agentID := core.AgentID{GID: uint(gid), NID: uint(nid)}
 
 		log.Println("Dispatching message to", agent)
-		if _, err := db.Do("RPUSH", getAgentQueue(agentID), command); err != nil {
+		if _, err := db.Do("RPUSH", getAgentQueue(agentID), commandMessage.Payload); err != nil {
 			log.Println("[-] push error: ", err)
 		}
 
 		resultPlaceholder := core.CommandResult{
-			ID:        payload.ID,
+			ID:        command.ID,
 			Gid:       gid,
 			Nid:       nid,
-			Tags:      payload.Tags,
+			Tags:      command.Tags,
 			State:     core.CommandStateQueued,
 			StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 		}
 
 		if data, err := json.Marshal(&resultPlaceholder); err == nil {
 			db.Do("HSET",
-				fmt.Sprintf(hashCmdResults, payload.ID),
+				fmt.Sprintf(hashCmdResults, command.ID),
 				fmt.Sprintf("%d:%d", gid, nid),
 				data)
 		}
 	}
 
-	signalQueues(payload.ID)
+	signalQueues(command.ID)
 	return true
 }
 
