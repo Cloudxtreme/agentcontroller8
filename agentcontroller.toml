@@ -37,6 +37,11 @@ python_path = "/opt/jumpscale7/lib:./extensions"
     redis_port = "9999"
     redis_password = ""
 
+[processors]
+enabled = true
+module = "processors"
+python_path = "/opt/jumpscale7/lib:./extensions"
+
 ##### The following 2 sections are supportive for syncthing operation
 ##### Please don't remove or edit unless you know what you are doing
 ##### This will get replace once we implement local transport for hubbble.

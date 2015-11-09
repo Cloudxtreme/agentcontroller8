@@ -26,7 +26,7 @@ type EventRequest struct {
 	Data string `json:"data"`
 }
 
-func NewEventsHandler(settings *configs.Events, producerChanFactory core.ProducerChanFactory) (*EventsHandler, error) {
+func NewEventsHandler(settings *configs.Extension, producerChanFactory core.ProducerChanFactory) (*EventsHandler, error) {
 	opts := pygo.PyOpts{
 		PythonPath: settings.PythonPath,
 		Env: []string{

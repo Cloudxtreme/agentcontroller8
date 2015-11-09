@@ -19,7 +19,7 @@ type HTTPBinding struct {
 	}
 }
 
-type Events struct {
+type Extension struct {
 	Enabled    bool
 	Module     string
 	PythonPath string
@@ -42,7 +42,9 @@ type Settings struct {
 		Password string
 	}
 
-	Events Events
+	Events Extension
+
+	Processors Extension
 
 	Syncthing struct {
 		Port int
