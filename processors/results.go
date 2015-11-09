@@ -4,24 +4,19 @@ import (
 	"fmt"
 	"github.com/Jumpscale/agentcontroller2/configs"
 	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller2/messages"
 	"github.com/Jumpscale/pygo"
 	"github.com/garyburd/redigo/redis"
 	"log"
 	"os"
-	"github.com/Jumpscale/agentcontroller2/messages"
 )
 
-type DataEnd interface {
-	Save(*core.CommandResult) error
-}
-
-type ResultsProcessor interface {
+type Processor interface {
 	Start()
 }
 
-type redisProcessorImpl struct {
+type resultsProcessorImpl struct {
 	enabled bool
-	labels  []string
 	queue   messages.RedisCommandResultList
 	pool    *redis.Pool
 
@@ -29,7 +24,7 @@ type redisProcessorImpl struct {
 }
 
 func NewResultsProcessor(config *configs.Extension, pool *redis.Pool,
-	queue messages.RedisCommandResultList) (ResultsProcessor, error) {
+	queue messages.RedisCommandResultList) (Processor, error) {
 
 	var module pygo.Pygo
 	var err error
@@ -48,7 +43,7 @@ func NewResultsProcessor(config *configs.Extension, pool *redis.Pool,
 		}
 	}
 
-	processor := &redisProcessorImpl{
+	processor := &resultsProcessorImpl{
 		enabled: config.Enabled,
 		pool:    pool,
 		queue:   queue,
@@ -58,7 +53,7 @@ func NewResultsProcessor(config *configs.Extension, pool *redis.Pool,
 	return processor, nil
 }
 
-func (processor *redisProcessorImpl) processSingleResult() error {
+func (processor *resultsProcessorImpl) processSingleResult() error {
 
 	commandResultMessage, err := processor.queue.BlockingPop(processor.pool, 0)
 
@@ -81,7 +76,7 @@ func (processor *redisProcessorImpl) processSingleResult() error {
 	return nil
 }
 
-func (processor *redisProcessorImpl) loop() {
+func (processor *resultsProcessorImpl) loop() {
 	for {
 		err := processor.processSingleResult()
 		if err != nil {
@@ -90,6 +85,6 @@ func (processor *redisProcessorImpl) loop() {
 	}
 }
 
-func (processor *redisProcessorImpl) Start() {
+func (processor *resultsProcessorImpl) Start() {
 	go processor.loop()
 }
