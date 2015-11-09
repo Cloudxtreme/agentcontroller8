@@ -15,7 +15,6 @@ func (list List) BlockingPop(connPool *redis.Pool, timeout time.Duration) ([]byt
 	defer conn.Close()
 
 	reply, err := redis.Strings(conn.Do("BLPOP", list.Name, fmt.Sprintf("%d", timeout)))
-
 	if err != nil {
 		return nil, err
 	} else {

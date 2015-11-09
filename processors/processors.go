@@ -9,6 +9,7 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"log"
 	"os"
+	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
 )
 
 type DataEnd interface {
@@ -22,13 +23,13 @@ type ResultsProcessor interface {
 type redisProcessorImpl struct {
 	enabled bool
 	labels  []string
-	queue   string
+	queue   ds.List
 	pool    *redis.Pool
 
 	module pygo.Pygo
 }
 
-func NewResultsProcessor(config *configs.Extension, pool *redis.Pool, queue string) (ResultsProcessor, error) {
+func NewResultsProcessor(config *configs.Extension, pool *redis.Pool, queue ds.List) (ResultsProcessor, error) {
 
 	var module pygo.Pygo
 	var err error
@@ -61,7 +62,7 @@ func (processor *redisProcessorImpl) processSingleResult() error {
 	db := processor.pool.Get()
 	defer db.Close()
 
-	resultString, err := redis.Strings(db.Do("BLPOP", processor.queue, "0"))
+	resultString, err := processor.queue.BlockingPop(processor.pool, 0)
 
 	if err != nil {
 		if core.IsTimeout(err) {
@@ -73,7 +74,7 @@ func (processor *redisProcessorImpl) processSingleResult() error {
 
 	var result core.CommandResult
 
-	err = json.Unmarshal([]byte(resultString[1]), &result)
+	err = json.Unmarshal(resultString, &result)
 	if err != nil {
 		return err
 	}

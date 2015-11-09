@@ -508,7 +508,7 @@ func main() {
 	)
 
 	//start results processors
-	processor, err := processors.NewResultsProcessor(&settings.Processors, pool, resultsQueueMain)
+	processor, err := processors.NewResultsProcessor(&settings.Processors, pool, CommandResultRedisQueue)
 	if err != nil {
 		log.Fatal("Failed to load processors module", err)
 	}
