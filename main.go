@@ -35,12 +35,12 @@ const (
 	resultsQueueMain          = "resutls.queue"
 	cmdQueueCmdQueued         = "cmd.%s.queued"
 	cmdQueueAgentResponse     = "cmd.%s.%d.%d"
-	logQueue                  = "joblog"
 	hashCmdResults            = "jobresult:%s"
 	cmdInternal               = "controller"
 )
 
 var CommandRedisQueue = messages.RedisCommandList{List: ds.List{Name: "cmds.queue"}}
+var LogRedisQueue = ds.List{Name: "joblog"}
 
 // redis stuff
 func newPool(addr string, password string) *redis.Pool {
@@ -270,7 +270,8 @@ func readSingleCmd() bool {
 	}
 
 	// push logs
-	if _, err := db.Do("LPUSH", logQueue, commandMessage.Payload); err != nil {
+	err = LogRedisQueue.LeftPush(pool, commandMessage.Payload)
+	if err != nil {
 		log.Println("[-] log push error: ", err)
 	}
 
