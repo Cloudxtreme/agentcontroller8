@@ -40,7 +40,7 @@ const (
 
 var CommandRedisQueue = messages.RedisCommandList{List: ds.List{Name: "cmds.queue"}}
 var LogRedisQueue = ds.List{Name: "joblog"}
-var CommandResultRedisQueue = ds.List{Name: "resutls.queue"}
+var CommandResultRedisQueue = messages.RedisCommandResultList{List: ds.List{Name: "resutls.queue"}}
 
 // redis stuff
 func newPool(addr string, password string) *redis.Pool {
@@ -123,7 +123,12 @@ func sendResult(result *core.CommandResult) error {
 		}
 
 		//main results queue for results processors
-		err = CommandResultRedisQueue.RightPush(pool, data)
+		commandResultMessage, err := messages.CommandResultMessageFromCommandResult(result)
+		if err != nil {
+			return err
+		}
+
+		err = CommandResultRedisQueue.RightPush(pool, commandResultMessage)
 		if err != nil {
 			return err
 		}

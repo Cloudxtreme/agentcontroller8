@@ -14,7 +14,7 @@ func (list RedisCommandResultList) BlockingPop(connPool *redis.Pool, timeout tim
 	if err != nil {
 		return nil, err
 	}
-	return CommandResultMessageFrom(jsonData)
+	return CommandResultMessageFromJSON(jsonData)
 }
 
 func (list RedisCommandResultList) LeftPush(connPool *redis.Pool, message *CommandResultMessage) error {

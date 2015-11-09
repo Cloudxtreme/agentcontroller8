@@ -1,7 +1,6 @@
 package processors
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/Jumpscale/agentcontroller2/configs"
 	"github.com/Jumpscale/agentcontroller2/core"
@@ -9,7 +8,7 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"log"
 	"os"
-	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
+	"github.com/Jumpscale/agentcontroller2/messages"
 )
 
 type DataEnd interface {
@@ -23,13 +22,14 @@ type ResultsProcessor interface {
 type redisProcessorImpl struct {
 	enabled bool
 	labels  []string
-	queue   ds.List
+	queue   messages.RedisCommandResultList
 	pool    *redis.Pool
 
 	module pygo.Pygo
 }
 
-func NewResultsProcessor(config *configs.Extension, pool *redis.Pool, queue ds.List) (ResultsProcessor, error) {
+func NewResultsProcessor(config *configs.Extension, pool *redis.Pool,
+	queue messages.RedisCommandResultList) (ResultsProcessor, error) {
 
 	var module pygo.Pygo
 	var err error
@@ -60,7 +60,7 @@ func NewResultsProcessor(config *configs.Extension, pool *redis.Pool, queue ds.L
 
 func (processor *redisProcessorImpl) processSingleResult() error {
 
-	resultString, err := processor.queue.BlockingPop(processor.pool, 0)
+	commandResultMessage, err := processor.queue.BlockingPop(processor.pool, 0)
 
 	if err != nil {
 		if core.IsTimeout(err) {
@@ -70,15 +70,8 @@ func (processor *redisProcessorImpl) processSingleResult() error {
 		return err
 	}
 
-	var result core.CommandResult
-
-	err = json.Unmarshal(resultString, &result)
-	if err != nil {
-		return err
-	}
-
 	if processor.enabled {
-		_, err := processor.module.Call("process", result)
+		_, err := processor.module.Call("process", commandResultMessage.Content)
 		if err != nil {
 			log.Println("Failed to process result", err)
 		}

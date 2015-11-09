@@ -47,7 +47,7 @@ func CommandMessageFromRawCommand(rawCommand core.RawCommand) (*CommandMessage, 
 	return CommandMessageFromJSON(jsonData)
 }
 
-func CommandResultMessageFrom(payload []byte) (*CommandResultMessage, error) {
+func CommandResultMessageFromJSON(payload []byte) (*CommandResultMessage, error) {
 	var commandResult core.CommandResult
 	err := json.Unmarshal(payload, &commandResult)
 	if err != nil {
@@ -58,4 +58,12 @@ func CommandResultMessageFrom(payload []byte) (*CommandResultMessage, error) {
 		Content: commandResult,
 		Payload: payload,
 	}, nil
+}
+
+func CommandResultMessageFromCommandResult(commandResult *core.CommandResult) (*CommandResultMessage, error) {
+	jsonData, err := json.Marshal(commandResult)
+	if err != nil {
+		return nil, err
+	}
+	return CommandResultMessageFromJSON(jsonData)
 }
