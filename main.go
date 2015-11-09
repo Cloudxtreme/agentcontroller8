@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -20,6 +19,7 @@ import (
 	"github.com/Jumpscale/agentcontroller2/configs"
 	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/Jumpscale/agentcontroller2/events"
+	"github.com/Jumpscale/agentcontroller2/processors"
 	"github.com/Jumpscale/agentcontroller2/rest"
 	hublleAgent "github.com/Jumpscale/hubble/agent"
 	hubbleAuth "github.com/Jumpscale/hubble/auth"
@@ -63,10 +63,6 @@ func newPool(addr string, password string) *redis.Pool {
 }
 
 var pool *redis.Pool
-
-func isTimeout(err error) bool {
-	return strings.Contains(err.Error(), "timeout")
-}
 
 func getAgentQueue(id core.AgentID) string {
 	return fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
@@ -196,7 +192,7 @@ func readSingleCmd() bool {
 	commandEntry, err := redis.Strings(db.Do("BLPOP", cmdQueueMain, "0"))
 
 	if err != nil {
-		if isTimeout(err) {
+		if core.IsTimeout(err) {
 			return true
 		}
 
@@ -385,7 +381,7 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 
 					pending, err := redis.Strings(db.Do("BLPOP", getAgentQueue(agentID), "0"))
 					if err != nil {
-						if !isTimeout(err) {
+						if !core.IsTimeout(err) {
 							log.Println("Couldn't get new job for agent", key, err)
 						}
 
@@ -500,7 +496,7 @@ func main() {
 
 	eventHandler, err := events.NewEventsHandler(&settings.Events, getProducerChan)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to load events handlers module", err)
 	}
 
 	restInterface := rest.NewManager(
@@ -512,8 +508,12 @@ func main() {
 	)
 
 	//start results processors
-	// processors := NewResultsProcessor(pool, resultsQueueMain)
-	// processors.Start()
+	processor, err := processors.NewResultsProcessor(&settings.Processors, pool, resultsQueueMain)
+	if err != nil {
+		log.Fatal("Failed to load processors module", err)
+	}
+
+	processor.Start()
 
 	hubbleAuth.Install(hubbleAuth.NewAcceptAllModule())
 
