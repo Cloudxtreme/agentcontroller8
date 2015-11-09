@@ -32,7 +32,6 @@ import (
 const (
 	agentInteractiveAfterOver = 30 * time.Second
 	roleAll                   = "*"
-	resultsQueueMain          = "resutls.queue"
 	cmdQueueCmdQueued         = "cmd.%s.queued"
 	cmdQueueAgentResponse     = "cmd.%s.%d.%d"
 	hashCmdResults            = "jobresult:%s"
@@ -41,6 +40,7 @@ const (
 
 var CommandRedisQueue = messages.RedisCommandList{List: ds.List{Name: "cmds.queue"}}
 var LogRedisQueue = ds.List{Name: "joblog"}
+var CommandResultRedisQueue = ds.List{Name: "resutls.queue"}
 
 // redis stuff
 func newPool(addr string, password string) *redis.Pool {
@@ -127,7 +127,7 @@ func sendResult(result *core.CommandResult) error {
 		}
 
 		//main results queue for results processors
-		err = db.Send("RPUSH", resultsQueueMain, data)
+		err = CommandResultRedisQueue.RightPush(pool, data)
 		if err != nil {
 			return err
 		}
@@ -208,6 +208,8 @@ func readSingleCmd() bool {
 	}
 
 	log.Println("Received message:", commandMessage)
+
+	commandMessage = commandInterceptors.Intercept(commandMessage)
 
 	var command core.Command = commandMessage.Content
 
