@@ -29,8 +29,6 @@ type SchedulerJob struct {
 
 //Run runs the scheduled job
 func (job *SchedulerJob) Run() {
-	db := pool.Get()
-	defer db.Close()
 
 	job.Cmd["id"] = uuid.New()
 
@@ -38,7 +36,7 @@ func (job *SchedulerJob) Run() {
 
 	log.Println("Scheduler: Running job", job.ID, job.Cmd["id"])
 
-	_, err := db.Do("RPUSH", cmdQueueMain, string(dump))
+	err := CommandRedisQueue.List.RightPush(pool, dump)
 	if err != nil {
 		log.Println("Failed to run scheduled command", job.ID)
 	}

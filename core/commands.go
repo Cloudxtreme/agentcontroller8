@@ -20,6 +20,8 @@ type Command struct {
 	} `json:"args"`
 }
 
+type RawCommand map[string]interface{}
+
 type CommandResult struct {
 	ID        string                 `json:"id"`
 	Gid       int                    `json:"gid"`
