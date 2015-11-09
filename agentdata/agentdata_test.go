@@ -81,9 +81,30 @@ func TestQueryingForConnectedAgentsWithFilters(t *testing.T) {
 
 	// Filtering with AGENT_ROLE_ALL
 	gid1 := uint(1)
-	gid1All := d.FilteredConnectedAgents(&gid1, []core.AgentRole{core.AGENT_ROLE_ALL, core.AgentRole("net")})
+	gid1All := d.FilteredConnectedAgents(&gid1, []core.AgentRole{core.AgentRoleAll, core.AgentRole("net")})
 	assert.Len(t, gid1All, 2)
 
-	all := d.FilteredConnectedAgents(nil, []core.AgentRole{core.AGENT_ROLE_ALL, core.AgentRole("net")})
+	all := d.FilteredConnectedAgents(nil, []core.AgentRole{core.AgentRoleAll, core.AgentRole("net")})
 	assert.Len(t, all, 4)
+}
+
+func TestSetRolesOverwritesPreviouslySetRoles(t *testing.T) {
+
+	d := agentdata.NewAgentData()
+
+	id := core.AgentID{GID: 1, NID: 0}
+	d.SetRoles(id, []core.AgentRole{"net", "super"})
+
+	assert.True(t, d.HasRole(id, "net"))
+	assert.True(t, d.HasRole(id, "super"))
+	assert.Len(t, d.GetRoles(id), 2)
+
+	d.SetRoles(id, []core.AgentRole{"role1", "role2", "role3"})
+
+	assert.False(t, d.HasRole(id, "net"))
+	assert.False(t, d.HasRole(id, "super"))
+	assert.Len(t, d.GetRoles(id), 3)
+	assert.True(t, d.HasRole(id, "role1"))
+	assert.True(t, d.HasRole(id, "role2"))
+	assert.True(t, d.HasRole(id, "role3"))
 }

@@ -78,7 +78,7 @@ func (data *agentData) IsConnected(id core.AgentID) bool {
 	data.lock.RLock()
 	defer data.lock.RUnlock()
 
-	for agentID, _ := range data.roles {
+	for agentID := range data.roles {
 		if agentID == id {
 			return true
 		}
@@ -137,7 +137,7 @@ func (data *agentData) FilteredConnectedAgents(gid *uint, roles []core.AgentRole
 		ids = onlyInGrid(*gid, ids)
 	}
 
-	if roles != nil && ! containsRole(roles, core.AGENT_ROLE_ALL) {
+	if roles != nil && ! containsRole(roles, core.AgentRoleAll) {
 		ids = withAllRoles(roles, ids)
 	}
 

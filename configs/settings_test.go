@@ -1,9 +1,10 @@
-package main
+package configs_test
 
 import (
 	"io/ioutil"
 	"os"
 	"testing"
+	"github.com/Jumpscale/agentcontroller2/configs"
 )
 
 func TestLoadSettingsFromFile(t *testing.T) {
@@ -17,7 +18,7 @@ func TestLoadSettingsFromFile(t *testing.T) {
 	settingsfile.Close()
 	defer os.Remove(settingsfile.Name())
 
-	settings, err := LoadSettingsFromTomlFile(settingsfile.Name())
+	settings, err := configs.LoadSettingsFromTomlFile(settingsfile.Name())
 	if err != nil {
 		t.Error("Error while loading toml file", err)
 	}
