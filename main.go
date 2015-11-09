@@ -24,6 +24,7 @@ import (
 	"github.com/Jumpscale/agentcontroller2/configs"
 	"github.com/Jumpscale/agentcontroller2/rest"
 	"github.com/Jumpscale/agentcontroller2/happenings"
+	"github.com/Jumpscale/agentcontroller2/interceptors"
 )
 
 const (
@@ -64,6 +65,7 @@ func newPool(addr string, password string) *redis.Pool {
 }
 
 var pool *redis.Pool
+var commandInterceptors *interceptors.Manager
 
 func isTimeout(err error) bool {
 	return strings.Contains(err.Error(), "timeout")
@@ -206,7 +208,7 @@ func readSingleCmd() bool {
 	command := commandEntry[1]
 
 	log.Println("Received message:", command)
-	command = InterceptCommand(command)
+	command = commandInterceptors.Intercept(command)
 	// parsing json data
 	var payload core.Command
 	err = json.Unmarshal([]byte(command), &payload)
@@ -485,6 +487,7 @@ func main() {
 	log.Printf("[+] redis server: <%s>\n", settings.Main.RedisHost)
 
 	pool = newPool(settings.Main.RedisHost, settings.Main.RedisPassword)
+	commandInterceptors = interceptors.NewManager(pool)
 
 	db := pool.Get()
 	if _, err := db.Do("PING"); err != nil {

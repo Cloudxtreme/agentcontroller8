@@ -1,4 +1,4 @@
-package main
+package interceptors
 
 import (
 	"crypto/md5"
@@ -6,23 +6,31 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"github.com/garyburd/redigo/redis"
 )
 
 const (
 	scriptHashTimeout = 86400 // seconds
 )
 
-//Interceptor is a callback type
-type Interceptor func(map[string]interface{}) (map[string]interface{}, error)
+type commandInterceptor func(map[string]interface{}, *Manager) (map[string]interface{}, error)
 
-var interceptors = map[string]Interceptor{
-	"jumpscript_content": JumpscriptHasherInterceptor,
+type Manager struct {
+	redisPool *redis.Pool
+	interceptors map[string]commandInterceptor
 }
 
-/*
-JumpscriptHasherInterceptor hashes jumpscripts executed by the jumpscript_content and store it in redis. Alters the passed command as needed
-*/
-func JumpscriptHasherInterceptor(cmd map[string]interface{}) (map[string]interface{}, error) {
+func NewManager(redisPool *redis.Pool) *Manager {
+	return &Manager {
+		redisPool: redisPool,
+		interceptors: map[string]commandInterceptor{
+			"jumpscript_content": jumpscriptHasherInterceptor,
+		},
+	}
+}
+
+// Hashes jumpscripts executed by the jumpscript_content and store it in redis. Alters the passed command as needed
+func jumpscriptHasherInterceptor(cmd map[string]interface{}, manager *Manager) (map[string]interface{}, error) {
 	datastr, ok := cmd["data"].(string)
 	if !ok {
 		return nil, errors.New("Expecting command 'data' to be string")
@@ -46,7 +54,7 @@ func JumpscriptHasherInterceptor(cmd map[string]interface{}) (map[string]interfa
 
 	hash := fmt.Sprintf("%x", md5.Sum([]byte(contentstr)))
 
-	db := pool.Get()
+	db := manager.redisPool.Get()
 	defer db.Close()
 
 	if _, err := db.Do("SET", hash, contentstr, "EX", scriptHashTimeout); err != nil {
@@ -67,10 +75,8 @@ func JumpscriptHasherInterceptor(cmd map[string]interface{}) (map[string]interfa
 	return cmd, nil
 }
 
-/*
-InterceptCommand intercepts raw command data and manipulate it if needed.
-*/
-func InterceptCommand(command string) string {
+// InterceptCommand intercepts raw command data and manipulate it if needed.
+func (manager *Manager) Intercept(command string) string {
 	cmd := make(map[string]interface{})
 
 	err := json.Unmarshal([]byte(command), &cmd)
@@ -84,9 +90,9 @@ func InterceptCommand(command string) string {
 		return command
 	}
 
-	interceptor, ok := interceptors[cmdName]
+	interceptor, ok := manager.interceptors[cmdName]
 	if ok {
-		cmd, err = interceptor(cmd)
+		cmd, err = interceptor(cmd, manager)
 		if err == nil {
 			if data, err := json.Marshal(cmd); err == nil {
 				command = string(data)
