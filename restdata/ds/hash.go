@@ -9,7 +9,7 @@ type Hash struct {
 }
 
 // HSET the JSON-encoded value on this Hash.
-func (hash *Hash) Set(connPool *redis.Pool, key string, value interface{}) error {
+func (hash Hash) Set(connPool *redis.Pool, key string, value interface{}) error {
 
 	jsonValue, err := json.Marshal(value)
 	if err != nil {

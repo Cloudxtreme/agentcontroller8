@@ -11,7 +11,7 @@ type List struct {
 }
 
 // BLPOP from the list, decode from JSON into the target pointer.
-func (list *List) BlockingPop(connPool *redis.Pool, target interface{}, timeout time.Duration) error {
+func (list List) BlockingPop(connPool *redis.Pool, target interface{}, timeout time.Duration) error {
 	conn := connPool.Get()
 	defer conn.Close()
 
@@ -32,7 +32,7 @@ func (list *List) BlockingPop(connPool *redis.Pool, target interface{}, timeout 
 }
 
 // LPUSH the JSON-encoded object onto the list.
-func (list *List) LeftPush(connPool *redis.Pool, object interface{}) error {
+func (list List) LeftPush(connPool *redis.Pool, object interface{}) error {
 	conn := connPool.Get()
 	defer conn.Close()
 
@@ -46,7 +46,7 @@ func (list *List) LeftPush(connPool *redis.Pool, object interface{}) error {
 }
 
 // RPUSH the JSON-encoded object onto the list.
-func (list *List) RightPush(connPool *redis.Pool, object interface{}) error {
+func (list List) RightPush(connPool *redis.Pool, object interface{}) error {
 	conn := connPool.Get()
 	defer conn.Close()
 
