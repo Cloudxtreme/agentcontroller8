@@ -24,24 +24,20 @@ import (
 	"github.com/Jumpscale/agentcontroller2/configs"
 	"github.com/Jumpscale/agentcontroller2/rest"
 	"github.com/Jumpscale/agentcontroller2/happenings"
-	"github.com/Jumpscale/agentcontroller2/restdata/ds"
 )
 
 const (
 	agentInteractiveAfterOver = 30 * time.Second
 	roleAll                   = "*"
 	cmdQueueMain              = "cmds.queue"
+	resultsQueueMain          = "resutls.queue"
 	cmdQueueCmdQueued         = "cmd.%s.queued"
 	cmdQueueAgentResponse     = "cmd.%s.%d.%d"
+	logQueue                  = "joblog"
+	hashCmdResults            = "jobresult:%s"
 	cmdInternal               = "controller"
 )
 
-var commandResultQueue = ds.List{Name: "resutls.queue"}
-var commandLogQueue = ds.List{Name: "joblog"}
-
-func jobResultsHash(resultID string) ds.Hash {
-	return ds.Hash{Name: fmt.Sprintf("jobresult:%s", resultID)}
-}
 
 // redis stuff
 func newPool(addr string, password string) *redis.Pool {
@@ -77,8 +73,8 @@ func getAgentQueue(id core.AgentID) string {
 	return fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
 }
 
-func getAgentResultQueue(result *core.CommandResult) ds.List {
-	return ds.List{Name: fmt.Sprintf(cmdQueueAgentResponse, result.ID, result.Gid, result.Nid)}
+func getAgentResultQueue(result *core.CommandResult) string {
+	return fmt.Sprintf(cmdQueueAgentResponse, result.ID, result.Gid, result.Nid)
 }
 
 func getActiveAgents(onlyGid int, roles []string) [][]int {
@@ -107,21 +103,31 @@ func getActiveAgents(onlyGid int, roles []string) [][]int {
 }
 
 func sendResult(result *core.CommandResult) error {
+	db := pool.Get()
+	defer db.Close()
 
-	err := jobResultsHash(result.ID).Set(pool, fmt.Sprintf("%d:%d", result.Gid, result.Nid), &result)
-	if err != nil {
-		return err
-	}
+	key := fmt.Sprintf("%d:%d", result.Gid, result.Nid)
+	if data, err := json.Marshal(&result); err == nil {
+		err = db.Send("HSET",
+			fmt.Sprintf(hashCmdResults, result.ID),
+			key,
+			data)
 
-	// push message to client result queue queue
-	err = getAgentResultQueue(result).RightPush(pool, &result)
-	if err != nil {
-		return err
-	}
+		if err != nil {
+			return err
+		}
+		// push message to client result queue queue
+		err = db.Send("RPUSH", getAgentResultQueue(result), data)
+		if err != nil {
+			return err
+		}
 
-	//main results queue for results processors
-	err = commandResultQueue.RightPush(pool, &result)
-	if err != nil {
+		//main results queue for results processors
+		err = db.Send("RPUSH", resultsQueueMain, data)
+		if err != nil {
+			return err
+		}
+	} else {
 		return err
 	}
 
@@ -269,7 +275,7 @@ func readSingleCmd() bool {
 	}
 
 	// push logs
-	if err := commandLogQueue.LeftPush(pool, &payload); err != nil {
+	if _, err := db.Do("LPUSH", logQueue, command); err != nil {
 		log.Println("[-] log push error: ", err)
 	}
 
@@ -295,9 +301,11 @@ func readSingleCmd() bool {
 			StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 		}
 
-		err = jobResultsHash(payload.ID).Set(pool, fmt.Sprintf("%d:%d", gid, nid), &resultPlaceholder)
-		if err != nil {
-			log.Println(err)
+		if data, err := json.Marshal(&resultPlaceholder); err == nil {
+			db.Do("HSET",
+				fmt.Sprintf(hashCmdResults, payload.ID),
+				fmt.Sprintf("%d:%d", gid, nid),
+				data)
 		}
 	}
 
@@ -402,9 +410,11 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 							StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 						}
 
-						err = jobResultsHash(payload.ID).Set(pool, key, &resultPlacehoder)
-						if err != nil {
-							log.Println(err)
+						if data, err := json.Marshal(&resultPlacehoder); err == nil {
+							db.Do("HSET",
+								fmt.Sprintf(hashCmdResults, payload.ID),
+								key,
+								data)
 						}
 					default:
 						//caller didn't want to receive this command. have to repush it
