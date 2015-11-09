@@ -16,14 +16,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Jumpscale/agentcontroller2/agentdata"
+	"github.com/Jumpscale/agentcontroller2/configs"
+	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller2/events"
+	"github.com/Jumpscale/agentcontroller2/rest"
 	hublleAgent "github.com/Jumpscale/hubble/agent"
 	hubbleAuth "github.com/Jumpscale/hubble/auth"
 	"github.com/garyburd/redigo/redis"
-	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/agentdata"
-	"github.com/Jumpscale/agentcontroller2/configs"
-	"github.com/Jumpscale/agentcontroller2/rest"
-	"github.com/Jumpscale/agentcontroller2/happenings"
 )
 
 const (
@@ -37,7 +37,6 @@ const (
 	hashCmdResults            = "jobresult:%s"
 	cmdInternal               = "controller"
 )
-
 
 // redis stuff
 func newPool(addr string, password string) *redis.Pool {
@@ -401,7 +400,7 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 							break
 						}
 
-						resultPlacehoder := core.CommandResult {
+						resultPlacehoder := core.CommandResult{
 							ID:        payload.ID,
 							Gid:       igid,
 							Nid:       inid,
@@ -436,11 +435,6 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 
 	return producer
 }
-
-
-
-
-
 
 //StartSyncthingHubbleAgent start the builtin hubble agent required for Syncthing
 func StartSyncthingHubbleAgent(hubblePort int) {
@@ -493,7 +487,6 @@ func main() {
 
 	db.Close()
 
-
 	go cmdreader()
 
 	//start schedular.
@@ -505,7 +498,7 @@ func main() {
 
 	scheduler.Start()
 
-	eventHandler, err := happenings.NewEventsHandler(&settings.Events, getProducerChan)
+	eventHandler, err := events.NewEventsHandler(&settings.Events, getProducerChan)
 	if err != nil {
 		log.Fatal(err)
 	}
