@@ -59,8 +59,6 @@ func NewResultsProcessor(config *configs.Extension, pool *redis.Pool, queue ds.L
 }
 
 func (processor *redisProcessorImpl) processSingleResult() error {
-	db := processor.pool.Get()
-	defer db.Close()
 
 	resultString, err := processor.queue.BlockingPop(processor.pool, 0)
 
