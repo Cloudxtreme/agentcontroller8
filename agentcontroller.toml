@@ -30,7 +30,7 @@ password = "root"
 [events]
 enabled = true
 module = "handlers"
-python_path = "/opt/jumpscale7/lib:./events"
+python_path = "/opt/jumpscale7/lib:./extensions"
     [events.settings]
     syncthing_url = "http://localhost:18384/"
     redis_address = "localhost"

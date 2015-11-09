@@ -1,8 +1,10 @@
-package happenings
+package events
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Jumpscale/agentcontroller2/configs"
+	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/Jumpscale/pygo"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
@@ -10,13 +12,11 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"github.com/Jumpscale/agentcontroller2/configs"
-	"github.com/Jumpscale/agentcontroller2/core"
 )
 
 type EventsHandler struct {
-	module  pygo.Pygo
-	enabled bool
+	module              pygo.Pygo
+	enabled             bool
 	producerChanFactory core.ProducerChanFactory
 }
 
@@ -51,8 +51,8 @@ func NewEventsHandler(settings *configs.Events, producerChanFactory core.Produce
 	}
 
 	handler := &EventsHandler{
-		module:  module,
-		enabled: settings.Enabled,
+		module:              module,
+		enabled:             settings.Enabled,
 		producerChanFactory: producerChanFactory,
 	}
 

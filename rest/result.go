@@ -1,11 +1,12 @@
 package rest
+
 import (
-"github.com/gin-gonic/gin"
-"log"
+	"encoding/json"
+	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/gin-gonic/gin"
 	"io/ioutil"
-"net/http"
-"github.com/Jumpscale/agentcontroller2/core"
-"encoding/json"
+	"log"
+	"net/http"
 )
 
 func (r *Manager) result(c *gin.Context) {

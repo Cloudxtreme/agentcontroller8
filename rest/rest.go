@@ -1,36 +1,37 @@
 package rest
+
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/Jumpscale/agentcontroller2/happenings"
-	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/garyburd/redigo/redis"
 	"github.com/Jumpscale/agentcontroller2/configs"
+	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller2/events"
+	"github.com/garyburd/redigo/redis"
+	"github.com/gin-gonic/gin"
 )
 
 type Manager struct {
-	engine *gin.Engine
-	eventHandler *happenings.EventsHandler
+	engine              *gin.Engine
+	eventHandler        *events.EventsHandler
 	producerChanFactory core.ProducerChanFactory
-	redisPool *redis.Pool
-	commandResponder core.CommandResponder
-	settings 	*configs.Settings
+	redisPool           *redis.Pool
+	commandResponder    core.CommandResponder
+	settings            *configs.Settings
 }
 
 func NewManager(
-	eventHandler *happenings.EventsHandler,
+	eventHandler *events.EventsHandler,
 	producerChanFactory core.ProducerChanFactory,
 	redisPool *redis.Pool,
 	commandResponder core.CommandResponder,
 	settings *configs.Settings,
-	) *Manager {
+) *Manager {
 
 	r := Manager{
-		engine: gin.Default(),
-		eventHandler: eventHandler,
+		engine:              gin.Default(),
+		eventHandler:        eventHandler,
 		producerChanFactory: producerChanFactory,
-		redisPool: redisPool,
-		commandResponder: commandResponder,
-		settings: settings,
+		redisPool:           redisPool,
+		commandResponder:    commandResponder,
+		settings:            settings,
 	}
 
 	r.engine.GET("/:gid/:nid/cmd", r.cmd)
