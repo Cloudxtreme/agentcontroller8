@@ -39,7 +39,7 @@ const (
 )
 
 var CommandRedisQueue = messages.RedisCommandList{List: ds.List{Name: "cmds.queue"}}
-var LogRedisQueue = ds.List{Name: "joblog"}
+var CommandLogRedisQueue = messages.RedisCommandList{ds.List{Name: "joblog"}}
 var CommandResultRedisQueue = messages.RedisCommandResultList{List: ds.List{Name: "resutls.queue"}}
 
 // redis stuff
@@ -273,7 +273,7 @@ func readSingleCmd() bool {
 	}
 
 	// push logs
-	err = LogRedisQueue.LeftPush(pool, commandMessage.Payload)
+	err = CommandLogRedisQueue.List.LeftPush(pool, commandMessage.Payload)
 	if err != nil {
 		log.Println("[-] log push error: ", err)
 	}
