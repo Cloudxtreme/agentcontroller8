@@ -9,6 +9,7 @@ import (
 type CommandMessage struct {
 	Content core.Command
 	Payload []byte
+	Raw		core.RawCommand
 }
 
 // A core.CommandResult in transit. The payload is the JSON encoding of the content (it may contain
@@ -18,9 +19,15 @@ type CommandResultMessage struct {
 	Payload []byte
 }
 
-func CommandMessageFrom(payload []byte) (*CommandMessage, error) {
+func CommandMessageFromJSON(payload []byte) (*CommandMessage, error) {
 	var command core.Command
 	err := json.Unmarshal(payload, &command)
+	if err != nil {
+		return nil, err
+	}
+
+	var rawCommand core.RawCommand
+	err = json.Unmarshal(payload, &rawCommand)
 	if err != nil {
 		return nil, err
 	}
@@ -28,9 +35,17 @@ func CommandMessageFrom(payload []byte) (*CommandMessage, error) {
 	return &CommandMessage{
 		Content: command,
 		Payload: payload,
+		Raw: rawCommand,
 	}, nil
 }
 
+func CommandMessageFromRawCommand(rawCommand core.RawCommand) (*CommandMessage, error) {
+	jsonData, err := json.Marshal(rawCommand)
+	if err != nil {
+		return nil, err
+	}
+	return CommandMessageFromJSON(jsonData)
+}
 
 func CommandResultMessageFrom(payload []byte) (*CommandResultMessage, error) {
 	var commandResult core.CommandResult

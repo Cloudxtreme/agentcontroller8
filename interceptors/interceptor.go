@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"github.com/garyburd/redigo/redis"
+	"github.com/Jumpscale/agentcontroller2/messages"
 )
 
 const (
@@ -75,14 +76,9 @@ func jumpscriptHasherInterceptor(cmd map[string]interface{}, manager *Manager) (
 	return cmd, nil
 }
 
-// InterceptCommand intercepts raw command data and manipulate it if needed.
-func (manager *Manager) Intercept(command string) string {
-	cmd := make(map[string]interface{})
+func (manager *Manager) Intercept(command *messages.CommandMessage) *messages.CommandMessage {
 
-	err := json.Unmarshal([]byte(command), &cmd)
-	if err != nil {
-		log.Println("Error: failed to intercept command", command, err)
-	}
+	cmd := command.Raw
 
 	cmdName, ok := cmd["cmd"].(string)
 	if !ok {
@@ -91,18 +87,21 @@ func (manager *Manager) Intercept(command string) string {
 	}
 
 	interceptor, ok := manager.interceptors[cmdName]
-	if ok {
-		cmd, err = interceptor(cmd, manager)
-		if err == nil {
-			if data, err := json.Marshal(cmd); err == nil {
-				command = string(data)
-			} else {
-				log.Println("Failed to serialize intercepted command", err)
-			}
-		} else {
-			log.Println("Failed to intercept command", err)
-		}
+	if !ok {
+		return command
 	}
-	log.Println("Command:", command)
-	return command
+
+	updatedRawCommand, err := interceptor(cmd, manager)
+	if err != nil {
+		log.Println("Failed to intercept command", err)
+		return command
+	}
+
+	updatedCommand, err := messages.CommandMessageFromRawCommand(updatedRawCommand)
+	if err != nil {
+		log.Println(err)
+		return command
+	}
+
+	return updatedCommand
 }

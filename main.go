@@ -25,6 +25,7 @@ import (
 	hubbleAuth "github.com/Jumpscale/hubble/auth"
 	"github.com/garyburd/redigo/redis"
 	"github.com/Jumpscale/agentcontroller2/interceptors"
+	"github.com/Jumpscale/agentcontroller2/messages"
 )
 
 const (
@@ -207,7 +208,11 @@ func readSingleCmd() bool {
 	command := commandEntry[1]
 
 	log.Println("Received message:", command)
-	command = commandInterceptors.Intercept(command)
+	intermediateMessage, err := messages.CommandMessageFromJSON([]byte(command))
+	if err != nil {
+		panic(err)
+	}
+	command = string(commandInterceptors.Intercept(intermediateMessage).Payload)
 	// parsing json data
 	var payload core.Command
 	err = json.Unmarshal([]byte(command), &payload)
