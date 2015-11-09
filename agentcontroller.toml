@@ -30,17 +30,22 @@ password = "root"
 [events]
 enabled = true
 module = "handlers"
-python_path = "/opt/jumpscale7/lib:./extensions"
+python_path = "./extensions:/opt/jumpscale7/lib"
     [events.settings]
     syncthing_url = "http://localhost:18384/"
     redis_address = "localhost"
     redis_port = "9999"
     redis_password = ""
 
-[processors]
+[results_processor]
 enabled = true
-module = "processors"
-python_path = "/opt/jumpscale7/lib:./extensions"
+module = "results"
+python_path = "./extensions:/opt/jumpscale7/lib"
+
+[commands_processor]
+enabled = true
+module = "commands"
+python_path = "./extensions:/opt/jumpscale7/lib"
 
 ##### The following 2 sections are supportive for syncthing operation
 ##### Please don't remove or edit unless you know what you are doing

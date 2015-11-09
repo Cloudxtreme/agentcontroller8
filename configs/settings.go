@@ -42,9 +42,9 @@ type Settings struct {
 		Password string
 	}
 
-	Events Extension
-
-	Processors Extension
+	Events            Extension
+	ResultsProcessor  Extension
+	CommandsProcessor Extension
 
 	Syncthing struct {
 		Port int
