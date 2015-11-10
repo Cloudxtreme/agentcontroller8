@@ -91,7 +91,7 @@ func (processor *processorImpl) processSingleCommand() error {
 	}
 
 	if processor.enabled {
-		_, err := processor.module.Call("process_command", commandMessage.Content)
+		_, err := processor.module.Call("process_command", commandMessage.Raw)
 		if err != nil {
 			log.Println("Processor", "Failed to process command", err)
 		}
