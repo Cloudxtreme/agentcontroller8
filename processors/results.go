@@ -15,16 +15,17 @@ type Processor interface {
 	Start()
 }
 
-type resultsProcessorImpl struct {
-	enabled bool
-	queue   messages.RedisCommandResultList
-	pool    *redis.Pool
+type processorImpl struct {
+	enabled       bool
+	resultsQueue  messages.RedisCommandResultList
+	commandsQueue messages.RedisCommandList
+	pool          *redis.Pool
 
 	module pygo.Pygo
 }
 
-func NewResultsProcessor(config *configs.Extension, pool *redis.Pool,
-	queue messages.RedisCommandResultList) (Processor, error) {
+func NewProcessor(config *configs.Extension, pool *redis.Pool,
+	commandsQueue messages.RedisCommandList, resultsQueue messages.RedisCommandResultList) (Processor, error) {
 
 	var module pygo.Pygo
 	var err error
@@ -43,19 +44,20 @@ func NewResultsProcessor(config *configs.Extension, pool *redis.Pool,
 		}
 	}
 
-	processor := &resultsProcessorImpl{
-		enabled: config.Enabled,
-		pool:    pool,
-		queue:   queue,
-		module:  module,
+	processor := &processorImpl{
+		enabled:       config.Enabled,
+		pool:          pool,
+		resultsQueue:  resultsQueue,
+		commandsQueue: commandsQueue,
+		module:        module,
 	}
 
 	return processor, nil
 }
 
-func (processor *resultsProcessorImpl) processSingleResult() error {
+func (processor *processorImpl) processSingleResult() error {
 
-	commandResultMessage, err := processor.queue.BlockingPop(processor.pool, 0)
+	commandResultMessage, err := processor.resultsQueue.BlockingPop(processor.pool, 0)
 
 	if err != nil {
 		if core.IsTimeout(err) {
@@ -66,9 +68,32 @@ func (processor *resultsProcessorImpl) processSingleResult() error {
 	}
 
 	if processor.enabled {
-		_, err := processor.module.Call("process", commandResultMessage.Content)
+		_, err := processor.module.Call("process_result", commandResultMessage.Content)
 		if err != nil {
 			log.Println("Processor", "Failed to process result", err)
+		}
+	}
+	//else discard result
+
+	return nil
+}
+
+func (processor *processorImpl) processSingleCommand() error {
+
+	commandMessage, err := processor.commandsQueue.BlockingPop(processor.pool, 0)
+
+	if err != nil {
+		if core.IsTimeout(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	if processor.enabled {
+		_, err := processor.module.Call("process_command", commandMessage.Content)
+		if err != nil {
+			log.Println("Processor", "Failed to process command", err)
 		}
 	}
 	//else discard command
@@ -76,7 +101,7 @@ func (processor *resultsProcessorImpl) processSingleResult() error {
 	return nil
 }
 
-func (processor *resultsProcessorImpl) loop() {
+func (processor *processorImpl) resultsLoop() {
 	for {
 		err := processor.processSingleResult()
 		if err != nil {
@@ -85,6 +110,16 @@ func (processor *resultsProcessorImpl) loop() {
 	}
 }
 
-func (processor *resultsProcessorImpl) Start() {
-	go processor.loop()
+func (processor *processorImpl) commandsLoop() {
+	for {
+		err := processor.processSingleCommand()
+		if err != nil {
+			log.Fatal("Processor", "Coulnd't read commands from redis", err)
+		}
+	}
+}
+
+func (processor *processorImpl) Start() {
+	go processor.resultsLoop()
+	go processor.commandsLoop()
 }

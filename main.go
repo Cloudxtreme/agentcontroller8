@@ -513,20 +513,12 @@ func main() {
 	)
 
 	//start external command processors
-	cmdProcessor, err := processors.NewCommandProcessor(&settings.CommandsProcessor, pool, CommandLogRedisQueue)
+	processor, err := processors.NewProcessor(&settings.CommandsProcessor, pool, CommandLogRedisQueue, CommandResultRedisQueue)
 	if err != nil {
 		log.Fatal("Failed to load processors module", err)
 	}
 
-	cmdProcessor.Start()
-
-	//start external results processors
-	resultProcessor, err := processors.NewResultsProcessor(&settings.ResultsProcessor, pool, CommandResultRedisQueue)
-	if err != nil {
-		log.Fatal("Failed to load processors module", err)
-	}
-
-	resultProcessor.Start()
+	processor.Start()
 
 	hubbleAuth.Install(hubbleAuth.NewAcceptAllModule())
 
