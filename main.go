@@ -513,7 +513,7 @@ func main() {
 	)
 
 	//start external command processors
-	processor, err := processors.NewProcessor(&settings.CommandsProcessor, pool, CommandLogRedisQueue, CommandResultRedisQueue)
+	processor, err := processors.NewProcessor(&settings.Processor, pool, CommandLogRedisQueue, CommandResultRedisQueue)
 	if err != nil {
 		log.Fatal("Failed to load processors module", err)
 	}
