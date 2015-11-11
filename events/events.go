@@ -14,7 +14,7 @@ import (
 	"strconv"
 )
 
-type EventsHandler struct {
+type Handler struct {
 	module              pygo.Pygo
 	enabled             bool
 	producerChanFactory core.ProducerChanFactory
@@ -26,7 +26,7 @@ type EventRequest struct {
 	Data string `json:"data"`
 }
 
-func NewEventsHandler(settings *configs.Extension, producerChanFactory core.ProducerChanFactory) (*EventsHandler, error) {
+func NewEventsHandler(settings *configs.Extension, producerChanFactory core.ProducerChanFactory) (*Handler, error) {
 	opts := pygo.PyOpts{
 		PythonPath: settings.PythonPath,
 		Env: []string{
@@ -50,7 +50,7 @@ func NewEventsHandler(settings *configs.Extension, producerChanFactory core.Prod
 		log.Println("Init passed successfully")
 	}
 
-	handler := &EventsHandler{
+	handler := &Handler{
 		module:              module,
 		enabled:             settings.Enabled,
 		producerChanFactory: producerChanFactory,
@@ -59,7 +59,7 @@ func NewEventsHandler(settings *configs.Extension, producerChanFactory core.Prod
 	return handler, nil
 }
 
-func (handler *EventsHandler) Event(c *gin.Context) {
+func (handler *Handler) Event(c *gin.Context) {
 	if !handler.enabled {
 		c.JSON(http.StatusOK, "ok")
 		return

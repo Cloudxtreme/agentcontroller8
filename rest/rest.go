@@ -13,7 +13,7 @@ type CommandResponder func(result *messages.CommandResultMessage) error
 
 type Manager struct {
 	engine              *gin.Engine
-	eventHandler        *events.EventsHandler
+	eventHandler        *events.Handler
 	producerChanFactory core.ProducerChanFactory
 	redisPool           *redis.Pool
 	commandResponder    CommandResponder
@@ -21,7 +21,7 @@ type Manager struct {
 }
 
 func NewManager(
-	eventHandler *events.EventsHandler,
+	eventHandler *events.Handler,
 	producerChanFactory core.ProducerChanFactory,
 	redisPool *redis.Pool,
 	commandResponder CommandResponder,

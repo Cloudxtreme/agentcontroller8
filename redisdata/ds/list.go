@@ -18,9 +18,9 @@ func (list List) BlockingPop(connPool *redis.Pool, timeout time.Duration) ([]byt
 	reply, err := redis.Strings(conn.Do("BLPOP", list.Name, fmt.Sprintf("%d", timeout)))
 	if err != nil {
 		return nil, err
-	} else {
-		return []byte(reply[1]), nil
 	}
+
+	return []byte(reply[1]), nil
 }
 
 // LPUSH onto the list.

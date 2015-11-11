@@ -139,7 +139,7 @@ func readSingleCmd() bool {
 	log.Println("Received message:", commandMessage)
 
 	commandMessage = commandInterceptors.Intercept(commandMessage)
-	var command core.Command = commandMessage.Content
+	var command = commandMessage.Content
 
 	if command.Cmd == "controller" {
 		go internalCommands.ProcessInternalCommand(commandMessage)
