@@ -31,16 +31,19 @@ import (
 
 const (
 	agentInteractiveAfterOver = 30 * time.Second
-	roleAll                   = "*"
-	cmdQueueCmdQueued         = "cmd.%s.queued"
-	cmdQueueAgentResponse     = "cmd.%s.%d.%d"
-	hashCmdResults            = "jobresult:%s"
-	cmdInternal               = "controller"
 )
 
 var CommandRedisQueue = messages.RedisCommandList{List: ds.List{Name: "cmds.queue"}}
 var CommandLogRedisQueue = messages.RedisCommandList{ds.List{Name: "cmds.log.queue"}}
 var CommandResultRedisQueue = messages.RedisCommandResultList{List: ds.List{Name: "resutls.queue"}}
+
+func QueuedCommandRedisQueue(id string) ds.List {
+	return ds.List{Name: fmt.Sprintf("cmd.%s.queued", id)}
+}
+
+func CommandResultRedisHash(resultID string) messages.RedisCommandResultHash {
+	return messages.RedisCommandResultHash{Hash: ds.Hash{Name: fmt.Sprintf("jobresult:%s", resultID)}}
+}
 
 // redis stuff
 func newPool(addr string, password string) *redis.Pool {
@@ -69,15 +72,17 @@ func newPool(addr string, password string) *redis.Pool {
 var pool *redis.Pool
 var commandInterceptors *interceptors.Manager
 
-func getAgentQueue(id core.AgentID) string {
-	return fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
+func AgentCommandRedisQueue(id core.AgentID) messages.RedisCommandList {
+	name := fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
+	return messages.RedisCommandList{List: ds.List{Name: name}}
 }
 
-func getAgentResultQueue(result *core.CommandResult) string {
-	return fmt.Sprintf(cmdQueueAgentResponse, result.ID, result.Gid, result.Nid)
+func AgentCommandResultQueue(result *core.CommandResult) messages.RedisCommandResultList {
+	name := fmt.Sprintf("cmd.%s.%d.%d", result.ID, result.Gid, result.Nid)
+	return messages.RedisCommandResultList{List: ds.List{Name: name}}
 }
 
-func getActiveAgents(onlyGid int, roles []string) [][]int {
+func getActiveAgents(onlyGid int, roles []string) []core.AgentID {
 	var gidFilter *uint
 	var roleFilter []core.AgentRole
 
@@ -92,47 +97,29 @@ func getActiveAgents(onlyGid int, roles []string) [][]int {
 		}
 	}
 
-	connectedAgents := liveAgents.FilteredConnectedAgents(gidFilter, roleFilter)
-
-	var output [][]int
-	for _, connectedAgent := range connectedAgents {
-		output = append(output, []int{int(connectedAgent.GID), int(connectedAgent.NID)})
-	}
-
-	return output
+	return liveAgents.FilteredConnectedAgents(gidFilter, roleFilter)
 }
 
-func sendResult(result *core.CommandResult) error {
-	db := pool.Get()
-	defer db.Close()
+func sendResult(result *messages.CommandResultMessage) error {
 
-	key := fmt.Sprintf("%d:%d", result.Gid, result.Nid)
-	if data, err := json.Marshal(&result); err == nil {
-		err = db.Send("HSET",
-			fmt.Sprintf(hashCmdResults, result.ID),
-			key,
-			data)
+	err := CommandResultRedisHash(result.Content.ID).Set(pool,
+		fmt.Sprintf("%d:%d", result.Content.Gid, result.Content.Nid),
+		result)
 
-		if err != nil {
-			return err
-		}
-		// push message to client result queue queue
-		err = db.Send("RPUSH", getAgentResultQueue(result), data)
-		if err != nil {
-			return err
-		}
+	if err != nil {
+		return err
+	}
 
-		//main results queue for results processors
-		commandResultMessage, err := messages.CommandResultMessageFromCommandResult(result)
-		if err != nil {
-			return err
-		}
+	// push message to client result queue queue
+	AgentCommandResultQueue(&result.Content).RightPush(pool, result)
+	if err != nil {
+		return err
+	}
 
-		err = CommandResultRedisQueue.RightPush(pool, commandResultMessage)
-		if err != nil {
-			return err
-		}
-	} else {
+	//main results queue for results processors
+
+	err = CommandResultRedisQueue.RightPush(pool, result)
+	if err != nil {
 		return err
 	}
 
@@ -185,19 +172,20 @@ func processInternalCommand(command core.Command) {
 		result.State = "UNKNOWN_CMD"
 	}
 
-	sendResult(result)
+	resultMessage, err := messages.CommandResultMessageFromCommandResult(result)
+	if err != nil {
+		panic(err)
+	}
+
+	sendResult(resultMessage)
 	signalQueues(command.ID)
 }
 
 func signalQueues(id string) {
-	db := pool.Get()
-	defer db.Close()
-	db.Do("RPUSH", fmt.Sprintf(cmdQueueCmdQueued, id), "queued")
+	QueuedCommandRedisQueue(id).RightPush(pool, []byte("queued"))
 }
 
 func readSingleCmd() bool {
-	db := pool.Get()
-	defer db.Close()
 
 	commandMessage, err := CommandRedisQueue.BlockingPop(pool, 0)
 	if err != nil {
@@ -211,10 +199,9 @@ func readSingleCmd() bool {
 	log.Println("Received message:", commandMessage)
 
 	commandMessage = commandInterceptors.Intercept(commandMessage)
-
 	var command core.Command = commandMessage.Content
 
-	if command.Cmd == cmdInternal {
+	if command.Cmd == "controller" {
 		go processInternalCommand(command)
 		return true
 	}
@@ -225,30 +212,35 @@ func readSingleCmd() bool {
 
 	if len(command.Roles) > 0 {
 		//command has a given role
-		active := getActiveAgents(command.Gid, command.Roles)
-		if len(active) == 0 {
+		activeAgents := getActiveAgents(command.Gid, command.Roles)
+		if len(activeAgents) == 0 {
 			//no active agents that saticifies this role.
 			result := &core.CommandResult{
 				ID:        command.ID,
 				Gid:       command.Gid,
 				Nid:       command.Nid,
 				Tags:      command.Tags,
-				State:     "ERROR",
+				State:     core.CommandStateError,
 				Data:      fmt.Sprintf("No agents with role '%v' alive!", command.Roles),
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 			}
 
-			sendResult(result)
+			resultMessage, err := messages.CommandResultMessageFromCommandResult(result)
+			if err != nil {
+				panic(err)
+			}
+
+			sendResult(resultMessage)
 		} else {
 			if command.Fanout {
 				//fanning out.
-				for _, agent := range active {
-					ids.PushBack(agent)
+				for _, agentID := range activeAgents {
+					ids.PushBack(agentID)
 				}
 
 			} else {
-				agent := active[rand.Intn(len(active))]
-				ids.PushBack(agent)
+				randomAgent := activeAgents[rand.Intn(len(activeAgents))]
+				ids.PushBack(randomAgent)
 			}
 		}
 	} else {
@@ -261,14 +253,19 @@ func readSingleCmd() bool {
 				Gid:       command.Gid,
 				Nid:       command.Nid,
 				Tags:      command.Tags,
-				State:     "ERROR",
+				State:     core.CommandStateError,
 				Data:      fmt.Sprintf("Agent is not alive!"),
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 			}
 
-			sendResult(result)
+			resultMessage, err := messages.CommandResultMessageFromCommandResult(result)
+			if err != nil {
+				panic(err)
+			}
+
+			sendResult(resultMessage)
 		} else {
-			ids.PushBack([]int{command.Gid, command.Nid})
+			ids.PushBack(core.AgentID{GID: uint(command.Gid), NID: uint(command.Nid)})
 		}
 	}
 
@@ -281,36 +278,30 @@ func readSingleCmd() bool {
 	//distribution to agents.
 	for e := ids.Front(); e != nil; e = e.Next() {
 		// push message to client queue
-		agent := e.Value.([]int)
-		gid := agent[0]
-		nid := agent[1]
-		agentID := core.AgentID{GID: uint(gid), NID: uint(nid)}
+		agentID := e.Value.(core.AgentID)
 
 		resultPlaceholder := core.CommandResult{
 			ID:        command.ID,
-			Gid:       gid,
-			Nid:       nid,
+			Gid:       int(agentID.GID),
+			Nid:       int(agentID.NID),
 			Tags:      command.Tags,
 			State:     core.CommandStateQueued,
 			StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 		}
 
-		if data, err := json.Marshal(&resultPlaceholder); err == nil {
-			db.Do("HSET",
-				fmt.Sprintf(hashCmdResults, command.ID),
-				fmt.Sprintf("%d:%d", gid, nid),
-				data)
-
-			result := &messages.CommandResultMessage{
-				Content: resultPlaceholder,
-				Payload: data,
-			}
-
-			CommandResultRedisQueue.RightPush(pool, result)
+		resultPlaceholderMessage, err := messages.CommandResultMessageFromCommandResult(&resultPlaceholder)
+		if err != nil {
+			panic(err)
 		}
 
-		log.Println("Dispatching message to", agent)
-		if _, err := db.Do("RPUSH", getAgentQueue(agentID), commandMessage.Payload); err != nil {
+		CommandResultRedisHash(command.ID).Set(pool, fmt.Sprintf("%d:%d", agentID.GID, agentID.NID),
+			resultPlaceholderMessage)
+
+		CommandResultRedisQueue.RightPush(pool, resultPlaceholderMessage)
+
+		log.Println("Dispatching message to", agentID)
+		err = AgentCommandRedisQueue(agentID).RightPush(pool, commandMessage)
+		if err != nil {
 			log.Println("[-] push error: ", err)
 		}
 	}
@@ -351,10 +342,8 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 		producer = make(chan *core.PollData)
 		producers[key] = producer
 		go func() {
-			//db := pool.Get()
 
 			defer func() {
-				//db.Close()
 
 				//no agent tried to connect
 				close(producer)
@@ -387,10 +376,7 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 					}
 					liveAgents.SetRoles(agentID, agentRoles)
 
-					db := pool.Get()
-					defer db.Close()
-
-					pending, err := redis.Strings(db.Do("BLPOP", getAgentQueue(agentID), "0"))
+					pendingCommand, err := AgentCommandRedisQueue(agentID).BlockingPop(pool, 0)
 					if err != nil {
 						if !core.IsTimeout(err) {
 							log.Println("Couldn't get new job for agent", key, err)
@@ -400,41 +386,31 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 					}
 
 					select {
-					case msgChan <- pending[1]:
+					case msgChan <- string(pendingCommand.Payload):
+
 						//caller consumed this job, it's safe to set it's state to RUNNING now.
-						var payload core.Command
-						if err := json.Unmarshal([]byte(pending[1]), &payload); err != nil {
-							break
-						}
 
 						resultPlaceholder := core.CommandResult{
-							ID:        payload.ID,
+							ID:        pendingCommand.Content.ID,
 							Gid:       igid,
 							Nid:       inid,
-							Tags:      payload.Tags,
+							Tags:      pendingCommand.Content.Tags,
 							State:     core.CommandStateRunning,
 							StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 						}
 
-						if data, err := json.Marshal(&resultPlaceholder); err == nil {
-							db.Do("HSET",
-								fmt.Sprintf(hashCmdResults, payload.ID),
-								key,
-								data)
-
-							result := &messages.CommandResultMessage{
-								Content: resultPlaceholder,
-								Payload: data,
-							}
-
-							CommandResultRedisQueue.RightPush(pool, result)
+						resultPlaceholderMessage, err :=
+							messages.CommandResultMessageFromCommandResult(&resultPlaceholder)
+						if err != nil {
+							panic(err)
 						}
+
+						CommandResultRedisHash(pendingCommand.Content.ID).Set(pool, key, resultPlaceholderMessage)
+						CommandResultRedisQueue.RightPush(pool, resultPlaceholderMessage)
 					default:
 						//caller didn't want to receive this command. have to repush it
 						//directly on the agent queue. to avoid doing the redispatching.
-						if pending[1] != "" {
-							db.Do("LPUSH", getAgentQueue(agentID), pending[1])
-						}
+						AgentCommandRedisQueue(agentID).LeftPush(pool, pendingCommand)
 					}
 
 					return true

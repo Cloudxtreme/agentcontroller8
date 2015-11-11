@@ -1,12 +1,11 @@
 package rest
 
 import (
-	"encoding/json"
-	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"github.com/Jumpscale/agentcontroller2/messages"
 )
 
 func (r *Manager) result(c *gin.Context) {
@@ -28,8 +27,7 @@ func (r *Manager) result(c *gin.Context) {
 	}
 
 	// decode body
-	var payload core.CommandResult
-	err = json.Unmarshal(content, &payload)
+	commandResult, err := messages.CommandResultMessageFromJSON(content)
 
 	if err != nil {
 		log.Println("[-] cannot read json:", err)
@@ -37,9 +35,9 @@ func (r *Manager) result(c *gin.Context) {
 		return
 	}
 
-	log.Println("Jobresult:", payload.ID)
+	log.Println("Jobresult:", commandResult.Content.ID)
 
-	err = r.commandResponder(&payload)
+	err = r.commandResponder(commandResult)
 	if err != nil {
 		log.Println("Failed queue results")
 		c.JSON(http.StatusInternalServerError, err.Error())

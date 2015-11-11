@@ -67,3 +67,11 @@ func CommandResultMessageFromCommandResult(commandResult *core.CommandResult) (*
 	}
 	return CommandResultMessageFromJSON(jsonData)
 }
+
+func (message *CommandMessage) String() string {
+	return string(message.Payload)
+}
+
+func (message *CommandResultMessage) String() string {
+	return string(message.Payload)
+}
