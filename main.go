@@ -3,7 +3,6 @@ package main
 import (
 	"container/list"
 	"crypto/tls"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -27,6 +26,7 @@ import (
 	hublleAgent "github.com/Jumpscale/hubble/agent"
 	hubbleAuth "github.com/Jumpscale/hubble/auth"
 	"github.com/garyburd/redigo/redis"
+	"github.com/Jumpscale/agentcontroller2/internals"
 )
 
 const (
@@ -71,6 +71,7 @@ func newPool(addr string, password string) *redis.Pool {
 
 var pool *redis.Pool
 var commandInterceptors *interceptors.Manager
+var internalCommands *internals.Manager
 
 func AgentCommandRedisQueue(id core.AgentID) messages.RedisCommandList {
 	name := fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
@@ -126,63 +127,9 @@ func sendResult(result *messages.CommandResultMessage) error {
 	return nil
 }
 
-// Caller is expecting a map with keys "GID:NID" of each live agent and values being
-// the sequence of roles the agent declares.
-func internalListAgents(cmd *core.Command) (interface{}, error) {
-	output := make(map[string][]string)
-	for _, agentID := range liveAgents.ConnectedAgents() {
-		var roles []string
-		for _, role := range liveAgents.GetRoles(agentID) {
-			roles = append(roles, string(role))
-		}
-		output[fmt.Sprintf("%d:%d", agentID.GID, agentID.NID)] = roles
-	}
-	return output, nil
-}
 
-var internals = map[string]func(*core.Command) (interface{}, error){
-	"list_agents": internalListAgents,
-}
-
-func processInternalCommand(command core.Command) {
-	result := &core.CommandResult{
-		ID:        command.ID,
-		Gid:       command.Gid,
-		Nid:       command.Nid,
-		Tags:      command.Tags,
-		State:     core.CommandStateError,
-		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
-	}
-
-	internal, ok := internals[command.Args.Name]
-	if ok {
-		data, err := internal(&command)
-		if err != nil {
-			result.Data = err.Error()
-		} else {
-			serialized, err := json.Marshal(data)
-			if err != nil {
-				result.Data = err.Error()
-			}
-			result.State = "SUCCESS"
-			result.Data = string(serialized)
-			result.Level = 20
-		}
-	} else {
-		result.State = "UNKNOWN_CMD"
-	}
-
-	resultMessage, err := messages.CommandResultMessageFromCommandResult(result)
-	if err != nil {
-		panic(err)
-	}
-
-	sendResult(resultMessage)
-	signalQueues(command.ID)
-}
-
-func signalQueues(id string) {
-	QueuedCommandRedisQueue(id).RightPush(pool, []byte("queued"))
+func signalQueued(commandID string) {
+	QueuedCommandRedisQueue(commandID).RightPush(pool, []byte("queued"))
 }
 
 func readSingleCmd() bool {
@@ -202,7 +149,7 @@ func readSingleCmd() bool {
 	var command core.Command = commandMessage.Content
 
 	if command.Cmd == "controller" {
-		go processInternalCommand(command)
+		go internalCommands.ProcessInternalCommand(commandMessage)
 		return true
 	}
 
@@ -306,7 +253,7 @@ func readSingleCmd() bool {
 		}
 	}
 
-	signalQueues(command.ID)
+	signalQueued(command.ID)
 	return true
 }
 
@@ -470,6 +417,7 @@ func main() {
 
 	pool = newPool(settings.Main.RedisHost, settings.Main.RedisPassword)
 	commandInterceptors = interceptors.NewManager(pool)
+	internalCommands = internals.NewManager(liveAgents, signalQueued, sendResult)
 
 	db := pool.Get()
 	if _, err := db.Do("PING"); err != nil {
@@ -482,10 +430,10 @@ func main() {
 
 	//start schedular.
 	scheduler := NewScheduler(pool)
-	internals["scheduler_add"] = scheduler.Add
-	internals["scheduler_list"] = scheduler.List
-	internals["scheduler_remove"] = scheduler.Remove
-	internals["scheduler_remove_prefix"] = scheduler.RemovePrefix
+	internalCommands.RegisterProcessor("scheduler_add", scheduler.Add)
+	internalCommands.RegisterProcessor("scheduler_list", scheduler.List)
+	internalCommands.RegisterProcessor("scheduler_remove", scheduler.Remove)
+	internalCommands.RegisterProcessor("scheduler_remove_prefix", scheduler.RemovePrefix)
 
 	scheduler.Start()
 
