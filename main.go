@@ -34,12 +34,9 @@ const (
 	agentInteractiveAfterOver = 30 * time.Second
 )
 
-var CommandResultRedisQueue = messages.RedisCommandResultList{List: ds.List{Name: "resutls.queue"}}
-
 func CommandResultRedisHash(resultID string) messages.RedisCommandResultHash {
 	return messages.RedisCommandResultHash{Hash: ds.Hash{Name: fmt.Sprintf("jobresult:%s", resultID)}}
 }
-
 
 func AgentCommandResultQueue(result *core.CommandResult) messages.RedisCommandResultList {
 	name := fmt.Sprintf("cmd.%s.%d.%d", result.ID, result.Gid, result.Nid)
@@ -76,6 +73,7 @@ var internalCommands *internals.Manager
 var incomingCommands messages.IncomingCommands
 var outgoingSignals messages.OutgoingSignals
 var loggedCommands messages.LoggedCommands
+var loggedCommandResults messages.LoggedCommandResults
 var agentCommands messages.AgentCommands
 
 
@@ -115,7 +113,7 @@ func sendResult(result *messages.CommandResultMessage) error {
 
 	//main results queue for results processors
 
-	err = CommandResultRedisQueue.RightPush(pool, result)
+	err = loggedCommandResults.Push(result)
 	if err != nil {
 		return err
 	}
@@ -235,7 +233,7 @@ func readSingleCmd() bool {
 		CommandResultRedisHash(command.ID).Set(pool, fmt.Sprintf("%d:%d", agentID.GID, agentID.NID),
 			resultPlaceholderMessage)
 
-		CommandResultRedisQueue.RightPush(pool, resultPlaceholderMessage)
+		loggedCommandResults.Push(resultPlaceholderMessage)
 
 		log.Println("Dispatching message to", agentID)
 		err = agentCommands.Enqueue(agentID, commandMessage)
@@ -344,7 +342,7 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 						}
 
 						CommandResultRedisHash(pendingCommand.Content.ID).Set(pool, key, resultPlaceholderMessage)
-						CommandResultRedisQueue.RightPush(pool, resultPlaceholderMessage)
+						loggedCommandResults.Push(resultPlaceholderMessage)
 					default:
 						//caller didn't want to receive this command. have to repush it
 						//directly on the agent queue. to avoid doing the redispatching.
@@ -412,6 +410,7 @@ func main() {
 	incomingCommands = redisdata.IncomingCommands(pool)
 	outgoingSignals = redisdata.OutgoingSignals(pool)
 	loggedCommands = redisdata.LoggedCommands(pool)
+	loggedCommandResults = redisdata.LoggedCommandResult(pool)
 	agentCommands = redisdata.AgentCommands(pool)
 
 	db := pool.Get()
@@ -446,7 +445,7 @@ func main() {
 	)
 
 	//start external command processors
-	processor, err := processors.NewProcessor(&settings.Processor, pool, loggedCommands, CommandResultRedisQueue)
+	processor, err := processors.NewProcessor(&settings.Processor, pool, loggedCommands, loggedCommandResults)
 	if err != nil {
 		log.Fatal("Failed to load processors module", err)
 	}

@@ -20,17 +20,16 @@ type Processor interface {
 }
 
 type processorImpl struct {
-	enabled       bool
-	resultsQueue  messages.RedisCommandResultList
-	commandsQueue messages.LoggedCommands
-	pool          *redis.Pool
-
-	module pygo.Pygo
+	enabled        bool
+	commandResults messages.LoggedCommandResults
+	commands       messages.LoggedCommands
+	pool           *redis.Pool
+	module         pygo.Pygo
 }
 
 //NewProcessor Creates a new processor
 func NewProcessor(config *configs.Extension, pool *redis.Pool,
-	commandsQueue messages.LoggedCommands, resultsQueue messages.RedisCommandResultList) (Processor, error) {
+	commands messages.LoggedCommands, commandResults messages.LoggedCommandResults) (Processor, error) {
 
 	var module pygo.Pygo
 	var err error
@@ -52,8 +51,8 @@ func NewProcessor(config *configs.Extension, pool *redis.Pool,
 	processor := &processorImpl{
 		enabled:       config.Enabled,
 		pool:          pool,
-		resultsQueue:  resultsQueue,
-		commandsQueue: commandsQueue,
+		commandResults:  commandResults,
+		commands: commands,
 		module:        module,
 	}
 
@@ -62,7 +61,7 @@ func NewProcessor(config *configs.Extension, pool *redis.Pool,
 
 func (processor *processorImpl) processSingleResult() error {
 
-	commandResultMessage, err := processor.resultsQueue.BlockingLeftPop(processor.pool, 0)
+	commandResultMessage, err := processor.commandResults.Pop()
 
 	if err != nil {
 		if core.IsTimeout(err) {
@@ -85,7 +84,7 @@ func (processor *processorImpl) processSingleResult() error {
 
 func (processor *processorImpl) processSingleCommand() error {
 
-	commandMessage, err := processor.commandsQueue.Pop()
+	commandMessage, err := processor.commands.Pop()
 
 	if err != nil {
 		if core.IsTimeout(err) {
