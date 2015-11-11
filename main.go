@@ -21,7 +21,6 @@ import (
 	"github.com/Jumpscale/agentcontroller2/interceptors"
 	"github.com/Jumpscale/agentcontroller2/messages"
 	"github.com/Jumpscale/agentcontroller2/processors"
-	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
 	"github.com/Jumpscale/agentcontroller2/rest"
 	hublleAgent "github.com/Jumpscale/hubble/agent"
 	hubbleAuth "github.com/Jumpscale/hubble/auth"
@@ -33,15 +32,6 @@ import (
 const (
 	agentInteractiveAfterOver = 30 * time.Second
 )
-
-func CommandResultRedisHash(resultID string) ds.CommandResultHash {
-	return ds.CommandResultHash{Hash: ds.Hash{Name: fmt.Sprintf("jobresult:%s", resultID)}}
-}
-
-func AgentCommandResultQueue(result *core.CommandResult) ds.CommandResultList {
-	name := fmt.Sprintf("cmd.%s.%d.%d", result.ID, result.Gid, result.Nid)
-	return ds.CommandResultList{List: ds.List{Name: name}}
-}
 
 // redis stuff
 func newPool(addr string, password string) *redis.Pool {
@@ -71,7 +61,7 @@ var pool *redis.Pool
 var commandInterceptors *interceptors.Manager
 var internalCommands *internals.Manager
 var incomingCommands messages.IncomingCommands
-var outgoingSignals messages.OutgoingSignals
+var outgoing messages.Outgoing
 var loggedCommands messages.LoggedCommands
 var loggedCommandResults messages.LoggedCommandResults
 var agentCommands messages.AgentCommands
@@ -97,22 +87,13 @@ func getActiveAgents(onlyGid int, roles []string) []core.AgentID {
 
 func sendResult(result *messages.CommandResultMessage) error {
 
-	err := CommandResultRedisHash(result.Content.ID).Set(pool,
-		fmt.Sprintf("%d:%d", result.Content.Gid, result.Content.Nid),
-		result)
-
+	// Respond
+	err := outgoing.RespondToCommand(result)
 	if err != nil {
 		return err
 	}
 
-	// push message to client result queue queue
-	AgentCommandResultQueue(&result.Content).RightPush(pool, result)
-	if err != nil {
-		return err
-	}
-
-	//main results queue for results processors
-
+	// Log for processing
 	err = loggedCommandResults.Push(result)
 	if err != nil {
 		return err
@@ -230,8 +211,10 @@ func readSingleCmd() bool {
 			panic(err)
 		}
 
-		CommandResultRedisHash(command.ID).Set(pool, fmt.Sprintf("%d:%d", agentID.GID, agentID.NID),
-			resultPlaceholderMessage)
+		err = outgoing.RespondToCommand(resultPlaceholderMessage)
+		if err != nil {
+			log.Println("[-] failsed to respond with", resultPlaceholderMessage)
+		}
 
 		loggedCommandResults.Push(resultPlaceholderMessage)
 
@@ -242,7 +225,7 @@ func readSingleCmd() bool {
 		}
 	}
 
-	outgoingSignals.SignalAsQueued(commandMessage)
+	outgoing.SignalAsQueued(commandMessage)
 	return true
 }
 
@@ -341,7 +324,10 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 							panic(err)
 						}
 
-						CommandResultRedisHash(pendingCommand.Content.ID).Set(pool, key, resultPlaceholderMessage)
+						err = outgoing.RespondToCommand(resultPlaceholderMessage)
+						if err != nil {
+							log.Println("[-] failed to respond with", resultPlaceholderMessage)
+						}
 						loggedCommandResults.Push(resultPlaceholderMessage)
 					default:
 						//caller didn't want to receive this command. have to repush it
@@ -406,9 +392,9 @@ func main() {
 
 	pool = newPool(settings.Main.RedisHost, settings.Main.RedisPassword)
 	commandInterceptors = interceptors.NewManager(pool)
-	internalCommands = internals.NewManager(liveAgents, outgoingSignals, sendResult)
+	internalCommands = internals.NewManager(liveAgents, outgoing, sendResult)
 	incomingCommands = redisdata.IncomingCommands(pool)
-	outgoingSignals = redisdata.OutgoingSignals(pool)
+	outgoing = redisdata.Outgoing(pool)
 	loggedCommands = redisdata.LoggedCommands(pool)
 	loggedCommandResults = redisdata.LoggedCommandResult(pool)
 	agentCommands = redisdata.AgentCommands(pool)
