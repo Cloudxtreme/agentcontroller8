@@ -41,8 +41,8 @@ var CommandRedisQueue = messages.RedisCommandList{List: ds.List{Name: "cmds.queu
 var CommandLogRedisQueue = messages.RedisCommandList{ds.List{Name: "cmds.log.queue"}}
 var CommandResultRedisQueue = messages.RedisCommandResultList{List: ds.List{Name: "resutls.queue"}}
 
-func CommandResultRedisHash(resultID string) ds.Hash {
-	return ds.Hash{Name: fmt.Sprintf("jobresult:%s", resultID)}
+func CommandResultRedisHash(resultID string) messages.RedisCommandResultHash {
+	return messages.RedisCommandResultHash{Hash: ds.Hash{Name: fmt.Sprintf("jobresult:%s", resultID)}}
 }
 
 // redis stuff
@@ -72,12 +72,14 @@ func newPool(addr string, password string) *redis.Pool {
 var pool *redis.Pool
 var commandInterceptors *interceptors.Manager
 
-func getAgentQueue(id core.AgentID) string {
-	return fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
+func AgentCommandRedisQueue(id core.AgentID) messages.RedisCommandList {
+	name := fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
+	return messages.RedisCommandList{List: ds.List{Name: name}}
 }
 
-func getAgentResultQueue(result *core.CommandResult) string {
-	return fmt.Sprintf(cmdQueueAgentResponse, result.ID, result.Gid, result.Nid)
+func getAgentResultQueue(result *core.CommandResult) messages.RedisCommandResultList {
+	name := fmt.Sprintf(cmdQueueAgentResponse, result.ID, result.Gid, result.Nid)
+	return messages.RedisCommandResultList{List: ds.List{Name: name}}
 }
 
 func getActiveAgents(onlyGid int, roles []string) []core.AgentID {
@@ -103,29 +105,31 @@ func sendResult(result *core.CommandResult) error {
 	defer db.Close()
 
 	key := fmt.Sprintf("%d:%d", result.Gid, result.Nid)
-	if data, err := json.Marshal(&result); err == nil {
-		err = CommandResultRedisHash(result.ID).Set(pool, key, data)
+	message, err := messages.CommandResultMessageFromCommandResult(result)
+	if err != nil {
+		return err
+	}
 
-		if err != nil {
-			return err
-		}
-		// push message to client result queue queue
-		err = db.Send("RPUSH", getAgentResultQueue(result), data)
-		if err != nil {
-			return err
-		}
+	err = CommandResultRedisHash(result.ID).Set(pool, key, message)
 
-		//main results queue for results processors
-		commandResultMessage, err := messages.CommandResultMessageFromCommandResult(result)
-		if err != nil {
-			return err
-		}
+	if err != nil {
+		return err
+	}
 
-		err = CommandResultRedisQueue.RightPush(pool, commandResultMessage)
-		if err != nil {
-			return err
-		}
-	} else {
+	// push message to client result queue queue
+	getAgentResultQueue(&message.Content).RightPush(pool, message)
+	if err != nil {
+		return err
+	}
+
+	//main results queue for results processors
+	commandResultMessage, err := messages.CommandResultMessageFromCommandResult(result)
+	if err != nil {
+		return err
+	}
+
+	err = CommandResultRedisQueue.RightPush(pool, commandResultMessage)
+	if err != nil {
 		return err
 	}
 
@@ -277,7 +281,8 @@ func readSingleCmd() bool {
 		agentID := e.Value.(core.AgentID)
 
 		log.Println("Dispatching message to", agentID)
-		if _, err := db.Do("RPUSH", getAgentQueue(agentID), commandMessage.Payload); err != nil {
+		err := AgentCommandRedisQueue(agentID).RightPush(pool, commandMessage)
+		if err != nil {
 			log.Println("[-] push error: ", err)
 		}
 
@@ -290,16 +295,15 @@ func readSingleCmd() bool {
 			StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 		}
 
-		if data, err := json.Marshal(&resultPlaceholder); err == nil {
-			CommandResultRedisHash(command.ID).Set(pool, fmt.Sprintf("%d:%d", agentID.GID, agentID.NID), data)
-
-			result := &messages.CommandResultMessage{
-				Content: resultPlaceholder,
-				Payload: data,
-			}
-
-			CommandResultRedisQueue.RightPush(pool, result)
+		resultPlaceholderMessage, err := messages.CommandResultMessageFromCommandResult(&resultPlaceholder)
+		if err != nil {
+			panic(err)
 		}
+
+		CommandResultRedisHash(command.ID).Set(pool, fmt.Sprintf("%d:%d", agentID.GID, agentID.NID),
+			resultPlaceholderMessage)
+
+		CommandResultRedisQueue.RightPush(pool, resultPlaceholderMessage)
 	}
 
 	signalQueues(command.ID)
@@ -377,7 +381,7 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 					db := pool.Get()
 					defer db.Close()
 
-					pending, err := redis.Strings(db.Do("BLPOP", getAgentQueue(agentID), "0"))
+					pendingCommand, err := AgentCommandRedisQueue(agentID).BlockingPop(pool, 0)
 					if err != nil {
 						if !core.IsTimeout(err) {
 							log.Println("Couldn't get new job for agent", key, err)
@@ -387,38 +391,31 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 					}
 
 					select {
-					case msgChan <- pending[1]:
+					case msgChan <- string(pendingCommand.Payload):
+
 						//caller consumed this job, it's safe to set it's state to RUNNING now.
-						var payload core.Command
-						if err := json.Unmarshal([]byte(pending[1]), &payload); err != nil {
-							break
-						}
 
 						resultPlaceholder := core.CommandResult{
-							ID:        payload.ID,
+							ID:        pendingCommand.Content.ID,
 							Gid:       igid,
 							Nid:       inid,
-							Tags:      payload.Tags,
+							Tags:      pendingCommand.Content.Tags,
 							State:     core.CommandStateRunning,
 							StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 						}
 
-						if data, err := json.Marshal(&resultPlaceholder); err == nil {
-							CommandResultRedisHash(payload.ID).Set(pool, key, data)
-
-							result := &messages.CommandResultMessage{
-								Content: resultPlaceholder,
-								Payload: data,
-							}
-
-							CommandResultRedisQueue.RightPush(pool, result)
+						resultPlaceholderMessage, err :=
+							messages.CommandResultMessageFromCommandResult(&resultPlaceholder)
+						if err != nil {
+							panic(err)
 						}
+
+						CommandResultRedisHash(pendingCommand.Content.ID).Set(pool, key, resultPlaceholderMessage)
+						CommandResultRedisQueue.RightPush(pool, resultPlaceholderMessage)
 					default:
 						//caller didn't want to receive this command. have to repush it
 						//directly on the agent queue. to avoid doing the redispatching.
-						if pending[1] != "" {
-							db.Do("LPUSH", getAgentQueue(agentID), pending[1])
-						}
+						AgentCommandRedisQueue(agentID).LeftPush(pool, pendingCommand)
 					}
 
 					return true
