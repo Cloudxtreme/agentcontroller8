@@ -286,11 +286,6 @@ func readSingleCmd() bool {
 		nid := agent[1]
 		agentID := core.AgentID{GID: uint(gid), NID: uint(nid)}
 
-		log.Println("Dispatching message to", agent)
-		if _, err := db.Do("RPUSH", getAgentQueue(agentID), commandMessage.Payload); err != nil {
-			log.Println("[-] push error: ", err)
-		}
-
 		resultPlaceholder := core.CommandResult{
 			ID:        command.ID,
 			Gid:       gid,
@@ -312,6 +307,11 @@ func readSingleCmd() bool {
 			}
 
 			CommandResultRedisQueue.RightPush(pool, result)
+		}
+
+		log.Println("Dispatching message to", agent)
+		if _, err := db.Do("RPUSH", getAgentQueue(agentID), commandMessage.Payload); err != nil {
+			log.Println("[-] push error: ", err)
 		}
 	}
 
