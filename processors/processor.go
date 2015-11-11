@@ -1,3 +1,7 @@
+//Processor is an extension to agentcontroller that does further processing on results and commands
+//by calling external python code.
+//The current processor impl will load the python module (defined by the config.Extension) and then call
+//process_command for each received command and process_result for each received result.
 package processors
 
 import (
@@ -11,10 +15,6 @@ import (
 	"os"
 )
 
-//Processor is an extension to agentcontroller that does further processing on results and commands
-//by calling external python code.
-//The current processor impl will load the python module (defined by the config.Extension) and then call
-//process_command for each received command and process_result for each received result.
 type Processor interface {
 	Start()
 }
