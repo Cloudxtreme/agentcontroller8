@@ -14,11 +14,11 @@ type CommandFunc func(*Manager, *messages.CommandMessage) (interface{}, error)
 type Manager struct {
 	commandProcessors map[CommandName]CommandFunc
 	agents            core.AgentInformationStorage
-	signalQueuing     func(string)
+	outgoingSignals   messages.OutgoingSignals
 	messageResponder  func(*messages.CommandResultMessage) error
 }
 
-func NewManager(agents core.AgentInformationStorage, signalQueuing func(string),
+func NewManager(agents core.AgentInformationStorage, outgoingSignals messages.OutgoingSignals,
 	messageResponder func(*messages.CommandResultMessage) error) *Manager {
 
 	return &Manager {
@@ -26,7 +26,7 @@ func NewManager(agents core.AgentInformationStorage, signalQueuing func(string),
 			"list_agents": listAgentsCommand,
 		},
 		agents: agents,
-		signalQueuing: signalQueuing,
+		outgoingSignals: outgoingSignals,
 		messageResponder: messageResponder,
 	}
 }
@@ -72,5 +72,5 @@ func (manager *Manager) ProcessInternalCommand(commandMessage *messages.CommandM
 	}
 
 	manager.messageResponder(resultMessage)
-	manager.signalQueuing(command.ID)
+	manager.outgoingSignals.SignalAsQueued(commandMessage)
 }

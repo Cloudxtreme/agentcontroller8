@@ -37,10 +37,6 @@ const (
 var CommandLogRedisQueue = messages.RedisCommandList{ds.List{Name: "cmds.log.queue"}}
 var CommandResultRedisQueue = messages.RedisCommandResultList{List: ds.List{Name: "resutls.queue"}}
 
-func QueuedCommandRedisQueue(id string) ds.List {
-	return ds.List{Name: fmt.Sprintf("cmd.%s.queued", id)}
-}
-
 func CommandResultRedisHash(resultID string) messages.RedisCommandResultHash {
 	return messages.RedisCommandResultHash{Hash: ds.Hash{Name: fmt.Sprintf("jobresult:%s", resultID)}}
 }
@@ -73,6 +69,7 @@ var pool *redis.Pool
 var commandInterceptors *interceptors.Manager
 var internalCommands *internals.Manager
 var incomingCommands messages.IncomingCommands
+var outgoingSignals messages.OutgoingSignals
 
 func AgentCommandRedisQueue(id core.AgentID) messages.RedisCommandList {
 	name := fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
@@ -126,11 +123,6 @@ func sendResult(result *messages.CommandResultMessage) error {
 	}
 
 	return nil
-}
-
-
-func signalQueued(commandID string) {
-	QueuedCommandRedisQueue(commandID).RightPush(pool, []byte("queued"))
 }
 
 func readSingleCmd() bool {
@@ -254,7 +246,7 @@ func readSingleCmd() bool {
 		}
 	}
 
-	signalQueued(command.ID)
+	outgoingSignals.SignalAsQueued(commandMessage)
 	return true
 }
 
@@ -418,8 +410,9 @@ func main() {
 
 	pool = newPool(settings.Main.RedisHost, settings.Main.RedisPassword)
 	commandInterceptors = interceptors.NewManager(pool)
-	internalCommands = internals.NewManager(liveAgents, signalQueued, sendResult)
+	internalCommands = internals.NewManager(liveAgents, outgoingSignals, sendResult)
 	incomingCommands = redisdata.IncomingCommands(pool)
+	outgoingSignals = redisdata.OutgoingSignals(pool)
 
 	db := pool.Get()
 	if _, err := db.Do("PING"); err != nil {
