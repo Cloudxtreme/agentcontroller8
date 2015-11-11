@@ -1,6 +1,5 @@
 from JumpScale import j # NOQA
 import time
-import json
 
 osis = j.clients.osis.getNamespace('system')
 
