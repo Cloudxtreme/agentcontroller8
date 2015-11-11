@@ -77,7 +77,7 @@ func getAgentResultQueue(result *core.CommandResult) string {
 	return fmt.Sprintf(cmdQueueAgentResponse, result.ID, result.Gid, result.Nid)
 }
 
-func getActiveAgents(onlyGid int, roles []string) [][]int {
+func getActiveAgents(onlyGid int, roles []string) []core.AgentID {
 	var gidFilter *uint
 	var roleFilter []core.AgentRole
 
@@ -92,14 +92,7 @@ func getActiveAgents(onlyGid int, roles []string) [][]int {
 		}
 	}
 
-	connectedAgents := liveAgents.FilteredConnectedAgents(gidFilter, roleFilter)
-
-	var output [][]int
-	for _, connectedAgent := range connectedAgents {
-		output = append(output, []int{int(connectedAgent.GID), int(connectedAgent.NID)})
-	}
-
-	return output
+	return liveAgents.FilteredConnectedAgents(gidFilter, roleFilter)
 }
 
 func sendResult(result *core.CommandResult) error {
@@ -225,8 +218,8 @@ func readSingleCmd() bool {
 
 	if len(command.Roles) > 0 {
 		//command has a given role
-		active := getActiveAgents(command.Gid, command.Roles)
-		if len(active) == 0 {
+		activeAgents := getActiveAgents(command.Gid, command.Roles)
+		if len(activeAgents) == 0 {
 			//no active agents that saticifies this role.
 			result := &core.CommandResult{
 				ID:        command.ID,
@@ -242,13 +235,13 @@ func readSingleCmd() bool {
 		} else {
 			if command.Fanout {
 				//fanning out.
-				for _, agent := range active {
-					ids.PushBack(agent)
+				for _, agentID := range activeAgents {
+					ids.PushBack(agentID)
 				}
 
 			} else {
-				agent := active[rand.Intn(len(active))]
-				ids.PushBack(agent)
+				randomAgent := activeAgents[rand.Intn(len(activeAgents))]
+				ids.PushBack(randomAgent)
 			}
 		}
 	} else {
@@ -268,7 +261,7 @@ func readSingleCmd() bool {
 
 			sendResult(result)
 		} else {
-			ids.PushBack([]int{command.Gid, command.Nid})
+			ids.PushBack(core.AgentID{GID: uint(command.Gid), NID: uint(command.Nid)})
 		}
 	}
 
@@ -281,20 +274,17 @@ func readSingleCmd() bool {
 	//distribution to agents.
 	for e := ids.Front(); e != nil; e = e.Next() {
 		// push message to client queue
-		agent := e.Value.([]int)
-		gid := agent[0]
-		nid := agent[1]
-		agentID := core.AgentID{GID: uint(gid), NID: uint(nid)}
+		agentID := e.Value.(core.AgentID)
 
-		log.Println("Dispatching message to", agent)
+		log.Println("Dispatching message to", agentID)
 		if _, err := db.Do("RPUSH", getAgentQueue(agentID), commandMessage.Payload); err != nil {
 			log.Println("[-] push error: ", err)
 		}
 
 		resultPlaceholder := core.CommandResult{
 			ID:        command.ID,
-			Gid:       gid,
-			Nid:       nid,
+			Gid:       int(agentID.GID),
+			Nid:       int(agentID.NID),
 			Tags:      command.Tags,
 			State:     core.CommandStateQueued,
 			StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
@@ -303,7 +293,7 @@ func readSingleCmd() bool {
 		if data, err := json.Marshal(&resultPlaceholder); err == nil {
 			db.Do("HSET",
 				fmt.Sprintf(hashCmdResults, command.ID),
-				fmt.Sprintf("%d:%d", gid, nid),
+				fmt.Sprintf("%d:%d", agentID.GID, agentID.NID),
 				data)
 
 			result := &messages.CommandResultMessage{
