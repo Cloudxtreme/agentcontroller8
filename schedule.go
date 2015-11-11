@@ -37,7 +37,12 @@ func (job *SchedulerJob) Run() {
 
 	log.Println("Scheduler: Running job", job.ID, job.Cmd["id"])
 
-	err := CommandRedisQueue.List.RightPush(pool, dump)
+	command, err := messages.CommandMessageFromJSON(dump)
+	if err != nil {
+		panic(err)
+	}
+
+	err = incomingCommands.Push(command)
 	if err != nil {
 		log.Println("Failed to run scheduled command", job.ID)
 	}

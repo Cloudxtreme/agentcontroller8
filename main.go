@@ -27,13 +27,13 @@ import (
 	hubbleAuth "github.com/Jumpscale/hubble/auth"
 	"github.com/garyburd/redigo/redis"
 	"github.com/Jumpscale/agentcontroller2/internals"
+	"github.com/Jumpscale/agentcontroller2/redisdata"
 )
 
 const (
 	agentInteractiveAfterOver = 30 * time.Second
 )
 
-var CommandRedisQueue = messages.RedisCommandList{List: ds.List{Name: "cmds.queue"}}
 var CommandLogRedisQueue = messages.RedisCommandList{ds.List{Name: "cmds.log.queue"}}
 var CommandResultRedisQueue = messages.RedisCommandResultList{List: ds.List{Name: "resutls.queue"}}
 
@@ -72,6 +72,7 @@ func newPool(addr string, password string) *redis.Pool {
 var pool *redis.Pool
 var commandInterceptors *interceptors.Manager
 var internalCommands *internals.Manager
+var incomingCommands messages.IncomingCommands
 
 func AgentCommandRedisQueue(id core.AgentID) messages.RedisCommandList {
 	name := fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
@@ -134,7 +135,7 @@ func signalQueued(commandID string) {
 
 func readSingleCmd() bool {
 
-	commandMessage, err := CommandRedisQueue.BlockingPop(pool, 0)
+	commandMessage, err := incomingCommands.Pop()
 	if err != nil {
 		if core.IsTimeout(err) {
 			return true
@@ -418,6 +419,7 @@ func main() {
 	pool = newPool(settings.Main.RedisHost, settings.Main.RedisPassword)
 	commandInterceptors = interceptors.NewManager(pool)
 	internalCommands = internals.NewManager(liveAgents, signalQueued, sendResult)
+	incomingCommands = redisdata.IncomingCommands(pool)
 
 	db := pool.Get()
 	if _, err := db.Do("PING"); err != nil {
