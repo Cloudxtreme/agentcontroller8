@@ -34,7 +34,6 @@ const (
 	agentInteractiveAfterOver = 30 * time.Second
 )
 
-var CommandLogRedisQueue = messages.RedisCommandList{ds.List{Name: "cmds.log.queue"}}
 var CommandResultRedisQueue = messages.RedisCommandResultList{List: ds.List{Name: "resutls.queue"}}
 
 func CommandResultRedisHash(resultID string) messages.RedisCommandResultHash {
@@ -70,6 +69,7 @@ var commandInterceptors *interceptors.Manager
 var internalCommands *internals.Manager
 var incomingCommands messages.IncomingCommands
 var outgoingSignals messages.OutgoingSignals
+var loggedCommands messages.LoggedCommands
 
 func AgentCommandRedisQueue(id core.AgentID) messages.RedisCommandList {
 	name := fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
@@ -210,7 +210,7 @@ func readSingleCmd() bool {
 	}
 
 	// push logs
-	err = CommandLogRedisQueue.List.RightPush(pool, commandMessage.Payload)
+	err = loggedCommands.Push(commandMessage)
 	if err != nil {
 		log.Println("[-] log push error: ", err)
 	}
@@ -413,6 +413,7 @@ func main() {
 	internalCommands = internals.NewManager(liveAgents, outgoingSignals, sendResult)
 	incomingCommands = redisdata.IncomingCommands(pool)
 	outgoingSignals = redisdata.OutgoingSignals(pool)
+	loggedCommands = redisdata.LoggedCommands(pool)
 
 	db := pool.Get()
 	if _, err := db.Do("PING"); err != nil {
@@ -446,7 +447,7 @@ func main() {
 	)
 
 	//start external command processors
-	processor, err := processors.NewProcessor(&settings.Processor, pool, CommandLogRedisQueue, CommandResultRedisQueue)
+	processor, err := processors.NewProcessor(&settings.Processor, pool, loggedCommands, CommandResultRedisQueue)
 	if err != nil {
 		log.Fatal("Failed to load processors module", err)
 	}

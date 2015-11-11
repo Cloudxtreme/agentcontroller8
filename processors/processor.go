@@ -22,7 +22,7 @@ type Processor interface {
 type processorImpl struct {
 	enabled       bool
 	resultsQueue  messages.RedisCommandResultList
-	commandsQueue messages.RedisCommandList
+	commandsQueue messages.LoggedCommands
 	pool          *redis.Pool
 
 	module pygo.Pygo
@@ -30,7 +30,7 @@ type processorImpl struct {
 
 //NewProcessor Creates a new processor
 func NewProcessor(config *configs.Extension, pool *redis.Pool,
-	commandsQueue messages.RedisCommandList, resultsQueue messages.RedisCommandResultList) (Processor, error) {
+	commandsQueue messages.LoggedCommands, resultsQueue messages.RedisCommandResultList) (Processor, error) {
 
 	var module pygo.Pygo
 	var err error
@@ -85,7 +85,7 @@ func (processor *processorImpl) processSingleResult() error {
 
 func (processor *processorImpl) processSingleCommand() error {
 
-	commandMessage, err := processor.commandsQueue.BlockingPop(processor.pool, 0)
+	commandMessage, err := processor.commandsQueue.Pop()
 
 	if err != nil {
 		if core.IsTimeout(err) {
