@@ -1,7 +1,12 @@
 from JumpScale import j # NOQA
 import time
+import json
+
 
 osis = j.clients.osis.getNamespace('system')
+
+
+ERROR_STATES = ('ERROR', 'TIMEOUT')
 
 
 def get_or_create_command(command_guid):
@@ -48,3 +53,42 @@ def process_result(result):
         setattr(job, key, result[key])
 
     osis.command.set(cmd)
+
+    if result['state'] in ERROR_STATES:
+        process_error_result(result)
+
+
+def get_eco(result):
+    # critical is the last error message that was received via the process
+    # and has 'critical' level. Under jumpscale, this will container the
+    # json error object.
+    try:
+        eco_dict = json.loads(result['critical'])
+        return j.errorconditionhandler.getErrorConditionObject(eco_dict)
+    except:
+        streams = result.get('streams') or ['', '']
+        error = result['critical'] or streams[1] or result['data'] or result['state']
+        eco = j.errorconditionhandler.getErrorConditionObject(msg=error)
+        eco.backtrace = ''
+        eco.backtraceDetailed = ''
+        return eco
+
+
+def process_error_result(result):
+    gid = result['gid']
+    nid = result['nid']
+
+    eco = get_eco(result)
+
+    eco_obj = osis.eco.new(gid=gid, nid=nid)
+
+    for key in ('pid', 'masterjid', 'epoch', 'appname', 'level', 'type', 'state', 'errormessage',
+                'errormessagePub', 'category', 'tags', 'code', 'funcname', 'funcfilename', 'funclinenr',
+                'backtrace', 'backtraceDetailed', 'lasttime', 'closetime', 'occurrences'):
+        setattr(eco_obj, key, getattr(eco, key))
+
+    eco_obj.gid = gid
+    eco_obj.nid = nid
+    eco_obj.jid = result['id']
+
+    osis.eco.set(eco_obj)
