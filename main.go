@@ -31,14 +31,15 @@ import (
 
 const (
 	agentInteractiveAfterOver = 30 * time.Second
-	cmdQueueCmdQueued         = "cmd.%s.queued"
-	cmdQueueAgentResponse     = "cmd.%s.%d.%d"
-	cmdInternal               = "controller"
 )
 
 var CommandRedisQueue = messages.RedisCommandList{List: ds.List{Name: "cmds.queue"}}
 var CommandLogRedisQueue = messages.RedisCommandList{ds.List{Name: "cmds.log.queue"}}
 var CommandResultRedisQueue = messages.RedisCommandResultList{List: ds.List{Name: "resutls.queue"}}
+
+func QueuedCommandRedisQueue(id string) ds.List {
+	return ds.List{Name: fmt.Sprintf("cmd.%s.queued", id)}
+}
 
 func CommandResultRedisHash(resultID string) messages.RedisCommandResultHash {
 	return messages.RedisCommandResultHash{Hash: ds.Hash{Name: fmt.Sprintf("jobresult:%s", resultID)}}
@@ -77,7 +78,7 @@ func AgentCommandRedisQueue(id core.AgentID) messages.RedisCommandList {
 }
 
 func AgentCommandResultQueue(result *core.CommandResult) messages.RedisCommandResultList {
-	name := fmt.Sprintf(cmdQueueAgentResponse, result.ID, result.Gid, result.Nid)
+	name := fmt.Sprintf("cmd.%s.%d.%d", result.ID, result.Gid, result.Nid)
 	return messages.RedisCommandResultList{List: ds.List{Name: name}}
 }
 
@@ -184,9 +185,7 @@ func processInternalCommand(command core.Command) {
 }
 
 func signalQueues(id string) {
-	db := pool.Get()
-	defer db.Close()
-	db.Do("RPUSH", fmt.Sprintf(cmdQueueCmdQueued, id), "queued")
+	QueuedCommandRedisQueue(id).RightPush(pool, []byte("queued"))
 }
 
 func readSingleCmd() bool {
@@ -205,7 +204,7 @@ func readSingleCmd() bool {
 	commandMessage = commandInterceptors.Intercept(commandMessage)
 	var command core.Command = commandMessage.Content
 
-	if command.Cmd == cmdInternal {
+	if command.Cmd == "controller" {
 		go processInternalCommand(command)
 		return true
 	}
@@ -336,10 +335,8 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 		producer = make(chan *core.PollData)
 		producers[key] = producer
 		go func() {
-			//db := pool.Get()
 
 			defer func() {
-				//db.Close()
 
 				//no agent tried to connect
 				close(producer)
@@ -371,9 +368,6 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 						agentRoles = append(agentRoles, core.AgentRole(role))
 					}
 					liveAgents.SetRoles(agentID, agentRoles)
-
-					db := pool.Get()
-					defer db.Close()
 
 					pendingCommand, err := AgentCommandRedisQueue(agentID).BlockingPop(pool, 0)
 					if err != nil {
