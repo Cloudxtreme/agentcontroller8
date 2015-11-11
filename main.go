@@ -34,13 +34,16 @@ const (
 	roleAll                   = "*"
 	cmdQueueCmdQueued         = "cmd.%s.queued"
 	cmdQueueAgentResponse     = "cmd.%s.%d.%d"
-	hashCmdResults            = "jobresult:%s"
 	cmdInternal               = "controller"
 )
 
 var CommandRedisQueue = messages.RedisCommandList{List: ds.List{Name: "cmds.queue"}}
 var CommandLogRedisQueue = messages.RedisCommandList{ds.List{Name: "cmds.log.queue"}}
 var CommandResultRedisQueue = messages.RedisCommandResultList{List: ds.List{Name: "resutls.queue"}}
+
+func CommandResultRedisHash(resultID string) ds.Hash {
+	return ds.Hash{Name: fmt.Sprintf("jobresult:%s", resultID)}
+}
 
 // redis stuff
 func newPool(addr string, password string) *redis.Pool {
@@ -101,10 +104,7 @@ func sendResult(result *core.CommandResult) error {
 
 	key := fmt.Sprintf("%d:%d", result.Gid, result.Nid)
 	if data, err := json.Marshal(&result); err == nil {
-		err = db.Send("HSET",
-			fmt.Sprintf(hashCmdResults, result.ID),
-			key,
-			data)
+		err = CommandResultRedisHash(result.ID).Set(pool, key, data)
 
 		if err != nil {
 			return err
@@ -291,10 +291,7 @@ func readSingleCmd() bool {
 		}
 
 		if data, err := json.Marshal(&resultPlaceholder); err == nil {
-			db.Do("HSET",
-				fmt.Sprintf(hashCmdResults, command.ID),
-				fmt.Sprintf("%d:%d", agentID.GID, agentID.NID),
-				data)
+			CommandResultRedisHash(command.ID).Set(pool, fmt.Sprintf("%d:%d", agentID.GID, agentID.NID), data)
 
 			result := &messages.CommandResultMessage{
 				Content: resultPlaceholder,
@@ -407,10 +404,7 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 						}
 
 						if data, err := json.Marshal(&resultPlaceholder); err == nil {
-							db.Do("HSET",
-								fmt.Sprintf(hashCmdResults, payload.ID),
-								key,
-								data)
+							CommandResultRedisHash(payload.ID).Set(pool, key, data)
 
 							result := &messages.CommandResultMessage{
 								Content: resultPlaceholder,
