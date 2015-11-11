@@ -39,7 +39,7 @@ const (
 )
 
 var CommandRedisQueue = messages.RedisCommandList{List: ds.List{Name: "cmds.queue"}}
-var CommandLogRedisQueue = messages.RedisCommandList{ds.List{Name: "joblog"}}
+var CommandLogRedisQueue = messages.RedisCommandList{ds.List{Name: "cmds.log.queue"}}
 var CommandResultRedisQueue = messages.RedisCommandResultList{List: ds.List{Name: "resutls.queue"}}
 
 // redis stuff
@@ -305,6 +305,13 @@ func readSingleCmd() bool {
 				fmt.Sprintf(hashCmdResults, command.ID),
 				fmt.Sprintf("%d:%d", gid, nid),
 				data)
+
+			result := &messages.CommandResultMessage{
+				Content: resultPlaceholder,
+				Payload: data,
+			}
+
+			CommandResultRedisQueue.RightPush(pool, result)
 		}
 	}
 
@@ -400,7 +407,7 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 							break
 						}
 
-						resultPlacehoder := core.CommandResult{
+						resultPlaceholder := core.CommandResult{
 							ID:        payload.ID,
 							Gid:       igid,
 							Nid:       inid,
@@ -409,11 +416,18 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 							StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 						}
 
-						if data, err := json.Marshal(&resultPlacehoder); err == nil {
+						if data, err := json.Marshal(&resultPlaceholder); err == nil {
 							db.Do("HSET",
 								fmt.Sprintf(hashCmdResults, payload.ID),
 								key,
 								data)
+
+							result := &messages.CommandResultMessage{
+								Content: resultPlaceholder,
+								Payload: data,
+							}
+
+							CommandResultRedisQueue.RightPush(pool, result)
 						}
 					default:
 						//caller didn't want to receive this command. have to repush it
