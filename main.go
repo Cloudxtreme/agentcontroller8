@@ -31,7 +31,6 @@ import (
 
 const (
 	agentInteractiveAfterOver = 30 * time.Second
-	roleAll                   = "*"
 	cmdQueueCmdQueued         = "cmd.%s.queued"
 	cmdQueueAgentResponse     = "cmd.%s.%d.%d"
 	cmdInternal               = "controller"
