@@ -19,14 +19,14 @@ import (
 	"github.com/Jumpscale/agentcontroller2/configs"
 	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/Jumpscale/agentcontroller2/events"
+	"github.com/Jumpscale/agentcontroller2/interceptors"
+	"github.com/Jumpscale/agentcontroller2/messages"
 	"github.com/Jumpscale/agentcontroller2/processors"
+	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
 	"github.com/Jumpscale/agentcontroller2/rest"
 	hublleAgent "github.com/Jumpscale/hubble/agent"
 	hubbleAuth "github.com/Jumpscale/hubble/auth"
 	"github.com/garyburd/redigo/redis"
-	"github.com/Jumpscale/agentcontroller2/interceptors"
-	"github.com/Jumpscale/agentcontroller2/messages"
-	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
 )
 
 const (
@@ -273,7 +273,7 @@ func readSingleCmd() bool {
 	}
 
 	// push logs
-	err = CommandLogRedisQueue.List.LeftPush(pool, commandMessage.Payload)
+	err = CommandLogRedisQueue.List.RightPush(pool, commandMessage.Payload)
 	if err != nil {
 		log.Println("[-] log push error: ", err)
 	}
@@ -512,8 +512,8 @@ func main() {
 		&settings,
 	)
 
-	//start results processors
-	processor, err := processors.NewResultsProcessor(&settings.Processors, pool, CommandResultRedisQueue)
+	//start external command processors
+	processor, err := processors.NewProcessor(&settings.Processor, pool, CommandLogRedisQueue, CommandResultRedisQueue)
 	if err != nil {
 		log.Fatal("Failed to load processors module", err)
 	}

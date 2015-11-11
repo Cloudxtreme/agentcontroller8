@@ -1,12 +1,13 @@
 package ds
+
 import (
+	"fmt"
 	"github.com/garyburd/redigo/redis"
 	"time"
-	"fmt"
 )
 
 type List struct {
-	Name	string
+	Name string
 }
 
 // BLPOP from the list
