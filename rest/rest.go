@@ -6,14 +6,17 @@ import (
 	"github.com/Jumpscale/agentcontroller2/events"
 	"github.com/garyburd/redigo/redis"
 	"github.com/gin-gonic/gin"
+	"github.com/Jumpscale/agentcontroller2/messages"
 )
+
+type CommandResponder func(result *messages.CommandResultMessage) error
 
 type Manager struct {
 	engine              *gin.Engine
 	eventHandler        *events.EventsHandler
 	producerChanFactory core.ProducerChanFactory
 	redisPool           *redis.Pool
-	commandResponder    core.CommandResponder
+	commandResponder    CommandResponder
 	settings            *configs.Settings
 }
 
@@ -21,7 +24,7 @@ func NewManager(
 	eventHandler *events.EventsHandler,
 	producerChanFactory core.ProducerChanFactory,
 	redisPool *redis.Pool,
-	commandResponder core.CommandResponder,
+	commandResponder CommandResponder,
 	settings *configs.Settings,
 ) *Manager {
 

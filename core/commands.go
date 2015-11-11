@@ -38,4 +38,4 @@ type CommandResult struct {
 	Time      int                    `json:"time"`
 }
 
-type CommandResponder func(result *CommandResult) error
+

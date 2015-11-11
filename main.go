@@ -100,34 +100,25 @@ func getActiveAgents(onlyGid int, roles []string) []core.AgentID {
 	return liveAgents.FilteredConnectedAgents(gidFilter, roleFilter)
 }
 
-func sendResult(result *core.CommandResult) error {
+func sendResult(result *messages.CommandResultMessage) error {
 
-	message, err := messages.CommandResultMessageFromCommandResult(result)
-	if err != nil {
-		return err
-	}
-
-	err = CommandResultRedisHash(result.ID).Set(pool,
-		fmt.Sprintf("%d:%d", result.Gid, result.Nid),
-		message)
+	err := CommandResultRedisHash(result.Content.ID).Set(pool,
+		fmt.Sprintf("%d:%d", result.Content.Gid, result.Content.Nid),
+		result)
 
 	if err != nil {
 		return err
 	}
 
 	// push message to client result queue queue
-	AgentCommandResultQueue(&message.Content).RightPush(pool, message)
+	AgentCommandResultQueue(&result.Content).RightPush(pool, result)
 	if err != nil {
 		return err
 	}
 
 	//main results queue for results processors
-	commandResultMessage, err := messages.CommandResultMessageFromCommandResult(result)
-	if err != nil {
-		return err
-	}
 
-	err = CommandResultRedisQueue.RightPush(pool, commandResultMessage)
+	err = CommandResultRedisQueue.RightPush(pool, result)
 	if err != nil {
 		return err
 	}
@@ -181,7 +172,12 @@ func processInternalCommand(command core.Command) {
 		result.State = "UNKNOWN_CMD"
 	}
 
-	sendResult(result)
+	resultMessage, err := messages.CommandResultMessageFromCommandResult(result)
+	if err != nil {
+		panic(err)
+	}
+
+	sendResult(resultMessage)
 	signalQueues(command.ID)
 }
 
@@ -229,7 +225,12 @@ func readSingleCmd() bool {
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 			}
 
-			sendResult(result)
+			resultMessage, err := messages.CommandResultMessageFromCommandResult(result)
+			if err != nil {
+				panic(err)
+			}
+
+			sendResult(resultMessage)
 		} else {
 			if command.Fanout {
 				//fanning out.
@@ -257,7 +258,12 @@ func readSingleCmd() bool {
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 			}
 
-			sendResult(result)
+			resultMessage, err := messages.CommandResultMessageFromCommandResult(result)
+			if err != nil {
+				panic(err)
+			}
+
+			sendResult(resultMessage)
 		} else {
 			ids.PushBack(core.AgentID{GID: uint(command.Gid), NID: uint(command.Nid)})
 		}
