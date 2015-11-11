@@ -1,3 +1,4 @@
+// Middleware for received commands that kick in before received commands are dispatched or executed
 package interceptors
 
 import (
