@@ -38,3 +38,11 @@ func (list List) RightPush(connPool *redis.Pool, data []byte) error {
 
 	return conn.Send("RPUSH", list.Name, data)
 }
+
+// EXPIRE this list
+func (list List) Expire(connPool *redis.Pool, duration time.Duration) error {
+	conn := connPool.Get()
+	defer conn.Close()
+
+	return conn.Send("EXPIRE", list.Name, duration.Seconds())
+}

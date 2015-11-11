@@ -4,6 +4,7 @@ import (
 	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
 	"fmt"
 	"github.com/Jumpscale/agentcontroller2/core"
+	"time"
 )
 
 type outgoing struct {
@@ -35,15 +36,27 @@ func (outgoing *outgoing) SignalAsQueued(command *core.Command) {
 
 func (outgoing *outgoing) RespondToCommand(result *core.CommandResult) error {
 
-	err := hashForCommandResult(result).Set(outgoing.connPool,
-		fmt.Sprintf("%d:%d", result.Content.Gid, result.Content.Nid),
-		result)
+	hash := hashForCommandResult(result)
+
+	err := hash.Set(outgoing.connPool, fmt.Sprintf("%d:%d", result.Content.Gid, result.Content.Nid), result)
+	if err != nil {
+		return err
+	}
+
+	err = hash.Hash.Expire(outgoing.connPool, 24 * time.Hour)
 	if err != nil {
 		return err
 	}
 
 	if result.Content.State != core.CommandStateQueued && result.Content.State != core.CommandStateRunning {
-		singletonListForCommandResult(result).RightPush(outgoing.connPool, result)
+		singletonList := singletonListForCommandResult(result)
+
+		singletonList.RightPush(outgoing.connPool, result)
+		if err != nil {
+			return err
+		}
+
+		singletonList.List.Expire(outgoing.connPool, 24 * time.Hour)
 		if err != nil {
 			return err
 		}
