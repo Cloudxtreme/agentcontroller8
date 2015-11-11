@@ -2,24 +2,23 @@
 // instances.
 package internals
 import (
-	"github.com/Jumpscale/agentcontroller2/messages"
 	"github.com/Jumpscale/agentcontroller2/core"
 	"time"
 	"encoding/json"
 )
 
 type CommandName string
-type CommandFunc func(*Manager, *messages.CommandMessage) (interface{}, error)
+type CommandFunc func(*Manager, *core.Command) (interface{}, error)
 
 type Manager struct {
 	commandProcessors map[CommandName]CommandFunc
 	agents            core.AgentInformationStorage
-	outgoingSignals   messages.Outgoing
-	messageResponder  func(*messages.CommandResultMessage) error
+	outgoingSignals   core.Outgoing
+	messageResponder  func(*core.CommandResult) error
 }
 
-func NewManager(agents core.AgentInformationStorage, outgoingSignals messages.Outgoing,
-	messageResponder func(*messages.CommandResultMessage) error) *Manager {
+func NewManager(agents core.AgentInformationStorage, outgoingSignals core.Outgoing,
+	messageResponder func(*core.CommandResult) error) *Manager {
 
 	return &Manager {
 		commandProcessors: map[CommandName]CommandFunc {
@@ -35,11 +34,11 @@ func (manager *Manager) RegisterProcessor(command CommandName, processor Command
 	manager.commandProcessors[command] = processor
 }
 
-func (manager *Manager) ProcessInternalCommand(commandMessage *messages.CommandMessage) {
+func (manager *Manager) ProcessInternalCommand(commandMessage *core.Command) {
 
 	command := commandMessage.Content
 
-	result := &core.CommandResult{
+	result := &core.CommandResultContent{
 		ID:        command.ID,
 		Gid:       command.Gid,
 		Nid:       command.Nid,
@@ -66,7 +65,7 @@ func (manager *Manager) ProcessInternalCommand(commandMessage *messages.CommandM
 		result.State = core.CommandStateErrorUnknownCommand
 	}
 
-	resultMessage, err := messages.CommandResultMessageFromCommandResult(result)
+	resultMessage, err := core.CommandResultFromCommandResultContent(result)
 	if err != nil {
 		panic(err)
 	}

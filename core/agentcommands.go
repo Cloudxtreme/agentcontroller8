@@ -1,16 +1,15 @@
-package messages
-import "github.com/Jumpscale/agentcontroller2/core"
+package core
 
 // Temporarily-stored commands for all agents
 type AgentCommands interface {
 
 	// Enqueues a command for an Agent's execution queue
-	Enqueue(agentID core.AgentID, command *CommandMessage) error
+	Enqueue(agentID AgentID, command *Command) error
 
 	// Dequeues a command from an Agent's execution queue
-	Dequeue(agentID core.AgentID) (*CommandMessage, error)
+	Dequeue(agentID AgentID) (*Command, error)
 
 	// Reports a command that was dequeued for an Agent but was failed to be executed for
 	// some reason or another
-	ReportUnexecutedCommand(command *CommandMessage, agentID core.AgentID) error
+	ReportUnexecutedCommand(command *Command, agentID AgentID) error
 }

@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"github.com/Jumpscale/agentcontroller2/messages"
+	"github.com/Jumpscale/agentcontroller2/core"
 )
 
 func (r *Manager) result(c *gin.Context) {
@@ -27,7 +27,7 @@ func (r *Manager) result(c *gin.Context) {
 	}
 
 	// decode body
-	commandResult, err := messages.CommandResultMessageFromJSON(content)
+	commandResult, err := core.CommandResultFromJSON(content)
 
 	if err != nil {
 		log.Println("[-] cannot read json:", err)

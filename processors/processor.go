@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/Jumpscale/agentcontroller2/configs"
 	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/messages"
 	"github.com/Jumpscale/pygo"
 	"github.com/garyburd/redigo/redis"
 	"log"
@@ -21,15 +20,15 @@ type Processor interface {
 
 type processorImpl struct {
 	enabled        bool
-	commandResults messages.LoggedCommandResults
-	commands       messages.LoggedCommands
+	commandResults core.LoggedCommandResults
+	commands       core.LoggedCommands
 	pool           *redis.Pool
 	module         pygo.Pygo
 }
 
 //NewProcessor Creates a new processor
 func NewProcessor(config *configs.Extension, pool *redis.Pool,
-	commands messages.LoggedCommands, commandResults messages.LoggedCommandResults) (Processor, error) {
+	commands core.LoggedCommands, commandResults core.LoggedCommandResults) (Processor, error) {
 
 	var module pygo.Pygo
 	var err error

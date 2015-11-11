@@ -19,7 +19,6 @@ import (
 	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/Jumpscale/agentcontroller2/events"
 	"github.com/Jumpscale/agentcontroller2/interceptors"
-	"github.com/Jumpscale/agentcontroller2/messages"
 	"github.com/Jumpscale/agentcontroller2/processors"
 	"github.com/Jumpscale/agentcontroller2/rest"
 	hublleAgent "github.com/Jumpscale/hubble/agent"
@@ -60,11 +59,11 @@ func newPool(addr string, password string) *redis.Pool {
 var pool *redis.Pool
 var commandInterceptors *interceptors.Manager
 var internalCommands *internals.Manager
-var incomingCommands messages.IncomingCommands
-var outgoing messages.Outgoing
-var loggedCommands messages.LoggedCommands
-var loggedCommandResults messages.LoggedCommandResults
-var agentCommands messages.AgentCommands
+var incomingCommands core.IncomingCommands
+var outgoing core.Outgoing
+var loggedCommands core.LoggedCommands
+var loggedCommandResults core.LoggedCommandResults
+var agentCommands core.AgentCommands
 
 
 func getActiveAgents(onlyGid int, roles []string) []core.AgentID {
@@ -85,7 +84,7 @@ func getActiveAgents(onlyGid int, roles []string) []core.AgentID {
 	return liveAgents.FilteredConnectedAgents(gidFilter, roleFilter)
 }
 
-func sendResult(result *messages.CommandResultMessage) error {
+func sendResult(result *core.CommandResult) error {
 
 	// Respond
 	err := outgoing.RespondToCommand(result)
@@ -132,7 +131,7 @@ func readSingleCmd() bool {
 		activeAgents := getActiveAgents(command.Gid, command.Roles)
 		if len(activeAgents) == 0 {
 			//no active agents that saticifies this role.
-			result := &core.CommandResult{
+			result := &core.CommandResultContent{
 				ID:        command.ID,
 				Gid:       command.Gid,
 				Nid:       command.Nid,
@@ -142,7 +141,7 @@ func readSingleCmd() bool {
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 			}
 
-			resultMessage, err := messages.CommandResultMessageFromCommandResult(result)
+			resultMessage, err := core.CommandResultFromCommandResultContent(result)
 			if err != nil {
 				panic(err)
 			}
@@ -165,7 +164,7 @@ func readSingleCmd() bool {
 		_, ok := producers[key]
 		if !ok {
 			//send error message to
-			result := &core.CommandResult{
+			result := &core.CommandResultContent{
 				ID:        command.ID,
 				Gid:       command.Gid,
 				Nid:       command.Nid,
@@ -175,7 +174,7 @@ func readSingleCmd() bool {
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 			}
 
-			resultMessage, err := messages.CommandResultMessageFromCommandResult(result)
+			resultMessage, err := core.CommandResultFromCommandResultContent(result)
 			if err != nil {
 				panic(err)
 			}
@@ -197,7 +196,7 @@ func readSingleCmd() bool {
 		// push message to client queue
 		agentID := e.Value.(core.AgentID)
 
-		resultPlaceholder := core.CommandResult{
+		resultPlaceholder := core.CommandResultContent{
 			ID:        command.ID,
 			Gid:       int(agentID.GID),
 			Nid:       int(agentID.NID),
@@ -206,7 +205,7 @@ func readSingleCmd() bool {
 			StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 		}
 
-		resultPlaceholderMessage, err := messages.CommandResultMessageFromCommandResult(&resultPlaceholder)
+		resultPlaceholderMessage, err := core.CommandResultFromCommandResultContent(&resultPlaceholder)
 		if err != nil {
 			panic(err)
 		}
@@ -305,11 +304,11 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 					}
 
 					select {
-					case msgChan <- string(pendingCommand.Payload):
+					case msgChan <- string(pendingCommand.JSON):
 
 						//caller consumed this job, it's safe to set it's state to RUNNING now.
 
-						resultPlaceholder := core.CommandResult{
+						resultPlaceholder := core.CommandResultContent{
 							ID:        pendingCommand.Content.ID,
 							Gid:       igid,
 							Nid:       inid,
@@ -319,7 +318,7 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 						}
 
 						resultPlaceholderMessage, err :=
-							messages.CommandResultMessageFromCommandResult(&resultPlaceholder)
+							core.CommandResultFromCommandResultContent(&resultPlaceholder)
 						if err != nil {
 							panic(err)
 						}

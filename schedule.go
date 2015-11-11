@@ -8,7 +8,7 @@ import (
 	"log"
 	"strings"
 	"github.com/Jumpscale/agentcontroller2/internals"
-	"github.com/Jumpscale/agentcontroller2/messages"
+	"github.com/Jumpscale/agentcontroller2/core"
 )
 
 const (
@@ -37,7 +37,7 @@ func (job *SchedulerJob) Run() {
 
 	log.Println("Scheduler: Running job", job.ID, job.Cmd["id"])
 
-	command, err := messages.CommandMessageFromJSON(dump)
+	command, err := core.CommandFromJSON(dump)
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +59,7 @@ func NewScheduler(pool *redis.Pool) *Scheduler {
 }
 
 //Add create a schdule with the cmd ID (overrides old ones)
-func (sched *Scheduler) Add(_ *internals.Manager, cmd *messages.CommandMessage) (interface{}, error) {
+func (sched *Scheduler) Add(_ *internals.Manager, cmd *core.Command) (interface{}, error) {
 	defer sched.restart()
 
 	db := sched.pool.Get()
@@ -87,7 +87,7 @@ func (sched *Scheduler) Add(_ *internals.Manager, cmd *messages.CommandMessage) 
 }
 
 //List lists all scheduled jobs
-func (sched *Scheduler) List(_ *internals.Manager, _ *messages.CommandMessage) (interface{}, error) {
+func (sched *Scheduler) List(_ *internals.Manager, _ *core.Command) (interface{}, error) {
 	db := sched.pool.Get()
 	defer db.Close()
 
@@ -95,7 +95,7 @@ func (sched *Scheduler) List(_ *internals.Manager, _ *messages.CommandMessage) (
 }
 
 //Remove removes the scheduled job that has this cmd.ID
-func (sched *Scheduler) Remove(_ *internals.Manager, cmd *messages.CommandMessage) (interface{}, error) {
+func (sched *Scheduler) Remove(_ *internals.Manager, cmd *core.Command) (interface{}, error) {
 	db := sched.pool.Get()
 	defer db.Close()
 
@@ -110,7 +110,7 @@ func (sched *Scheduler) Remove(_ *internals.Manager, cmd *messages.CommandMessag
 }
 
 //RemovePrefix removes all scheduled jobs that has the cmd.ID as a prefix
-func (sched *Scheduler) RemovePrefix(_ *internals.Manager, cmd *messages.CommandMessage) (interface{}, error) {
+func (sched *Scheduler) RemovePrefix(_ *internals.Manager, cmd *core.Command) (interface{}, error) {
 	db := sched.pool.Get()
 	defer db.Close()
 

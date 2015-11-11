@@ -1,8 +1,8 @@
 package redisdata
 import (
-	"github.com/Jumpscale/agentcontroller2/messages"
 	"github.com/garyburd/redigo/redis"
 	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
+	"github.com/Jumpscale/agentcontroller2/core"
 )
 
 type loggedCommands struct {
@@ -10,17 +10,17 @@ type loggedCommands struct {
 	redisQueue ds.CommandList
 }
 
-func LoggedCommands(connPool *redis.Pool) messages.LoggedCommands {
+func LoggedCommands(connPool *redis.Pool) core.LoggedCommands {
 	return &loggedCommands{
 		connPool: connPool,
 		redisQueue: ds.CommandList{ds.List{Name: "cmds.log.queue"}},
 	}
 }
 
-func (logger *loggedCommands) Push(message *messages.CommandMessage) error {
+func (logger *loggedCommands) Push(message *core.Command) error {
 	return logger.redisQueue.RightPush(logger.connPool, message)
 }
 
-func (logger *loggedCommands) Pop() (*messages.CommandMessage, error) {
+func (logger *loggedCommands) Pop() (*core.Command, error) {
 	return logger.redisQueue.BlockingLeftPop(logger.connPool, 0)
 }

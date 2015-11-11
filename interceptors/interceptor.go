@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log"
 	"github.com/garyburd/redigo/redis"
-	"github.com/Jumpscale/agentcontroller2/messages"
+	"github.com/Jumpscale/agentcontroller2/core"
 )
 
 const (
@@ -77,7 +77,7 @@ func jumpscriptHasherInterceptor(cmd map[string]interface{}, manager *Manager) (
 	return cmd, nil
 }
 
-func (manager *Manager) Intercept(command *messages.CommandMessage) *messages.CommandMessage {
+func (manager *Manager) Intercept(command *core.Command) *core.Command {
 
 	cmd := command.Raw
 
@@ -98,7 +98,7 @@ func (manager *Manager) Intercept(command *messages.CommandMessage) *messages.Co
 		return command
 	}
 
-	updatedCommand, err := messages.CommandMessageFromRawCommand(updatedRawCommand)
+	updatedCommand, err := core.CommandFromRawCommand(updatedRawCommand)
 	if err != nil {
 		log.Println(err)
 		return command

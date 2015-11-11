@@ -1,4 +1,5 @@
 package core
+import "encoding/json"
 
 const (
 	CommandStateQueued  = "QUEUED"
@@ -8,7 +9,7 @@ const (
 	CommandStateErrorUnknownCommand = "UNKNOWN_CMD"
 )
 
-type Command struct {
+type CommandContent struct {
 	ID     string   `json:"id"`
 	Gid    int      `json:"gid"`
 	Nid    int      `json:"nid"`
@@ -24,7 +25,7 @@ type Command struct {
 
 type RawCommand map[string]interface{}
 
-type CommandResult struct {
+type CommandResultContent struct {
 	ID        string                 `json:"id"`
 	Gid       int                    `json:"gid"`
 	Nid       int                    `json:"nid"`
@@ -40,4 +41,70 @@ type CommandResult struct {
 	Time      int                    `json:"time"`
 }
 
+type Command struct {
+	Content CommandContent
+	JSON    []byte
+	Raw     RawCommand
+}
 
+type CommandResult struct {
+	Content CommandResultContent
+	JSON    []byte
+}
+
+func CommandFromJSON(payload []byte) (*Command, error) {
+	var command CommandContent
+	err := json.Unmarshal(payload, &command)
+	if err != nil {
+		return nil, err
+	}
+
+	var rawCommand RawCommand
+	err = json.Unmarshal(payload, &rawCommand)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Command{
+		Content: command,
+		JSON: payload,
+		Raw: rawCommand,
+	}, nil
+}
+
+func CommandFromRawCommand(rawCommand RawCommand) (*Command, error) {
+	jsonData, err := json.Marshal(rawCommand)
+	if err != nil {
+		return nil, err
+	}
+	return CommandFromJSON(jsonData)
+}
+
+func CommandResultFromJSON(payload []byte) (*CommandResult, error) {
+	var commandResult CommandResultContent
+	err := json.Unmarshal(payload, &commandResult)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CommandResult{
+		Content: commandResult,
+		JSON: payload,
+	}, nil
+}
+
+func CommandResultFromCommandResultContent(commandResult *CommandResultContent) (*CommandResult, error) {
+	jsonData, err := json.Marshal(commandResult)
+	if err != nil {
+		return nil, err
+	}
+	return CommandResultFromJSON(jsonData)
+}
+
+func (message *Command) String() string {
+	return string(message.JSON)
+}
+
+func (message *CommandResult) String() string {
+	return string(message.JSON)
+}

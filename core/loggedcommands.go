@@ -1,9 +1,10 @@
-package messages
+package core
+
 
 // Temporary storage for executed commands
 type LoggedCommands interface {
 
-	Push(*CommandMessage) error
+	Push(*Command) error
 
-	Pop() (*CommandMessage, error)
+	Pop() (*Command, error)
 }
