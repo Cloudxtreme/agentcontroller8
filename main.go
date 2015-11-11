@@ -40,6 +40,16 @@ func CommandResultRedisHash(resultID string) messages.RedisCommandResultHash {
 	return messages.RedisCommandResultHash{Hash: ds.Hash{Name: fmt.Sprintf("jobresult:%s", resultID)}}
 }
 
+func AgentCommandRedisQueue(id core.AgentID) messages.RedisCommandList {
+	name := fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
+	return messages.RedisCommandList{List: ds.List{Name: name}}
+}
+
+func AgentCommandResultQueue(result *core.CommandResult) messages.RedisCommandResultList {
+	name := fmt.Sprintf("cmd.%s.%d.%d", result.ID, result.Gid, result.Nid)
+	return messages.RedisCommandResultList{List: ds.List{Name: name}}
+}
+
 // redis stuff
 func newPool(addr string, password string) *redis.Pool {
 	return &redis.Pool{
@@ -71,15 +81,7 @@ var incomingCommands messages.IncomingCommands
 var outgoingSignals messages.OutgoingSignals
 var loggedCommands messages.LoggedCommands
 
-func AgentCommandRedisQueue(id core.AgentID) messages.RedisCommandList {
-	name := fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
-	return messages.RedisCommandList{List: ds.List{Name: name}}
-}
 
-func AgentCommandResultQueue(result *core.CommandResult) messages.RedisCommandResultList {
-	name := fmt.Sprintf("cmd.%s.%d.%d", result.ID, result.Gid, result.Nid)
-	return messages.RedisCommandResultList{List: ds.List{Name: name}}
-}
 
 func getActiveAgents(onlyGid int, roles []string) []core.AgentID {
 	var gidFilter *uint
