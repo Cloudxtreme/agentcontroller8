@@ -1,3 +1,4 @@
+// Data structures for incoming and outgoing messages in multiple formats, and other data types that make use of them.
 package messages
 import (
 	"github.com/Jumpscale/agentcontroller2/core"
