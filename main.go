@@ -102,13 +102,14 @@ func getActiveAgents(onlyGid int, roles []string) []core.AgentID {
 
 func sendResult(result *core.CommandResult) error {
 
-	key := fmt.Sprintf("%d:%d", result.Gid, result.Nid)
 	message, err := messages.CommandResultMessageFromCommandResult(result)
 	if err != nil {
 		return err
 	}
 
-	err = CommandResultRedisHash(result.ID).Set(pool, key, message)
+	err = CommandResultRedisHash(result.ID).Set(pool,
+		fmt.Sprintf("%d:%d", result.Gid, result.Nid),
+		message)
 
 	if err != nil {
 		return err
