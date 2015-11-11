@@ -103,7 +103,7 @@ func sendResult(result *core.CommandResult) error {
 
 func readSingleCmd() bool {
 
-	commandMessage, err := incomingCommands.Pop()
+	command, err := incomingCommands.Pop()
 	if err != nil {
 		if core.IsTimeout(err) {
 			return true
@@ -112,13 +112,13 @@ func readSingleCmd() bool {
 		log.Fatal("Coulnd't read new commands from redis", err)
 	}
 
-	log.Println("Received message:", commandMessage)
+	log.Println("Received message:", command)
 
-	commandMessage = commandInterceptors.Intercept(commandMessage)
-	var command = commandMessage.Content
+	command = commandInterceptors.Intercept(command)
+	var content = command.Content
 
-	if command.Cmd == "controller" {
-		go internalCommands.ProcessInternalCommand(commandMessage)
+	if content.Cmd == "controller" {
+		go internalCommands.ProcessInternalCommand(command)
 		return true
 	}
 
@@ -126,18 +126,18 @@ func readSingleCmd() bool {
 	//either by role or by the gid/nid.
 	ids := list.New()
 
-	if len(command.Roles) > 0 {
+	if len(content.Roles) > 0 {
 		//command has a given role
-		activeAgents := getActiveAgents(command.Gid, command.Roles)
+		activeAgents := getActiveAgents(content.Gid, content.Roles)
 		if len(activeAgents) == 0 {
 			//no active agents that saticifies this role.
 			result := &core.CommandResultContent{
-				ID:        command.ID,
-				Gid:       command.Gid,
-				Nid:       command.Nid,
-				Tags:      command.Tags,
+				ID:        content.ID,
+				Gid:       content.Gid,
+				Nid:       content.Nid,
+				Tags:      content.Tags,
 				State:     core.CommandStateError,
-				Data:      fmt.Sprintf("No agents with role '%v' alive!", command.Roles),
+				Data:      fmt.Sprintf("No agents with role '%v' alive!", content.Roles),
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 			}
 
@@ -148,7 +148,7 @@ func readSingleCmd() bool {
 
 			sendResult(resultMessage)
 		} else {
-			if command.Fanout {
+			if content.Fanout {
 				//fanning out.
 				for _, agentID := range activeAgents {
 					ids.PushBack(agentID)
@@ -160,15 +160,15 @@ func readSingleCmd() bool {
 			}
 		}
 	} else {
-		key := fmt.Sprintf("%d:%d", command.Gid, command.Nid)
+		key := fmt.Sprintf("%d:%d", content.Gid, content.Nid)
 		_, ok := producers[key]
 		if !ok {
 			//send error message to
 			result := &core.CommandResultContent{
-				ID:        command.ID,
-				Gid:       command.Gid,
-				Nid:       command.Nid,
-				Tags:      command.Tags,
+				ID:        content.ID,
+				Gid:       content.Gid,
+				Nid:       content.Nid,
+				Tags:      content.Tags,
 				State:     core.CommandStateError,
 				Data:      fmt.Sprintf("Agent is not alive!"),
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
@@ -181,12 +181,12 @@ func readSingleCmd() bool {
 
 			sendResult(resultMessage)
 		} else {
-			ids.PushBack(core.AgentID{GID: uint(command.Gid), NID: uint(command.Nid)})
+			ids.PushBack(core.AgentID{GID: uint(content.Gid), NID: uint(content.Nid)})
 		}
 	}
 
 	// push logs
-	err = loggedCommands.Push(commandMessage)
+	err = loggedCommands.Push(command)
 	if err != nil {
 		log.Println("[-] log push error: ", err)
 	}
@@ -196,35 +196,35 @@ func readSingleCmd() bool {
 		// push message to client queue
 		agentID := e.Value.(core.AgentID)
 
-		resultPlaceholder := core.CommandResultContent{
-			ID:        command.ID,
+		resultContent := core.CommandResultContent{
+			ID:        content.ID,
 			Gid:       int(agentID.GID),
 			Nid:       int(agentID.NID),
-			Tags:      command.Tags,
+			Tags:      content.Tags,
 			State:     core.CommandStateQueued,
 			StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 		}
 
-		resultPlaceholderMessage, err := core.CommandResultFromCommandResultContent(&resultPlaceholder)
+		result, err := core.CommandResultFromCommandResultContent(&resultContent)
 		if err != nil {
 			panic(err)
 		}
 
-		err = outgoing.RespondToCommand(resultPlaceholderMessage)
+		err = outgoing.RespondToCommand(result)
 		if err != nil {
-			log.Println("[-] failsed to respond with", resultPlaceholderMessage)
+			log.Println("[-] failsed to respond with", result)
 		}
 
-		loggedCommandResults.Push(resultPlaceholderMessage)
+		loggedCommandResults.Push(result)
 
 		log.Println("Dispatching message to", agentID)
-		err = agentCommands.Enqueue(agentID, commandMessage)
+		err = agentCommands.Enqueue(agentID, command)
 		if err != nil {
 			log.Println("[-] push error: ", err)
 		}
 	}
 
-	outgoing.SignalAsQueued(commandMessage)
+	outgoing.SignalAsQueued(command)
 	return true
 }
 
@@ -308,7 +308,7 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 
 						//caller consumed this job, it's safe to set it's state to RUNNING now.
 
-						resultPlaceholder := core.CommandResultContent{
+						resultContent := core.CommandResultContent{
 							ID:        pendingCommand.Content.ID,
 							Gid:       igid,
 							Nid:       inid,
@@ -317,17 +317,17 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 							StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 						}
 
-						resultPlaceholderMessage, err :=
-							core.CommandResultFromCommandResultContent(&resultPlaceholder)
+						result, err :=
+							core.CommandResultFromCommandResultContent(&resultContent)
 						if err != nil {
 							panic(err)
 						}
 
-						err = outgoing.RespondToCommand(resultPlaceholderMessage)
+						err = outgoing.RespondToCommand(result)
 						if err != nil {
-							log.Println("[-] failed to respond with", resultPlaceholderMessage)
+							log.Println("[-] failed to respond with", result)
 						}
-						loggedCommandResults.Push(resultPlaceholderMessage)
+						loggedCommandResults.Push(result)
 					default:
 						//caller didn't want to receive this command. have to repush it
 						//directly on the agent queue. to avoid doing the redispatching.

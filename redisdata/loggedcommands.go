@@ -17,8 +17,8 @@ func LoggedCommands(connPool *redis.Pool) core.LoggedCommands {
 	}
 }
 
-func (logger *loggedCommands) Push(message *core.Command) error {
-	return logger.redisQueue.RightPush(logger.connPool, message)
+func (logger *loggedCommands) Push(command *core.Command) error {
+	return logger.redisQueue.RightPush(logger.connPool, command)
 }
 
 func (logger *loggedCommands) Pop() (*core.Command, error) {
