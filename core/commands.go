@@ -4,6 +4,8 @@ const (
 	CommandStateQueued  = "QUEUED"
 	CommandStateRunning = "RUNNING"
 	CommandStateError   = "ERROR"
+	CommandStateSuccess = "SUCCESS"
+	CommandStateErrorUnknownCommand = "UNKNOWN_CMD"
 )
 
 type Command struct {

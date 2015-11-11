@@ -58,12 +58,12 @@ func (manager *Manager) ProcessInternalCommand(commandMessage *messages.CommandM
 			if err != nil {
 				result.Data = err.Error()
 			}
-			result.State = "SUCCESS"
+			result.State = core.CommandStateSuccess
 			result.Data = string(serialized)
 			result.Level = 20
 		}
 	} else {
-		result.State = "UNKNOWN_CMD"
+		result.State = core.CommandStateErrorUnknownCommand
 	}
 
 	resultMessage, err := messages.CommandResultMessageFromCommandResult(result)
