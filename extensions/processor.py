@@ -1,6 +1,5 @@
 from JumpScale import j # NOQA
 import time
-import json
 
 osis = j.clients.osis.getNamespace('system')
 
@@ -16,7 +15,6 @@ def get_or_create_command(command_guid):
 
 # Entry point called via the controller to process a received command.
 def process_command(command):
-    j.system.fs.writeFile('/tmp/cmds', '%s\n\n' % json.dumps(command), append=True)
     cmd = get_or_create_command(command['id'])
 
     cmd.guid = command['id']
@@ -30,7 +28,6 @@ def process_command(command):
 
 # Entry point called via the controller to process a receieved result.
 def process_result(result):
-    j.system.fs.writeFile('/tmp/results', '%s\n\n' % json.dumps(result), append=True)
     cmd = get_or_create_command(result['id'])
 
     gid = result['gid']

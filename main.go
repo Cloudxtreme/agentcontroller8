@@ -280,12 +280,6 @@ func readSingleCmd() bool {
 		// push message to client queue
 		agentID := e.Value.(core.AgentID)
 
-		log.Println("Dispatching message to", agentID)
-		err := AgentCommandRedisQueue(agentID).RightPush(pool, commandMessage)
-		if err != nil {
-			log.Println("[-] push error: ", err)
-		}
-
 		resultPlaceholder := core.CommandResult{
 			ID:        command.ID,
 			Gid:       int(agentID.GID),
@@ -304,6 +298,12 @@ func readSingleCmd() bool {
 			resultPlaceholderMessage)
 
 		CommandResultRedisQueue.RightPush(pool, resultPlaceholderMessage)
+
+		log.Println("Dispatching message to", agentID)
+		err = AgentCommandRedisQueue(agentID).RightPush(pool, commandMessage)
+		if err != nil {
+			log.Println("[-] push error: ", err)
+		}
 	}
 
 	signalQueues(command.ID)
