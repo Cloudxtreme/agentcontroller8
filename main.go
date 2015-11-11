@@ -34,13 +34,13 @@ const (
 	agentInteractiveAfterOver = 30 * time.Second
 )
 
-func CommandResultRedisHash(resultID string) messages.RedisCommandResultHash {
-	return messages.RedisCommandResultHash{Hash: ds.Hash{Name: fmt.Sprintf("jobresult:%s", resultID)}}
+func CommandResultRedisHash(resultID string) ds.CommandResultHash {
+	return ds.CommandResultHash{Hash: ds.Hash{Name: fmt.Sprintf("jobresult:%s", resultID)}}
 }
 
-func AgentCommandResultQueue(result *core.CommandResult) messages.RedisCommandResultList {
+func AgentCommandResultQueue(result *core.CommandResult) ds.CommandResultList {
 	name := fmt.Sprintf("cmd.%s.%d.%d", result.ID, result.Gid, result.Nid)
-	return messages.RedisCommandResultList{List: ds.List{Name: name}}
+	return ds.CommandResultList{List: ds.List{Name: name}}
 }
 
 // redis stuff

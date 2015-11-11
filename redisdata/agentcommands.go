@@ -29,7 +29,7 @@ func (commands *agentCommands) ReportUnexecutedCommand(command *messages.Command
 	return commands.redisQueue(agentID).RightPush(commands.pool, command)
 }
 
-func (commands *agentCommands) redisQueue(id core.AgentID) messages.RedisCommandList {
+func (commands *agentCommands) redisQueue(id core.AgentID) ds.CommandList {
 	name := fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
-	return messages.RedisCommandList{List: ds.List{Name: name}}
+	return ds.CommandList{List: ds.List{Name: name}}
 }

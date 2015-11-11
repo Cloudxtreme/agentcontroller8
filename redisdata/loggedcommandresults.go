@@ -7,13 +7,13 @@ import (
 
 type loggedCommandResults struct {
 	connPool *redis.Pool
-	redisQueue messages.RedisCommandResultList
+	redisQueue ds.CommandResultList
 }
 
 func LoggedCommandResult(connPool *redis.Pool) messages.LoggedCommandResults {
 	return &loggedCommandResults{
 		connPool: connPool,
-		redisQueue: messages.RedisCommandResultList{List: ds.List{Name: "results.queue"}},
+		redisQueue: ds.CommandResultList{List: ds.List{Name: "results.queue"}},
 	}
 }
 

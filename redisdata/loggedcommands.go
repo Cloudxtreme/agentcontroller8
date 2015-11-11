@@ -7,13 +7,13 @@ import (
 
 type loggedCommands struct {
 	connPool *redis.Pool
-	redisQueue messages.RedisCommandList
+	redisQueue ds.CommandList
 }
 
 func LoggedCommands(connPool *redis.Pool) messages.LoggedCommands {
 	return &loggedCommands{
 		connPool: connPool,
-		redisQueue: messages.RedisCommandList{ds.List{Name: "cmds.log.queue"}},
+		redisQueue: ds.CommandList{ds.List{Name: "cmds.log.queue"}},
 	}
 }
 
