@@ -9,8 +9,8 @@ type RedisCommandResultList struct {
 	List ds.List
 }
 
-func (list RedisCommandResultList) BlockingPop(connPool *redis.Pool, timeout time.Duration) (*CommandResultMessage, error) {
-	jsonData, err := list.List.BlockingPop(connPool, timeout)
+func (list RedisCommandResultList) BlockingLeftPop(connPool *redis.Pool, timeout time.Duration) (*CommandResultMessage, error) {
+	jsonData, err := list.List.BlockingLeftPop(connPool, timeout)
 	if err != nil {
 		return nil, err
 	}

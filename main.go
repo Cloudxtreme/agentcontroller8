@@ -316,7 +316,7 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 					}
 					liveAgents.SetRoles(agentID, agentRoles)
 
-					pendingCommand, err := AgentCommandRedisQueue(agentID).BlockingPop(pool, 0)
+					pendingCommand, err := AgentCommandRedisQueue(agentID).BlockingLeftPop(pool, 0)
 					if err != nil {
 						if !core.IsTimeout(err) {
 							log.Println("Couldn't get new job for agent", key, err)

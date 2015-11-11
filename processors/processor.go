@@ -62,7 +62,7 @@ func NewProcessor(config *configs.Extension, pool *redis.Pool,
 
 func (processor *processorImpl) processSingleResult() error {
 
-	commandResultMessage, err := processor.resultsQueue.BlockingPop(processor.pool, 0)
+	commandResultMessage, err := processor.resultsQueue.BlockingLeftPop(processor.pool, 0)
 
 	if err != nil {
 		if core.IsTimeout(err) {

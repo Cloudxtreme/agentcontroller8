@@ -22,5 +22,5 @@ func (logger *loggedCommands) Push(message *messages.CommandMessage) error {
 }
 
 func (logger *loggedCommands) Pop() (*messages.CommandMessage, error) {
-	return logger.redisQueue.BlockingPop(logger.connPool, 0)
+	return logger.redisQueue.BlockingLeftPop(logger.connPool, 0)
 }

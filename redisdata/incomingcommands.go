@@ -18,7 +18,7 @@ func IncomingCommands(connPool *redis.Pool) messages.IncomingCommands {
 }
 
 func (incoming *incomingCommands) Pop() (*messages.CommandMessage, error) {
-	return incoming.redisQueue.BlockingPop(incoming.connPool, 0)
+	return incoming.redisQueue.BlockingLeftPop(incoming.connPool, 0)
 }
 
 func (incoming *incomingCommands) Push(command *messages.CommandMessage) error {

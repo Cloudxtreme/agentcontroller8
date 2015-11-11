@@ -11,7 +11,7 @@ type List struct {
 }
 
 // BLPOP from the list
-func (list List) BlockingPop(connPool *redis.Pool, timeout time.Duration) ([]byte, error) {
+func (list List) BlockingLeftPop(connPool *redis.Pool, timeout time.Duration) ([]byte, error) {
 	conn := connPool.Get()
 	defer conn.Close()
 
