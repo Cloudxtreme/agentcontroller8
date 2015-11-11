@@ -76,7 +76,7 @@ func AgentCommandRedisQueue(id core.AgentID) messages.RedisCommandList {
 	return messages.RedisCommandList{List: ds.List{Name: name}}
 }
 
-func getAgentResultQueue(result *core.CommandResult) messages.RedisCommandResultList {
+func AgentCommandResultQueue(result *core.CommandResult) messages.RedisCommandResultList {
 	name := fmt.Sprintf(cmdQueueAgentResponse, result.ID, result.Gid, result.Nid)
 	return messages.RedisCommandResultList{List: ds.List{Name: name}}
 }
@@ -100,8 +100,6 @@ func getActiveAgents(onlyGid int, roles []string) []core.AgentID {
 }
 
 func sendResult(result *core.CommandResult) error {
-	db := pool.Get()
-	defer db.Close()
 
 	key := fmt.Sprintf("%d:%d", result.Gid, result.Nid)
 	message, err := messages.CommandResultMessageFromCommandResult(result)
@@ -116,7 +114,7 @@ func sendResult(result *core.CommandResult) error {
 	}
 
 	// push message to client result queue queue
-	getAgentResultQueue(&message.Content).RightPush(pool, message)
+	AgentCommandResultQueue(&message.Content).RightPush(pool, message)
 	if err != nil {
 		return err
 	}
@@ -192,8 +190,6 @@ func signalQueues(id string) {
 }
 
 func readSingleCmd() bool {
-	db := pool.Get()
-	defer db.Close()
 
 	commandMessage, err := CommandRedisQueue.BlockingPop(pool, 0)
 	if err != nil {
@@ -207,7 +203,6 @@ func readSingleCmd() bool {
 	log.Println("Received message:", commandMessage)
 
 	commandMessage = commandInterceptors.Intercept(commandMessage)
-
 	var command core.Command = commandMessage.Content
 
 	if command.Cmd == cmdInternal {
@@ -229,7 +224,7 @@ func readSingleCmd() bool {
 				Gid:       command.Gid,
 				Nid:       command.Nid,
 				Tags:      command.Tags,
-				State:     "ERROR",
+				State:     core.CommandStateError,
 				Data:      fmt.Sprintf("No agents with role '%v' alive!", command.Roles),
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 			}
@@ -257,7 +252,7 @@ func readSingleCmd() bool {
 				Gid:       command.Gid,
 				Nid:       command.Nid,
 				Tags:      command.Tags,
-				State:     "ERROR",
+				State:     core.CommandStateError,
 				Data:      fmt.Sprintf("Agent is not alive!"),
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 			}
