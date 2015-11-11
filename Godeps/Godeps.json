@@ -9,11 +9,11 @@
 		},
 		{
 			"ImportPath": "github.com/Jumpscale/hubble",
-			"Rev": "b08456f213008d59d6591324f7841e2f93e8fbac"
+			"Rev": "a315e2d116511d7343ec59a111b779b0ee9dcc6c"
 		},
 		{
 			"ImportPath": "github.com/Jumpscale/pygo",
-			"Rev": "0f334ba422254f4b4df94686569e7900804102db"
+			"Rev": "45bbde4a8588013e9b8659200fb5d24873fcd0f4"
 		},
 		{
 			"ImportPath": "github.com/armon/go-metrics",
