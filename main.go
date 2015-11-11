@@ -40,10 +40,6 @@ func CommandResultRedisHash(resultID string) messages.RedisCommandResultHash {
 	return messages.RedisCommandResultHash{Hash: ds.Hash{Name: fmt.Sprintf("jobresult:%s", resultID)}}
 }
 
-func AgentCommandRedisQueue(id core.AgentID) messages.RedisCommandList {
-	name := fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
-	return messages.RedisCommandList{List: ds.List{Name: name}}
-}
 
 func AgentCommandResultQueue(result *core.CommandResult) messages.RedisCommandResultList {
 	name := fmt.Sprintf("cmd.%s.%d.%d", result.ID, result.Gid, result.Nid)
@@ -80,7 +76,7 @@ var internalCommands *internals.Manager
 var incomingCommands messages.IncomingCommands
 var outgoingSignals messages.OutgoingSignals
 var loggedCommands messages.LoggedCommands
-
+var agentCommands messages.AgentCommands
 
 
 func getActiveAgents(onlyGid int, roles []string) []core.AgentID {
@@ -242,7 +238,7 @@ func readSingleCmd() bool {
 		CommandResultRedisQueue.RightPush(pool, resultPlaceholderMessage)
 
 		log.Println("Dispatching message to", agentID)
-		err = AgentCommandRedisQueue(agentID).RightPush(pool, commandMessage)
+		err = agentCommands.Enqueue(agentID, commandMessage)
 		if err != nil {
 			log.Println("[-] push error: ", err)
 		}
@@ -318,7 +314,7 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 					}
 					liveAgents.SetRoles(agentID, agentRoles)
 
-					pendingCommand, err := AgentCommandRedisQueue(agentID).BlockingLeftPop(pool, 0)
+					pendingCommand, err := agentCommands.Dequeue(agentID)
 					if err != nil {
 						if !core.IsTimeout(err) {
 							log.Println("Couldn't get new job for agent", key, err)
@@ -352,7 +348,7 @@ func getProducerChan(gid string, nid string) chan<- *core.PollData {
 					default:
 						//caller didn't want to receive this command. have to repush it
 						//directly on the agent queue. to avoid doing the redispatching.
-						AgentCommandRedisQueue(agentID).LeftPush(pool, pendingCommand)
+						agentCommands.ReportUnexecutedCommand(pendingCommand, agentID)
 					}
 
 					return true
@@ -416,6 +412,7 @@ func main() {
 	incomingCommands = redisdata.IncomingCommands(pool)
 	outgoingSignals = redisdata.OutgoingSignals(pool)
 	loggedCommands = redisdata.LoggedCommands(pool)
+	agentCommands = redisdata.AgentCommands(pool)
 
 	db := pool.Get()
 	if _, err := db.Do("PING"); err != nil {
