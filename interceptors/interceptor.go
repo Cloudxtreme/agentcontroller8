@@ -15,15 +15,15 @@ const (
 	scriptHashTimeout = 86400 // seconds
 )
 
-type commandInterceptor func(map[string]interface{}, *Manager) (map[string]interface{}, error)
+type commandInterceptor func(map[string]interface{}, *manager) (map[string]interface{}, error)
 
-type Manager struct {
+type manager struct {
 	redisPool *redis.Pool
 	interceptors map[string]commandInterceptor
 }
 
-func NewManager(redisPool *redis.Pool) *Manager {
-	return &Manager {
+func newManager(redisPool *redis.Pool) *manager {
+	return &manager{
 		redisPool: redisPool,
 		interceptors: map[string]commandInterceptor{
 			"jumpscript_content": jumpscriptHasherInterceptor,
@@ -32,7 +32,7 @@ func NewManager(redisPool *redis.Pool) *Manager {
 }
 
 // Hashes jumpscripts executed by the jumpscript_content and store it in redis. Alters the passed command as needed
-func jumpscriptHasherInterceptor(cmd map[string]interface{}, manager *Manager) (map[string]interface{}, error) {
+func jumpscriptHasherInterceptor(cmd map[string]interface{}, manager *manager) (map[string]interface{}, error) {
 	datastr, ok := cmd["data"].(string)
 	if !ok {
 		return nil, errors.New("Expecting command 'data' to be string")
@@ -77,7 +77,7 @@ func jumpscriptHasherInterceptor(cmd map[string]interface{}, manager *Manager) (
 	return cmd, nil
 }
 
-func (manager *Manager) Intercept(command *core.Command) *core.Command {
+func (manager *manager) Intercept(command *core.Command) *core.Command {
 
 	cmd := command.Raw
 

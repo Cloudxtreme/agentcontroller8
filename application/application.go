@@ -30,7 +30,6 @@ const (
 
 type Application struct {
 	redisPool            *redis.Pool
-	commandInterceptors  *interceptors.Manager
 	internalCommands     *internals.Manager
 	incomingCommands     core.IncomingCommands
 	outgoing             core.Outgoing
@@ -59,8 +58,7 @@ func NewApplication(settingsPath string) *Application {
 
 	app := Application {
 		redisPool: redisPool,
-		commandInterceptors: interceptors.NewManager(redisPool),
-		incomingCommands: redisdata.IncomingCommands(redisPool),
+		incomingCommands: interceptors.Intercept(redisdata.IncomingCommands(redisPool), redisPool),
 		outgoing: redisdata.Outgoing(redisPool),
 		loggedCommands: redisdata.LoggedCommands(redisPool),
 		loggedCommandResults: redisdata.LoggedCommandResult(redisPool),
@@ -257,7 +255,6 @@ func (app *Application) readSingleCmd() bool {
 
 	log.Println("Received message:", command)
 
-	command = app.commandInterceptors.Intercept(command)
 	var content = command.Content
 
 	if content.Cmd == "controller" {
