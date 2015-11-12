@@ -2,7 +2,7 @@ package core
 
 
 // A queue of incoming commands
-type IncomingCommands interface {
+type CommandSource interface {
 
 	Pop() (*Command, error)
 

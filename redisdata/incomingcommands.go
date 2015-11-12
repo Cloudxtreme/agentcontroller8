@@ -10,7 +10,7 @@ type incomingCommands struct {
 	redisQueue	ds.CommandList
 }
 
-func IncomingCommands(connPool *redis.Pool) core.IncomingCommands {
+func CommandSource(connPool *redis.Pool) core.CommandSource {
 	return &incomingCommands{
 		connPool: connPool,
 		redisQueue: ds.CommandList{List: ds.List{Name: "cmds.queue"}},

@@ -19,7 +19,7 @@ const (
 type Scheduler struct {
 	cron            *cron.Cron
 	pool            *redis.Pool
-	commandPipeline core.IncomingCommands
+	commandPipeline core.CommandSource
 }
 
 //SchedulerJob represented a shceduled job as stored in redis
@@ -27,7 +27,7 @@ type Job struct {
 	ID              string                 `json:"id"`
 	Cron            string                 `json:"cron"`
 	Cmd             map[string]interface{} `json:"cmd"`
-	commandPipeline core.IncomingCommands
+	commandPipeline core.CommandSource
 }
 
 //Run runs the scheduled job
@@ -51,7 +51,7 @@ func (job *Job) Run() {
 }
 
 //NewScheduler created a new instance of the scheduler
-func NewScheduler(pool *redis.Pool, commandPipeline core.IncomingCommands) *Scheduler {
+func NewScheduler(pool *redis.Pool, commandPipeline core.CommandSource) *Scheduler {
 	sched := &Scheduler{
 		cron: cron.New(),
 		pool: pool,

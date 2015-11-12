@@ -5,7 +5,7 @@ import (
 )
 
 type interceptedCommands struct {
-	source      core.IncomingCommands
+	source      core.CommandSource
 	interceptor *manager
 }
 
@@ -24,7 +24,7 @@ func (interceptor *interceptedCommands) Push(command *core.Command) error {
 
 // Returns a core.IncomingCommands implementation that intercepts the commands received from the passed
 // source of commands and mutates commands on-the-fly.
-func Intercept(source core.IncomingCommands, redisConnPool *redis.Pool) core.IncomingCommands {
+func Intercept(source core.CommandSource, redisConnPool *redis.Pool) core.CommandSource {
 	return &interceptedCommands{
 		source: source,
 		interceptor: newManager(redisConnPool),

@@ -31,7 +31,7 @@ const (
 type Application struct {
 	redisPool            *redis.Pool
 	internalCommands     *internals.Manager
-	incomingCommands     core.IncomingCommands
+	commandSource        core.CommandSource
 	outgoing             core.Outgoing
 	loggedCommands       core.LoggedCommands
 	loggedCommandResults core.LoggedCommandResults
@@ -58,7 +58,7 @@ func NewApplication(settingsPath string) *Application {
 
 	app := Application {
 		redisPool: redisPool,
-		incomingCommands: interceptors.Intercept(redisdata.IncomingCommands(redisPool), redisPool),
+		commandSource: interceptors.Intercept(redisdata.CommandSource(redisPool), redisPool),
 		outgoing: redisdata.Outgoing(redisPool),
 		loggedCommands: redisdata.LoggedCommands(redisPool),
 		loggedCommandResults: redisdata.LoggedCommandResult(redisPool),
@@ -69,7 +69,7 @@ func NewApplication(settingsPath string) *Application {
 	}
 
 	app.internalCommands = internals.NewManager(app.liveAgents, app.outgoing, app.sendResult)
-	app.scheduler = scheduling.NewScheduler(app.redisPool, app.incomingCommands)
+	app.scheduler = scheduling.NewScheduler(app.redisPool, app.commandSource)
 
 	app.internalCommands.RegisterProcessor("scheduler_add", app.scheduler.Add)
 	app.internalCommands.RegisterProcessor("scheduler_list", app.scheduler.List)
@@ -244,7 +244,7 @@ func (app *Application) sendResult(result *core.CommandResult) error {
 
 func (app *Application) readSingleCmd() bool {
 
-	command, err := app.incomingCommands.Pop()
+	command, err := app.commandSource.Pop()
 	if err != nil {
 		if core.IsTimeout(err) {
 			return true
