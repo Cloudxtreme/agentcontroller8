@@ -26,6 +26,7 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/Jumpscale/agentcontroller2/internals"
 	"github.com/Jumpscale/agentcontroller2/redisdata"
+	"github.com/Jumpscale/agentcontroller2/scheduling"
 )
 
 const (
@@ -408,7 +409,7 @@ func main() {
 	go cmdreader()
 
 	//start schedular.
-	scheduler := NewScheduler(pool)
+	scheduler := scheduling.NewScheduler(pool, incomingCommands)
 	internalCommands.RegisterProcessor("scheduler_add", scheduler.Add)
 	internalCommands.RegisterProcessor("scheduler_list", scheduler.List)
 	internalCommands.RegisterProcessor("scheduler_remove", scheduler.Remove)

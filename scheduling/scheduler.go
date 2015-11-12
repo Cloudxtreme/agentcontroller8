@@ -1,4 +1,4 @@
-package main
+package scheduling
 
 import (
 	"encoding/json"
@@ -17,19 +17,21 @@ const (
 
 //Scheduler schedules cron jobs
 type Scheduler struct {
-	cron *cron.Cron
-	pool *redis.Pool
+	cron            *cron.Cron
+	pool            *redis.Pool
+	commandPipeline core.IncomingCommands
 }
 
 //SchedulerJob represented a shceduled job as stored in redis
-type SchedulerJob struct {
-	ID   string                 `json:"id"`
-	Cron string                 `json:"cron"`
-	Cmd  map[string]interface{} `json:"cmd"`
+type Job struct {
+	ID              string                 `json:"id"`
+	Cron            string                 `json:"cron"`
+	Cmd             map[string]interface{} `json:"cmd"`
+	commandPipeline core.IncomingCommands
 }
 
 //Run runs the scheduled job
-func (job *SchedulerJob) Run() {
+func (job *Job) Run() {
 
 	job.Cmd["id"] = uuid.New()
 
@@ -42,17 +44,18 @@ func (job *SchedulerJob) Run() {
 		panic(err)
 	}
 
-	err = incomingCommands.Push(command)
+	err = job.commandPipeline.Push(command)
 	if err != nil {
 		log.Println("Failed to run scheduled command", job.ID)
 	}
 }
 
 //NewScheduler created a new instance of the scheduler
-func NewScheduler(pool *redis.Pool) *Scheduler {
+func NewScheduler(pool *redis.Pool, commandPipeline core.IncomingCommands) *Scheduler {
 	sched := &Scheduler{
 		cron: cron.New(),
 		pool: pool,
+		commandPipeline: commandPipeline,
 	}
 
 	return sched
@@ -65,7 +68,9 @@ func (sched *Scheduler) Add(_ *internals.Manager, cmd *core.Command) (interface{
 	db := sched.pool.Get()
 	defer db.Close()
 
-	job := &SchedulerJob{}
+	job := &Job{
+		commandPipeline: sched.commandPipeline,
+	}
 
 	err := json.Unmarshal([]byte(cmd.Content.Data), job)
 
@@ -175,7 +180,9 @@ func (sched *Scheduler) Start() {
 			set, _ := redis.StringMap(fields, nil)
 
 			for key, cmd := range set {
-				job := &SchedulerJob{}
+				job := &Job{
+					commandPipeline: sched.commandPipeline,
+				}
 
 				err := json.Unmarshal([]byte(cmd), job)
 
