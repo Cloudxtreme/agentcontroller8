@@ -15,7 +15,6 @@ import (
 	"github.com/Jumpscale/agentcontroller2/agentdata"
 	"fmt"
 	"time"
-	"container/list"
 	"math/rand"
 	"strconv"
 	hubbleAuth "github.com/Jumpscale/hubble/auth"
@@ -201,7 +200,7 @@ func newRedisPool(addr string, password string) *redis.Pool {
 	}
 }
 
-func (app *Application) getActiveAgents(onlyGid int, roles []string) []core.AgentID {
+func (app *Application) filterConnectedAgents(onlyGid int, roles []string) []core.AgentID {
 	var gidFilter *uint
 	var roleFilter []core.AgentRole
 
@@ -218,9 +217,6 @@ func (app *Application) getActiveAgents(onlyGid int, roles []string) []core.Agen
 
 	return app.liveAgents.FilteredConnectedAgents(gidFilter, roleFilter)
 }
-
-
-
 
 func (app *Application) sendResult(result *core.CommandResult) error {
 
@@ -270,96 +266,50 @@ func (app *Application) processSingleCommand() {
 
 func (app *Application) agentsForCommand(command *core.Command) []core.AgentID {
 
-	ids := list.New()
-
 	if len(command.Content.Roles) > 0 {
-		//command has a given role
-		activeAgents := app.getActiveAgents(command.Content.Gid, command.Content.Roles)
-		if len(activeAgents) == 0 {
-			//no active agents that saticifies this role.
-			result := &core.CommandResultContent{
-				ID:        command.Content.ID,
-				Gid:       command.Content.Gid,
-				Nid:       command.Content.Nid,
-				Tags:      command.Content.Tags,
-				State:     core.CommandStateError,
-				Data:      fmt.Sprintf("No agents with role '%v' alive!", command.Content.Roles),
-				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
-			}
 
-			resultMessage, err := core.CommandResultFromCommandResultContent(result)
-			if err != nil {
-				panic(err)
-			}
+		// Agents with the specified GID and Roles
+		matchingAgents := app.filterConnectedAgents(command.Content.Gid, command.Content.Roles)
 
-			app.sendResult(resultMessage)
+		if len(matchingAgents) == 0 {
+			// None chosen.
+			// Respond with error immediately
+			errorResponse := errorResponseFor(command, fmt.Sprintf("No agents with role '%v' alive!", command.Content.Roles))
+			app.sendResult(errorResponse)
+			return []core.AgentID{}
 		} else {
 			if command.Content.Fanout {
-				//fanning out.
-				for _, agentID := range activeAgents {
-					ids.PushBack(agentID)
-				}
-
+				return matchingAgents
 			} else {
-				randomAgent := activeAgents[rand.Intn(len(activeAgents))]
-				ids.PushBack(randomAgent)
+				randomAgent := matchingAgents[rand.Intn(len(matchingAgents))]
+				return []core.AgentID{randomAgent}
 			}
 		}
 	} else {
-		key := fmt.Sprintf("%d:%d", command.Content.Gid, command.Content.Nid)
-		_, ok := app.producers[key]
-		if !ok {
-			//send error message to
-			result := &core.CommandResultContent{
-				ID:        command.Content.ID,
-				Gid:       command.Content.Gid,
-				Nid:       command.Content.Nid,
-				Tags:      command.Content.Tags,
-				State:     core.CommandStateError,
-				Data:      fmt.Sprintf("Agent is not alive!"),
-				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
-			}
-
-			resultMessage, err := core.CommandResultFromCommandResultContent(result)
-			if err != nil {
-				panic(err)
-			}
-
-			app.sendResult(resultMessage)
+		// Matching with a specific GID,NID
+		agentID := core.AgentID{GID: uint(command.Content.Gid), NID: uint(command.Content.Nid)}
+		if !app.liveAgents.IsConnected(agentID) {
+			// Respond with error
+			// Choose none
+			errorResponse := errorResponseFor(command, fmt.Sprintf("Agent is not alive!"))
+			app.sendResult(errorResponse)
+			return []core.AgentID{}
 		} else {
-			ids.PushBack(core.AgentID{GID: uint(command.Content.Gid), NID: uint(command.Content.Nid)})
+			// Choose the chosen one
+			return []core.AgentID{agentID}
 		}
 	}
-
-	var agents []core.AgentID
-	for e := ids.Front(); e != nil; e = e.Next() {
-		agents = append(agents, e.Value.(core.AgentID))
-	}
-
-	return agents
 }
 
 func (app *Application) distributeCommandToAgents(agents []core.AgentID, command *core.Command) {
 
 	for _, agentID := range agents {
 
-		resultContent := core.CommandResultContent{
-			ID:        command.Content.ID,
-			Gid:       int(agentID.GID),
-			Nid:       int(agentID.NID),
-			Tags:      command.Content.Tags,
-			State:     core.CommandStateQueued,
-			StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
-		}
+		response := queuedResponseFor(command, agentID)
 
-		result, err := core.CommandResultFromCommandResultContent(&resultContent)
+		err := app.outgoing.RespondToCommand(response)
 		if err != nil {
-			panic(err)
-		}
-
-		err = app.outgoing.RespondToCommand(result)
-		if err != nil {
-			log.Println("[-] failsed to respond with", result)
+			log.Println("[-] failsed to respond with", response)
 		}
 
 		log.Println("Dispatching message to", agentID)
@@ -368,7 +318,7 @@ func (app *Application) distributeCommandToAgents(agents []core.AgentID, command
 			log.Println("[-] push error: ", err)
 		}
 
-		app.executedCommandsResults.Push(result)
+		app.executedCommandsResults.Push(response)
 	}
 }
 
@@ -433,28 +383,14 @@ func (app *Application) getProducerChan(gid string, nid string) chan<- *core.Pol
 					select {
 					case msgChan <- string(pendingCommand.JSON):
 
-					//caller consumed this job, it's safe to set it's state to RUNNING now.
+						//caller consumed this job, it's safe to set it's state to RUNNING now.
 
-						resultContent := core.CommandResultContent{
-							ID:        pendingCommand.Content.ID,
-							Gid:       igid,
-							Nid:       inid,
-							Tags:      pendingCommand.Content.Tags,
-							State:     core.CommandStateRunning,
-							StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
-						}
-
-						result, err :=
-						core.CommandResultFromCommandResultContent(&resultContent)
+						response := runningResponseFor(pendingCommand, agentID)
+						err = app.outgoing.RespondToCommand(response)
 						if err != nil {
-							panic(err)
+							log.Println("[-] failed to respond with", response)
 						}
-
-						err = app.outgoing.RespondToCommand(result)
-						if err != nil {
-							log.Println("[-] failed to respond with", result)
-						}
-						app.executedCommandsResults.Push(result)
+						app.executedCommandsResults.Push(response)
 					default:
 					//caller didn't want to receive this command. have to repush it
 					//directly on the agent queue. to avoid doing the redispatching.
