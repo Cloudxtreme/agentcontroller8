@@ -101,10 +101,14 @@ func CommandResultFromCommandResultContent(commandResult *CommandResultContent) 
 	return CommandResultFromJSON(jsonData)
 }
 
-func (message *Command) String() string {
-	return string(message.JSON)
+func (command *Command) String() string {
+	return string(command.JSON)
 }
 
-func (message *CommandResult) String() string {
-	return string(message.JSON)
+func (command *CommandResult) String() string {
+	return string(command.JSON)
+}
+
+func (command *Command) IsInternal() bool {
+	return command.Content.Cmd == "controller"
 }

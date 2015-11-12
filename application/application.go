@@ -109,7 +109,7 @@ func (app *Application) Run() {
 	go func() {
 		for {
 			// waiting message from master queue
-			if !app.readSingleCmd() {
+			if !app.processSingleCommand() {
 				return
 			}
 		}
@@ -242,7 +242,7 @@ func (app *Application) sendResult(result *core.CommandResult) error {
 	return nil
 }
 
-func (app *Application) readSingleCmd() bool {
+func (app *Application) processSingleCommand() bool {
 
 	command, err := app.commandSource.Pop()
 	if err != nil {
@@ -253,32 +253,42 @@ func (app *Application) readSingleCmd() bool {
 		log.Fatal("Coulnd't read new commands from redis", err)
 	}
 
-	log.Println("Received message:", command)
-
-	var content = command.Content
+	log.Println("Received command:", command)
 
 	// If it's an internal command, execute it as such and return
-	if content.Cmd == "controller" {
+	if command.IsInternal() {
 		go app.internalCommands.ExecuteInternalCommand(command)
 		return true
 	}
 
-	//sort command to the consumer queue.
-	//either by role or by the gid/nid.
+	app.distributeCommandToAgents(app.agentsForCommand(command), command)
+
+	err = app.executedCommands.Push(command)
+	if err != nil {
+		log.Println("[-] log push error: ", err)
+	}
+
+	app.outgoing.SignalAsQueued(command)
+
+	return true
+}
+
+func (app *Application) agentsForCommand(command *core.Command) []core.AgentID {
+
 	ids := list.New()
 
-	if len(content.Roles) > 0 {
+	if len(command.Content.Roles) > 0 {
 		//command has a given role
-		activeAgents := app.getActiveAgents(content.Gid, content.Roles)
+		activeAgents := app.getActiveAgents(command.Content.Gid, command.Content.Roles)
 		if len(activeAgents) == 0 {
 			//no active agents that saticifies this role.
 			result := &core.CommandResultContent{
-				ID:        content.ID,
-				Gid:       content.Gid,
-				Nid:       content.Nid,
-				Tags:      content.Tags,
+				ID:        command.Content.ID,
+				Gid:       command.Content.Gid,
+				Nid:       command.Content.Nid,
+				Tags:      command.Content.Tags,
 				State:     core.CommandStateError,
-				Data:      fmt.Sprintf("No agents with role '%v' alive!", content.Roles),
+				Data:      fmt.Sprintf("No agents with role '%v' alive!", command.Content.Roles),
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 			}
 
@@ -289,7 +299,7 @@ func (app *Application) readSingleCmd() bool {
 
 			app.sendResult(resultMessage)
 		} else {
-			if content.Fanout {
+			if command.Content.Fanout {
 				//fanning out.
 				for _, agentID := range activeAgents {
 					ids.PushBack(agentID)
@@ -301,15 +311,15 @@ func (app *Application) readSingleCmd() bool {
 			}
 		}
 	} else {
-		key := fmt.Sprintf("%d:%d", content.Gid, content.Nid)
+		key := fmt.Sprintf("%d:%d", command.Content.Gid, command.Content.Nid)
 		_, ok := app.producers[key]
 		if !ok {
 			//send error message to
 			result := &core.CommandResultContent{
-				ID:        content.ID,
-				Gid:       content.Gid,
-				Nid:       content.Nid,
-				Tags:      content.Tags,
+				ID:        command.Content.ID,
+				Gid:       command.Content.Gid,
+				Nid:       command.Content.Nid,
+				Tags:      command.Content.Tags,
 				State:     core.CommandStateError,
 				Data:      fmt.Sprintf("Agent is not alive!"),
 				StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
@@ -322,26 +332,27 @@ func (app *Application) readSingleCmd() bool {
 
 			app.sendResult(resultMessage)
 		} else {
-			ids.PushBack(core.AgentID{GID: uint(content.Gid), NID: uint(content.Nid)})
+			ids.PushBack(core.AgentID{GID: uint(command.Content.Gid), NID: uint(command.Content.Nid)})
 		}
 	}
 
-	// push logs
-	err = app.executedCommands.Push(command)
-	if err != nil {
-		log.Println("[-] log push error: ", err)
+	var agents []core.AgentID
+	for e := ids.Front(); e != nil; e = e.Next() {
+		agents = append(agents, e.Value.(core.AgentID))
 	}
 
-	//distribution to agents.
-	for e := ids.Front(); e != nil; e = e.Next() {
-		// push message to client queue
-		agentID := e.Value.(core.AgentID)
+	return agents
+}
+
+func (app *Application) distributeCommandToAgents(agents []core.AgentID, command *core.Command) {
+
+	for _, agentID := range agents {
 
 		resultContent := core.CommandResultContent{
-			ID:        content.ID,
+			ID:        command.Content.ID,
 			Gid:       int(agentID.GID),
 			Nid:       int(agentID.NID),
-			Tags:      content.Tags,
+			Tags:      command.Content.Tags,
 			State:     core.CommandStateQueued,
 			StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 		}
@@ -356,17 +367,14 @@ func (app *Application) readSingleCmd() bool {
 			log.Println("[-] failsed to respond with", result)
 		}
 
-		app.executedCommandsResults.Push(result)
-
 		log.Println("Dispatching message to", agentID)
 		err = app.agentCommands.Enqueue(agentID, command)
 		if err != nil {
 			log.Println("[-] push error: ", err)
 		}
-	}
 
-	app.outgoing.SignalAsQueued(command)
-	return true
+		app.executedCommandsResults.Push(result)
+	}
 }
 
 func (app *Application) getProducerChan(gid string, nid string) chan<- *core.PollData {
