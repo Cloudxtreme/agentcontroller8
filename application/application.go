@@ -32,8 +32,8 @@ type Application struct {
 	internalCommands         *internals.Manager
 	commandSource            core.CommandSource
 	outgoing                 core.Outgoing
-	executedCommands         core.LoggedCommands
-	executedCommandsResults  core.LoggedCommandResults
+	receivedCommands         core.LoggedCommands
+	sentCommandsResults      core.LoggedCommandResults
 	agentCommands            core.AgentCommands
 	settings                 *configs.Settings
 	scheduler                *scheduling.Scheduler
@@ -59,8 +59,8 @@ func NewApplication(settingsPath string) *Application {
 		redisPool: redisPool,
 		commandSource: interceptors.Intercept(redisdata.CommandSource(redisPool), redisPool),
 		outgoing: redisdata.Outgoing(redisPool),
-		executedCommands: redisdata.LoggedCommands(redisPool),
-		executedCommandsResults: redisdata.LoggedCommandResult(redisPool),
+		receivedCommands: redisdata.LoggedCommands(redisPool),
+		sentCommandsResults: redisdata.LoggedCommandResult(redisPool),
 		agentCommands: redisdata.AgentCommands(redisPool),
 		liveAgents: agentdata.NewAgentData(),
 		producers: make(map[string]chan* core.PollData),
@@ -92,8 +92,8 @@ func NewApplication(settingsPath string) *Application {
 	commandProcessor, err := commandprocessing.NewProcessor(
 		&app.settings.Processor,
 		app.redisPool,
-		app.executedCommands,
-		app.executedCommandsResults,
+		app.receivedCommands,
+		app.sentCommandsResults,
 	)
 	if err != nil {
 		log.Fatal("Failed to load processors module", err)
@@ -227,7 +227,7 @@ func (app *Application) sendResult(result *core.CommandResult) error {
 	}
 
 	// Log for processing
-	err = app.executedCommandsResults.Push(result)
+	err = app.sentCommandsResults.Push(result)
 	if err != nil {
 		return err
 	}
@@ -246,22 +246,21 @@ func (app *Application) processSingleCommand() {
 		log.Fatal("Coulnd't read new commands from redis", err)
 	}
 
+	err = app.receivedCommands.Push(command)
+	if err != nil {
+		log.Println("[-] log push error: ", err)
+	}
+
 	log.Println("Received command:", command)
 
 	if command.IsInternal() {
 		go app.internalCommands.ExecuteInternalCommand(command)
 		return
+	} else {
+		targetAgents := app.agentsForCommand(command)
+		app.distributeCommandToAgents(targetAgents, command)
+		app.outgoing.SignalAsQueued(command)
 	}
-
-	targetAgents := app.agentsForCommand(command)
-	app.distributeCommandToAgents(targetAgents, command)
-
-	err = app.executedCommands.Push(command)
-	if err != nil {
-		log.Println("[-] log push error: ", err)
-	}
-
-	app.outgoing.SignalAsQueued(command)
 }
 
 func (app *Application) agentsForCommand(command *core.Command) []core.AgentID {
@@ -318,7 +317,7 @@ func (app *Application) distributeCommandToAgents(agents []core.AgentID, command
 			log.Println("[-] push error: ", err)
 		}
 
-		app.executedCommandsResults.Push(response)
+		app.sentCommandsResults.Push(response)
 	}
 }
 
@@ -390,7 +389,7 @@ func (app *Application) getProducerChan(gid string, nid string) chan<- *core.Pol
 						if err != nil {
 							log.Println("[-] failed to respond with", response)
 						}
-						app.executedCommandsResults.Push(response)
+						app.sentCommandsResults.Push(response)
 					default:
 					//caller didn't want to receive this command. have to repush it
 					//directly on the agent queue. to avoid doing the redispatching.
