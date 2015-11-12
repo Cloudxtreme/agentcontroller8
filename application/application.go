@@ -9,7 +9,7 @@ import (
 	"github.com/Jumpscale/agentcontroller2/events"
 	"sync"
 	"github.com/Jumpscale/agentcontroller2/rest"
-	"github.com/Jumpscale/agentcontroller2/processors"
+	"github.com/Jumpscale/agentcontroller2/commandprocessing"
 	"github.com/Jumpscale/agentcontroller2/redisdata"
 	"log"
 	"github.com/Jumpscale/agentcontroller2/agentdata"
@@ -29,22 +29,22 @@ const (
 )
 
 type Application struct {
-	redisPool               *redis.Pool
-	internalCommands        *internals.Manager
-	commandSource           core.CommandSource
-	outgoing                core.Outgoing
-	executedCommands        core.LoggedCommands
-	executedCommandsResults core.LoggedCommandResults
-	agentCommands           core.AgentCommands
-	settings                *configs.Settings
-	scheduler               *scheduling.Scheduler
-	rest                    *rest.Manager
-	events                  *events.Handler
-	commandProcessor        processors.Processor
-	liveAgents              core.AgentInformationStorage
+	redisPool                *redis.Pool
+	internalCommands         *internals.Manager
+	commandSource            core.CommandSource
+	outgoing                 core.Outgoing
+	executedCommands         core.LoggedCommands
+	executedCommandsResults  core.LoggedCommandResults
+	agentCommands            core.AgentCommands
+	settings                 *configs.Settings
+	scheduler                *scheduling.Scheduler
+	rest                     *rest.Manager
+	events                   *events.Handler
+	executedCommandProcessor commandprocessing.CommandProcessor
+	liveAgents               core.AgentInformationStorage
 
-	producers               map[string]chan *core.PollData
-	producersLock           sync.Mutex
+	producers                map[string]chan *core.PollData
+	producersLock            sync.Mutex
 }
 
 
@@ -90,7 +90,7 @@ func NewApplication(settingsPath string) *Application {
 		app.settings,
 	)
 
-	commandProcessor, err := processors.NewProcessor(
+	commandProcessor, err := commandprocessing.NewProcessor(
 		&app.settings.Processor,
 		app.redisPool,
 		app.executedCommands,
@@ -99,7 +99,7 @@ func NewApplication(settingsPath string) *Application {
 	if err != nil {
 		log.Fatal("Failed to load processors module", err)
 	}
-	app.commandProcessor = commandProcessor
+	app.executedCommandProcessor = commandProcessor
 
 	return &app
 }
@@ -108,16 +108,13 @@ func (app *Application) Run() {
 
 	go func() {
 		for {
-			// waiting message from master queue
-			if !app.processSingleCommand() {
-				return
-			}
+			app.processSingleCommand()
 		}
 	}()
 
 	app.scheduler.Start()
 
-	app.commandProcessor.Start()
+	app.executedCommandProcessor.Start()
 
 	hubbleAuth.Install(hubbleAuth.NewAcceptAllModule())
 
@@ -242,12 +239,12 @@ func (app *Application) sendResult(result *core.CommandResult) error {
 	return nil
 }
 
-func (app *Application) processSingleCommand() bool {
+func (app *Application) processSingleCommand() {
 
 	command, err := app.commandSource.Pop()
 	if err != nil {
 		if core.IsTimeout(err) {
-			return true
+			return
 		}
 
 		log.Fatal("Coulnd't read new commands from redis", err)
@@ -255,13 +252,13 @@ func (app *Application) processSingleCommand() bool {
 
 	log.Println("Received command:", command)
 
-	// If it's an internal command, execute it as such and return
 	if command.IsInternal() {
 		go app.internalCommands.ExecuteInternalCommand(command)
-		return true
+		return
 	}
 
-	app.distributeCommandToAgents(app.agentsForCommand(command), command)
+	targetAgents := app.agentsForCommand(command)
+	app.distributeCommandToAgents(targetAgents, command)
 
 	err = app.executedCommands.Push(command)
 	if err != nil {
@@ -269,8 +266,6 @@ func (app *Application) processSingleCommand() bool {
 	}
 
 	app.outgoing.SignalAsQueued(command)
-
-	return true
 }
 
 func (app *Application) agentsForCommand(command *core.Command) []core.AgentID {

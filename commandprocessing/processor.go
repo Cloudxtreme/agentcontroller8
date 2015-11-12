@@ -1,8 +1,5 @@
-//Processor is an extension to agentcontroller that does further processing on results and commands
-//by calling external python code.
-//The current processor impl will load the python module (defined by the config.Extension) and then call
-//process_command for each received command and process_result for each received result.
-package processors
+// Post-execution processing of commands and command results
+package commandprocessing
 
 import (
 	"fmt"
@@ -14,7 +11,7 @@ import (
 	"os"
 )
 
-type Processor interface {
+type CommandProcessor interface {
 	Start()
 }
 
@@ -28,7 +25,7 @@ type processorImpl struct {
 
 //NewProcessor Creates a new processor
 func NewProcessor(config *configs.Extension, pool *redis.Pool,
-	commands core.LoggedCommands, commandResults core.LoggedCommandResults) (Processor, error) {
+	commands core.LoggedCommands, commandResults core.LoggedCommandResults) (CommandProcessor, error) {
 
 	var module pygo.Pygo
 	var err error
