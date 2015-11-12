@@ -29,22 +29,22 @@ const (
 )
 
 type Application struct {
-	redisPool            *redis.Pool
-	internalCommands     *internals.Manager
-	commandSource        core.CommandSource
-	outgoing             core.Outgoing
-	loggedCommands       core.LoggedCommands
-	loggedCommandResults core.LoggedCommandResults
-	agentCommands        core.AgentCommands
-	settings             *configs.Settings
-	scheduler            *scheduling.Scheduler
-	rest                 *rest.Manager
-	events               *events.Handler
-	commandProcessor     processors.Processor
-	liveAgents           core.AgentInformationStorage
+	redisPool               *redis.Pool
+	internalCommands        *internals.Manager
+	commandSource           core.CommandSource
+	outgoing                core.Outgoing
+	executedCommands        core.LoggedCommands
+	executedCommandsResults core.LoggedCommandResults
+	agentCommands           core.AgentCommands
+	settings                *configs.Settings
+	scheduler               *scheduling.Scheduler
+	rest                    *rest.Manager
+	events                  *events.Handler
+	commandProcessor        processors.Processor
+	liveAgents              core.AgentInformationStorage
 
-	producers            map[string]chan *core.PollData
-	producersLock        sync.Mutex
+	producers               map[string]chan *core.PollData
+	producersLock           sync.Mutex
 }
 
 
@@ -60,8 +60,8 @@ func NewApplication(settingsPath string) *Application {
 		redisPool: redisPool,
 		commandSource: interceptors.Intercept(redisdata.CommandSource(redisPool), redisPool),
 		outgoing: redisdata.Outgoing(redisPool),
-		loggedCommands: redisdata.LoggedCommands(redisPool),
-		loggedCommandResults: redisdata.LoggedCommandResult(redisPool),
+		executedCommands: redisdata.LoggedCommands(redisPool),
+		executedCommandsResults: redisdata.LoggedCommandResult(redisPool),
 		agentCommands: redisdata.AgentCommands(redisPool),
 		liveAgents: agentdata.NewAgentData(),
 		producers: make(map[string]chan* core.PollData),
@@ -93,8 +93,8 @@ func NewApplication(settingsPath string) *Application {
 	commandProcessor, err := processors.NewProcessor(
 		&app.settings.Processor,
 		app.redisPool,
-		app.loggedCommands,
-		app.loggedCommandResults,
+		app.executedCommands,
+		app.executedCommandsResults,
 	)
 	if err != nil {
 		log.Fatal("Failed to load processors module", err)
@@ -234,7 +234,7 @@ func (app *Application) sendResult(result *core.CommandResult) error {
 	}
 
 	// Log for processing
-	err = app.loggedCommandResults.Push(result)
+	err = app.executedCommandsResults.Push(result)
 	if err != nil {
 		return err
 	}
@@ -257,8 +257,9 @@ func (app *Application) readSingleCmd() bool {
 
 	var content = command.Content
 
+	// If it's an internal command, execute it as such and return
 	if content.Cmd == "controller" {
-		go app.internalCommands.ProcessInternalCommand(command)
+		go app.internalCommands.ExecuteInternalCommand(command)
 		return true
 	}
 
@@ -326,7 +327,7 @@ func (app *Application) readSingleCmd() bool {
 	}
 
 	// push logs
-	err = app.loggedCommands.Push(command)
+	err = app.executedCommands.Push(command)
 	if err != nil {
 		log.Println("[-] log push error: ", err)
 	}
@@ -355,7 +356,7 @@ func (app *Application) readSingleCmd() bool {
 			log.Println("[-] failsed to respond with", result)
 		}
 
-		app.loggedCommandResults.Push(result)
+		app.executedCommandsResults.Push(result)
 
 		log.Println("Dispatching message to", agentID)
 		err = app.agentCommands.Enqueue(agentID, command)
@@ -450,7 +451,7 @@ func (app *Application) getProducerChan(gid string, nid string) chan<- *core.Pol
 						if err != nil {
 							log.Println("[-] failed to respond with", result)
 						}
-						app.loggedCommandResults.Push(result)
+						app.executedCommandsResults.Push(result)
 					default:
 					//caller didn't want to receive this command. have to repush it
 					//directly on the agent queue. to avoid doing the redispatching.

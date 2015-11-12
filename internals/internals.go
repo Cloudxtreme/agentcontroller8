@@ -34,7 +34,7 @@ func (manager *Manager) RegisterProcessor(command CommandName, processor Command
 	manager.commandProcessors[command] = processor
 }
 
-func (manager *Manager) ProcessInternalCommand(commandMessage *core.Command) {
+func (manager *Manager) ExecuteInternalCommand(commandMessage *core.Command) {
 
 	command := commandMessage.Content
 
