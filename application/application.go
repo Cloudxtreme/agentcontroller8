@@ -199,24 +199,6 @@ func newRedisPool(addr string, password string) *redis.Pool {
 	}
 }
 
-func (app *Application) filterConnectedAgents(onlyGid int, roles []string) []core.AgentID {
-	var gidFilter *uint
-	var roleFilter []core.AgentRole
-
-	if onlyGid > 0 {
-		filterValue := uint(onlyGid)
-		gidFilter = &filterValue
-	}
-
-	if len(roles) > 0 {
-		for _, roleStr := range roles {
-			roleFilter = append(roleFilter, core.AgentRole(roleStr))
-		}
-	}
-
-	return app.liveAgents.FilteredConnectedAgents(gidFilter, roleFilter)
-}
-
 func (app *Application) sendResult(result *core.CommandResponse) error {
 
 	// Respond
