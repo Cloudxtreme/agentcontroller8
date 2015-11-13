@@ -199,21 +199,19 @@ func newRedisPool(addr string, password string) *redis.Pool {
 	}
 }
 
-func (app *Application) sendResponse(result *core.CommandResponse) error {
+func (app *Application) sendResponse(response *core.CommandResponse) {
 
 	// Respond
-	err := app.outgoing.RespondToCommand(result)
+	err := app.outgoing.RespondToCommand(response)
 	if err != nil {
-		return err
+		log.Fatal("Could not respond to %v", response)
 	}
 
 	// Log for processing
-	err = app.sentCommandsResults.Push(result)
+	err = app.sentCommandsResults.Push(response)
 	if err != nil {
-		return err
+		log.Fatal("Could not log %v", response)
 	}
-
-	return nil
 }
 
 func (app *Application) processSingleCommand() {

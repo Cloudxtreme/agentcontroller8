@@ -37,12 +37,7 @@ func (r *Manager) result(c *gin.Context) {
 
 	log.Println("Jobresult:", commandResult.Content.ID)
 
-	err = r.commandResponder(commandResult)
-	if err != nil {
-		log.Println("Failed queue results")
-		c.JSON(http.StatusInternalServerError, err.Error())
-		return
-	}
+	r.commandResponder(commandResult)
 
 	c.JSON(http.StatusOK, "ok")
 }
