@@ -66,7 +66,7 @@ func NewApplication(settingsPath string) *Application {
 		settings: settings,
 	}
 
-	app.internalCommands = internals.NewManager(app.liveAgents, app.outgoing, app.sendResult)
+	app.internalCommands = internals.NewManager(app.liveAgents, app.outgoing, app.sendResponse)
 	app.scheduler = scheduling.NewScheduler(app.redisPool, app.commandSource)
 
 	app.internalCommands.RegisterProcessor("scheduler_add", app.scheduler.Add)
@@ -84,7 +84,7 @@ func NewApplication(settingsPath string) *Application {
 		app.events,
 		app.getProducerChan,
 		app.redisPool,
-		app.sendResult,
+		app.sendResponse,
 		app.settings,
 	)
 
@@ -199,7 +199,7 @@ func newRedisPool(addr string, password string) *redis.Pool {
 	}
 }
 
-func (app *Application) sendResult(result *core.CommandResponse) error {
+func (app *Application) sendResponse(result *core.CommandResponse) error {
 
 	// Respond
 	err := app.outgoing.RespondToCommand(result)
@@ -240,7 +240,7 @@ func (app *Application) processSingleCommand() {
 	} else {
 		targetAgents, errResponse := agentsForCommand(app.liveAgents, command)
 		if errResponse != nil {
-			app.sendResult(errResponse)
+			app.sendResponse(errResponse)
 		}
 		app.distributeCommandToAgents(targetAgents, command)
 		app.outgoing.SignalAsQueued(command)
@@ -252,20 +252,14 @@ func (app *Application) distributeCommandToAgents(agents []core.AgentID, command
 
 	for _, agentID := range agents {
 
-		response := queuedResponseFor(command, agentID)
-
-		err := app.outgoing.RespondToCommand(response)
-		if err != nil {
-			log.Println("[-] failsed to respond with", response)
-		}
-
 		log.Println("Dispatching message to", agentID)
-		err = app.agentCommands.Enqueue(agentID, command)
+		err := app.agentCommands.Enqueue(agentID, command)
 		if err != nil {
 			log.Println("[-] push error: ", err)
 		}
 
-		app.sentCommandsResults.Push(response)
+		response := queuedResponseFor(command, agentID)
+		app.sendResponse(response)
 	}
 }
 
@@ -329,15 +323,9 @@ func (app *Application) getProducerChan(gid string, nid string) chan<- *core.Pol
 
 					select {
 					case msgChan <- string(pendingCommand.JSON):
-
 						//caller consumed this job, it's safe to set it's state to RUNNING now.
-
 						response := runningResponseFor(pendingCommand, agentID)
-						err = app.outgoing.RespondToCommand(response)
-						if err != nil {
-							log.Println("[-] failed to respond with", response)
-						}
-						app.sentCommandsResults.Push(response)
+						app.sendResponse(response)
 					default:
 					//caller didn't want to receive this command. have to repush it
 					//directly on the agent queue. to avoid doing the redispatching.
