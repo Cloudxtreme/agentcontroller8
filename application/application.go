@@ -15,7 +15,6 @@ import (
 	"github.com/Jumpscale/agentcontroller2/agentdata"
 	"fmt"
 	"time"
-	"math/rand"
 	"strconv"
 	hubbleAuth "github.com/Jumpscale/hubble/auth"
 	"net/http"
@@ -257,48 +256,15 @@ func (app *Application) processSingleCommand() {
 		go app.internalCommands.ExecuteInternalCommand(command)
 		return
 	} else {
-		targetAgents := app.agentsForCommand(command)
+		targetAgents, errResponse := agentsForCommand(app.liveAgents, command)
+		if errResponse != nil {
+			app.sendResult(errResponse)
+		}
 		app.distributeCommandToAgents(targetAgents, command)
 		app.outgoing.SignalAsQueued(command)
 	}
 }
 
-func (app *Application) agentsForCommand(command *core.Command) []core.AgentID {
-
-	if len(command.Content.Roles) > 0 {
-
-		// Agents with the specified GID and Roles
-		matchingAgents := app.filterConnectedAgents(command.Content.Gid, command.Content.Roles)
-
-		if len(matchingAgents) == 0 {
-			// None chosen.
-			// Respond with error immediately
-			errorResponse := errorResponseFor(command, fmt.Sprintf("No agents with role '%v' alive!", command.Content.Roles))
-			app.sendResult(errorResponse)
-			return []core.AgentID{}
-		} else {
-			if command.Content.Fanout {
-				return matchingAgents
-			} else {
-				randomAgent := matchingAgents[rand.Intn(len(matchingAgents))]
-				return []core.AgentID{randomAgent}
-			}
-		}
-	} else {
-		// Matching with a specific GID,NID
-		agentID := core.AgentID{GID: uint(command.Content.Gid), NID: uint(command.Content.Nid)}
-		if !app.liveAgents.IsConnected(agentID) {
-			// Respond with error
-			// Choose none
-			errorResponse := errorResponseFor(command, fmt.Sprintf("Agent is not alive!"))
-			app.sendResult(errorResponse)
-			return []core.AgentID{}
-		} else {
-			// Choose the chosen one
-			return []core.AgentID{agentID}
-		}
-	}
-}
 
 func (app *Application) distributeCommandToAgents(agents []core.AgentID, command *core.Command) {
 

@@ -1,5 +1,7 @@
 package core
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 const (
 	CommandStateQueued  = "QUEUED"
@@ -111,4 +113,21 @@ func (command *CommandResult) String() string {
 
 func (command *Command) IsInternal() bool {
 	return command.Content.Cmd == "controller"
+}
+
+func (command *Command) AttachedRoles() []AgentRole {
+	var roles []AgentRole
+	for _, role := range command.Content.Roles {
+		roles = append(roles, AgentRole(role))
+	}
+	return roles
+}
+
+// Returns nil if no GID was attached
+func (command *Command) AttachedGID() *uint {
+	if command.Content.Gid == 0 {
+		return nil
+	}
+	gid := uint(command.Content.Gid)
+	return &gid
 }
