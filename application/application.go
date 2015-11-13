@@ -32,7 +32,7 @@ type Application struct {
 	commandSource            core.CommandSource
 	outgoing                 core.Outgoing
 	receivedCommands         core.LoggedCommands
-	sentCommandsResults      core.LoggedCommandResults
+	sentCommandsResults      core.LoggedCommandResponses
 	agentCommands            core.AgentCommands
 	settings                 *configs.Settings
 	scheduler                *scheduling.Scheduler
@@ -59,7 +59,7 @@ func NewApplication(settingsPath string) *Application {
 		commandSource: interceptors.Intercept(redisdata.CommandSource(redisPool), redisPool),
 		outgoing: redisdata.Outgoing(redisPool),
 		receivedCommands: redisdata.LoggedCommands(redisPool),
-		sentCommandsResults: redisdata.LoggedCommandResult(redisPool),
+		sentCommandsResults: redisdata.LoggedCommandResponse(redisPool),
 		agentCommands: redisdata.AgentCommands(redisPool),
 		liveAgents: agentdata.NewAgentData(),
 		producers: make(map[string]chan* core.PollData),

@@ -1,9 +1,9 @@
 package core
 
 // Temporary storage for results of executed commands
-type LoggedCommandResults interface {
+type LoggedCommandResponses interface {
 
-	Push(commandResult *CommandResponse) error
+	Push(*CommandResponse) error
 
 	Pop() (*CommandResponse, error)
 }
