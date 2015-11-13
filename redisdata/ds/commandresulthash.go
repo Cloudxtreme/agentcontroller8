@@ -8,7 +8,7 @@ type CommandResultHash struct {
 	Hash Hash
 }
 
-func (hash CommandResultHash) Set(connPool *redis.Pool, key string, message *core.CommandResult) error {
+func (hash CommandResultHash) Set(connPool *redis.Pool, key string, message *core.CommandResponse) error {
 	return hash.Hash.Set(connPool, key, message.JSON)
 }
 

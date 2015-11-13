@@ -10,18 +10,18 @@ type CommandResultList struct {
 }
 
 func (list CommandResultList) BlockingLeftPop(connPool *redis.Pool,
-	timeout time.Duration) (*core.CommandResult, error) {
+	timeout time.Duration) (*core.CommandResponse, error) {
 	jsonData, err := list.List.BlockingLeftPop(connPool, timeout)
 	if err != nil {
 		return nil, err
 	}
-	return core.CommandResultFromJSON(jsonData)
+	return core.CommandResponseFromJSON(jsonData)
 }
 
-func (list CommandResultList) LeftPush(connPool *redis.Pool, message *core.CommandResult) error {
+func (list CommandResultList) LeftPush(connPool *redis.Pool, message *core.CommandResponse) error {
 	return list.List.LeftPush(connPool, message.JSON)
 }
 
-func (list CommandResultList) RightPush(connPool *redis.Pool, message *core.CommandResult) error {
+func (list CommandResultList) RightPush(connPool *redis.Pool, message *core.CommandResponse) error {
 	return list.List.RightPush(connPool, message.JSON)
 }

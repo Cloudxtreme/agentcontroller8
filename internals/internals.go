@@ -14,11 +14,11 @@ type Manager struct {
 	commandProcessors map[CommandName]CommandFunc
 	agents            core.AgentInformationStorage
 	outgoingSignals   core.Outgoing
-	messageResponder  func(*core.CommandResult) error
+	messageResponder  func(*core.CommandResponse) error
 }
 
 func NewManager(agents core.AgentInformationStorage, outgoingSignals core.Outgoing,
-	messageResponder func(*core.CommandResult) error) *Manager {
+	messageResponder func(*core.CommandResponse) error) *Manager {
 
 	return &Manager {
 		commandProcessors: map[CommandName]CommandFunc {
@@ -38,7 +38,7 @@ func (manager *Manager) ExecuteInternalCommand(commandMessage *core.Command) {
 
 	command := commandMessage.Content
 
-	result := &core.CommandResultContent{
+	result := &core.CommandReponseContent{
 		ID:        command.ID,
 		Gid:       command.Gid,
 		Nid:       command.Nid,
@@ -65,7 +65,7 @@ func (manager *Manager) ExecuteInternalCommand(commandMessage *core.Command) {
 		result.State = core.CommandStateErrorUnknownCommand
 	}
 
-	resultMessage, err := core.CommandResultFromCommandResultContent(result)
+	resultMessage, err := core.CommandResponseFromContent(result)
 	if err != nil {
 		panic(err)
 	}

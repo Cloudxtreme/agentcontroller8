@@ -8,7 +8,7 @@ import (
 
 // Returns the agents for dispatching the given command to, or an error response to be responded-with immediately.
 func agentsForCommand(liveAgents core.AgentInformationStorage,
-	command *core.Command) ([]core.AgentID, *core.CommandResult) {
+	command *core.Command) ([]core.AgentID, *core.CommandResponse) {
 
 	if len(command.Content.Roles) > 0 {
 

@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type CommandResponder func(result *core.CommandResult) error
+type CommandResponder func(result *core.CommandResponse) error
 
 type Manager struct {
 	engine              *gin.Engine

@@ -217,7 +217,7 @@ func (app *Application) filterConnectedAgents(onlyGid int, roles []string) []cor
 	return app.liveAgents.FilteredConnectedAgents(gidFilter, roleFilter)
 }
 
-func (app *Application) sendResult(result *core.CommandResult) error {
+func (app *Application) sendResult(result *core.CommandResponse) error {
 
 	// Respond
 	err := app.outgoing.RespondToCommand(result)

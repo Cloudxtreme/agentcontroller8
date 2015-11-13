@@ -21,11 +21,11 @@ func listForSignal(command *core.Command) ds.List {
 	return ds.List{Name: fmt.Sprintf("cmd.%s.queued", command.Content.ID)}
 }
 
-func hashForCommandResult(commandResult *core.CommandResult) ds.CommandResultHash {
+func hashForCommandResult(commandResult *core.CommandResponse) ds.CommandResultHash {
 	return ds.CommandResultHash{Hash: ds.Hash{Name: fmt.Sprintf("jobresult:%s", commandResult.Content.ID)}}
 }
 
-func singletonListForCommandResult(result *core.CommandResult) ds.CommandResultList {
+func singletonListForCommandResult(result *core.CommandResponse) ds.CommandResultList {
 	name := fmt.Sprintf("cmd.%s.%d.%d", result.Content.ID, result.Content.Gid, result.Content.Nid)
 	return ds.CommandResultList{List: ds.List{Name: name}}
 }
@@ -34,7 +34,7 @@ func (outgoing *outgoing) SignalAsQueued(command *core.Command) {
 	listForSignal(command).RightPush(outgoing.connPool, []byte("queued"))
 }
 
-func (outgoing *outgoing) RespondToCommand(result *core.CommandResult) error {
+func (outgoing *outgoing) RespondToCommand(result *core.CommandResponse) error {
 
 	hash := hashForCommandResult(result)
 

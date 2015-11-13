@@ -17,10 +17,10 @@ func LoggedCommandResult(connPool *redis.Pool) core.LoggedCommandResults {
 	}
 }
 
-func (logger *loggedCommandResults) Push(commandResult *core.CommandResult) error {
+func (logger *loggedCommandResults) Push(commandResult *core.CommandResponse) error {
 	return logger.redisQueue.RightPush(logger.connPool, commandResult)
 }
 
-func (logger *loggedCommandResults) Pop() (*core.CommandResult, error) {
+func (logger *loggedCommandResults) Pop() (*core.CommandResponse, error) {
 	return logger.redisQueue.BlockingLeftPop(logger.connPool, 0)
 }

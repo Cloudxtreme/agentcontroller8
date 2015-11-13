@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-func errorResponseFor(command *core.Command, message string) *core.CommandResult {
-	content := core.CommandResultContent{
+func errorResponseFor(command *core.Command, message string) *core.CommandResponse {
+	content := core.CommandReponseContent{
 		ID:        command.Content.ID,
 		Gid:       command.Content.Gid,
 		Nid:       command.Content.Nid,
@@ -14,15 +14,15 @@ func errorResponseFor(command *core.Command, message string) *core.CommandResult
 		Data:      message,
 		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 	}
-	response, err := core.CommandResultFromCommandResultContent(&content)
+	response, err := core.CommandResponseFromContent(&content)
 	if err != nil {
 		panic(err)
 	}
 	return response
 }
 
-func queuedResponseFor(command *core.Command, queuedOn core.AgentID) *core.CommandResult {
-	content := core.CommandResultContent{
+func queuedResponseFor(command *core.Command, queuedOn core.AgentID) *core.CommandResponse {
+	content := core.CommandReponseContent{
 		ID:        command.Content.ID,
 		Gid:       int(queuedOn.GID),
 		Nid:       int(queuedOn.NID),
@@ -31,7 +31,7 @@ func queuedResponseFor(command *core.Command, queuedOn core.AgentID) *core.Comma
 		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 	}
 
-	response, err := core.CommandResultFromCommandResultContent(&content)
+	response, err := core.CommandResponseFromContent(&content)
 	if err != nil {
 		panic(err)
 	}
@@ -39,9 +39,9 @@ func queuedResponseFor(command *core.Command, queuedOn core.AgentID) *core.Comma
 	return response
 }
 
-func runningResponseFor(command *core.Command, runningOn core.AgentID) *core.CommandResult {
+func runningResponseFor(command *core.Command, runningOn core.AgentID) *core.CommandResponse {
 
-	content := core.CommandResultContent{
+	content := core.CommandReponseContent{
 		ID:        command.Content.ID,
 		Gid:       int(runningOn.GID),
 		Nid:       int(runningOn.NID),
@@ -51,7 +51,7 @@ func runningResponseFor(command *core.Command, runningOn core.AgentID) *core.Com
 	}
 
 	response, err :=
-	core.CommandResultFromCommandResultContent(&content)
+	core.CommandResponseFromContent(&content)
 	if err != nil {
 		panic(err)
 	}

@@ -3,7 +3,7 @@ package core
 // Temporary storage for results of executed commands
 type LoggedCommandResults interface {
 
-	Push(commandResult *CommandResult) error
+	Push(commandResult *CommandResponse) error
 
-	Pop() (*CommandResult, error)
+	Pop() (*CommandResponse, error)
 }

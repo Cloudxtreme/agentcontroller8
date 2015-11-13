@@ -27,7 +27,7 @@ type CommandContent struct {
 
 type RawCommand map[string]interface{}
 
-type CommandResultContent struct {
+type CommandReponseContent struct {
 	ID        string                 `json:"id"`
 	Gid       int                    `json:"gid"`
 	Nid       int                    `json:"nid"`
@@ -49,8 +49,8 @@ type Command struct {
 	Raw     RawCommand
 }
 
-type CommandResult struct {
-	Content CommandResultContent
+type CommandResponse struct {
+	Content CommandReponseContent
 	JSON    []byte
 }
 
@@ -82,32 +82,32 @@ func CommandFromRawCommand(rawCommand RawCommand) (*Command, error) {
 	return CommandFromJSON(jsonData)
 }
 
-func CommandResultFromJSON(payload []byte) (*CommandResult, error) {
-	var commandResult CommandResultContent
+func CommandResponseFromJSON(payload []byte) (*CommandResponse, error) {
+	var commandResult CommandReponseContent
 	err := json.Unmarshal(payload, &commandResult)
 	if err != nil {
 		return nil, err
 	}
 
-	return &CommandResult{
+	return &CommandResponse{
 		Content: commandResult,
 		JSON: payload,
 	}, nil
 }
 
-func CommandResultFromCommandResultContent(commandResult *CommandResultContent) (*CommandResult, error) {
-	jsonData, err := json.Marshal(commandResult)
+func CommandResponseFromContent(content *CommandReponseContent) (*CommandResponse, error) {
+	jsonData, err := json.Marshal(content)
 	if err != nil {
 		return nil, err
 	}
-	return CommandResultFromJSON(jsonData)
+	return CommandResponseFromJSON(jsonData)
 }
 
 func (command *Command) String() string {
 	return string(command.JSON)
 }
 
-func (command *CommandResult) String() string {
+func (command *CommandResponse) String() string {
 	return string(command.JSON)
 }
 

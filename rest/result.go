@@ -27,7 +27,7 @@ func (r *Manager) result(c *gin.Context) {
 	}
 
 	// decode body
-	commandResult, err := core.CommandResultFromJSON(content)
+	commandResult, err := core.CommandResponseFromJSON(content)
 
 	if err != nil {
 		log.Println("[-] cannot read json:", err)
