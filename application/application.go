@@ -229,6 +229,7 @@ func (app *Application) processSingleCommand() {
 		targetAgents, errResponse := agentsForCommand(app.liveAgents, command)
 		if errResponse != nil {
 			app.commandResponder.RespondToCommand(errResponse)
+			return
 		}
 		app.distributeCommandToAgents(targetAgents, command)
 		app.commandResponder.SignalAsQueued(command)
