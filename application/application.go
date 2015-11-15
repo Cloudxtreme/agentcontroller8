@@ -165,7 +165,7 @@ func (app *Application) Run() {
 		}(httpBinding)
 	}
 
-	startSyncthingHubbleAgent(app.settings.Syncthing.Port)
+	startHubbleAgent(app.settings.Syncthing.Port)
 
 	wg.Wait()
 }
