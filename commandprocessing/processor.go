@@ -17,7 +17,7 @@ type CommandProcessor interface {
 
 type processorImpl struct {
 	enabled        bool
-	commandResults core.LoggedCommandResponses
+	commandResults core.CommandResponseLog
 	commands       core.CommandLog
 	pool           *redis.Pool
 	module         pygo.Pygo
@@ -25,7 +25,7 @@ type processorImpl struct {
 
 //NewProcessor Creates a new processor
 func NewProcessor(config *configs.Extension, pool *redis.Pool,
-	commands core.CommandLog, commandResults core.LoggedCommandResponses) (CommandProcessor, error) {
+	commands core.CommandLog, commandResults core.CommandResponseLog) (CommandProcessor, error) {
 
 	var module pygo.Pygo
 	var err error

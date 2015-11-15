@@ -13,11 +13,11 @@ type CommandFunc func(*Manager, *core.Command) (interface{}, error)
 type Manager struct {
 	commandProcessors map[CommandName]CommandFunc
 	agents            core.AgentInformationStorage
-	outgoingSignals   core.Outgoing
+	outgoingSignals   core.CommandResponder
 	messageResponder  func(*core.CommandResponse)
 }
 
-func NewManager(agents core.AgentInformationStorage, outgoingSignals core.Outgoing,
+func NewManager(agents core.AgentInformationStorage, outgoingSignals core.CommandResponder,
 	messageResponder func(*core.CommandResponse)) *Manager {
 
 	return &Manager {

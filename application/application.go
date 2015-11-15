@@ -30,8 +30,8 @@ type Application struct {
 	redisPool                *redis.Pool
 	internalCommands         *internals.Manager
 	commandSource            *redisdata.LoggedCommandSource
-	outgoing                 core.Outgoing
-	sentCommandsResults      core.LoggedCommandResponses
+	outgoing                 core.CommandResponder
+	sentCommandsResults      core.CommandResponseLog
 	agentCommands            core.AgentCommands
 	settings                 *configs.Settings
 	scheduler                *scheduling.Scheduler
@@ -55,7 +55,7 @@ func NewApplication(settingsPath string) *Application {
 
 	app := Application{
 		redisPool: redisPool,
-		outgoing: redisdata.Outgoing(redisPool),
+		outgoing: redisdata.NewRedisCommandResponder(redisPool),
 		sentCommandsResults: redisdata.LoggedCommandResponse(redisPool),
 		agentCommands: redisdata.AgentCommands(redisPool),
 		liveAgents: agentdata.NewAgentData(),

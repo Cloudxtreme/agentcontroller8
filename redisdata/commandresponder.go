@@ -7,12 +7,14 @@ import (
 	"time"
 )
 
-type outgoing struct {
+type commandResponder struct {
 	connPool *redis.Pool
 }
 
-func Outgoing(connPool *redis.Pool) core.Outgoing {
-	return &outgoing{
+// Constructs a core.CommandResponder implementation that responds directly to a data structures on a common
+// Redis server.
+func NewRedisCommandResponder(connPool *redis.Pool) core.CommandResponder {
+	return &commandResponder{
 		connPool: connPool,
 	}
 }
@@ -30,11 +32,11 @@ func singletonListForCommandResult(result *core.CommandResponse) ds.CommandResul
 	return ds.CommandResultList{List: ds.List{Name: name}}
 }
 
-func (outgoing *outgoing) SignalAsQueued(command *core.Command) {
+func (outgoing *commandResponder) SignalAsQueued(command *core.Command) {
 	listForSignal(command).RightPush(outgoing.connPool, []byte("queued"))
 }
 
-func (outgoing *outgoing) RespondToCommand(result *core.CommandResponse) error {
+func (outgoing *commandResponder) RespondToCommand(result *core.CommandResponse) error {
 
 	hash := hashForCommandResult(result)
 
