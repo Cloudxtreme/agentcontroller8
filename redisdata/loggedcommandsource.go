@@ -1,5 +1,8 @@
 package redisdata
-import "github.com/Jumpscale/agentcontroller2/core"
+import (
+	"github.com/Jumpscale/agentcontroller2/core"
+	"fmt"
+)
 
 // A CommandSource that logs about each popped command in its internal log
 type LoggedCommandSource struct {
@@ -12,6 +15,9 @@ func (commandSource *LoggedCommandSource) Pop() (*core.Command, error) {
 	if err != nil {
 		return nil, err
 	}
-	commandSource.Log.Push(command)
+	err = commandSource.Log.Push(command)
+	if err != nil {
+		return command, fmt.Errorf("Failed to log the command: %v", err)
+	}
 	return command, err
 }

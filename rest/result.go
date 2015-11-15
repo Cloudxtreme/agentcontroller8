@@ -37,7 +37,7 @@ func (r *Manager) result(c *gin.Context) {
 
 	log.Println("Jobresult:", commandResult.Content.ID)
 
-	r.commandResponder(commandResult)
+	r.commandResponder.RespondToCommand(commandResult)
 
 	c.JSON(http.StatusOK, "ok")
 }

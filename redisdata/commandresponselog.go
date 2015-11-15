@@ -5,22 +5,22 @@ import (
 	"github.com/Jumpscale/agentcontroller2/core"
 )
 
-type loggedCommandResponses struct {
+type commandResponseLog struct {
 	connPool *redis.Pool
 	redisQueue ds.CommandResultList
 }
 
-func LoggedCommandResponse(connPool *redis.Pool) core.CommandResponseLog {
-	return &loggedCommandResponses{
+func NewCommandResponseLog(connPool *redis.Pool) core.CommandResponseLog {
+	return &commandResponseLog{
 		connPool: connPool,
 		redisQueue: ds.CommandResultList{List: ds.List{Name: "results.queue"}},
 	}
 }
 
-func (logger *loggedCommandResponses) Push(commandResult *core.CommandResponse) error {
+func (logger *commandResponseLog) Push(commandResult *core.CommandResponse) error {
 	return logger.redisQueue.RightPush(logger.connPool, commandResult)
 }
 
-func (logger *loggedCommandResponses) Pop() (*core.CommandResponse, error) {
+func (logger *commandResponseLog) Pop() (*core.CommandResponse, error) {
 	return logger.redisQueue.BlockingLeftPop(logger.connPool, 0)
 }

@@ -13,20 +13,17 @@ type CommandFunc func(*Manager, *core.Command) (interface{}, error)
 type Manager struct {
 	commandProcessors map[CommandName]CommandFunc
 	agents            core.AgentInformationStorage
-	outgoingSignals   core.CommandResponder
-	messageResponder  func(*core.CommandResponse)
+	commandResponder  core.CommandResponder
 }
 
-func NewManager(agents core.AgentInformationStorage, outgoingSignals core.CommandResponder,
-	messageResponder func(*core.CommandResponse)) *Manager {
+func NewManager(agents core.AgentInformationStorage, commandResponder core.CommandResponder) *Manager {
 
-	return &Manager {
-		commandProcessors: map[CommandName]CommandFunc {
+	return &Manager{
+		commandProcessors: map[CommandName]CommandFunc{
 			"list_agents": listAgentsCommand,
 		},
 		agents: agents,
-		outgoingSignals: outgoingSignals,
-		messageResponder: messageResponder,
+		commandResponder: commandResponder,
 	}
 }
 
@@ -70,6 +67,6 @@ func (manager *Manager) ExecuteInternalCommand(commandMessage *core.Command) {
 		panic(err)
 	}
 
-	manager.messageResponder(resultMessage)
-	manager.outgoingSignals.SignalAsQueued(commandMessage)
+	manager.commandResponder.RespondToCommand(resultMessage)
+	manager.commandResponder.SignalAsQueued(commandMessage)
 }

@@ -30,8 +30,7 @@ type Application struct {
 	redisPool                *redis.Pool
 	internalCommands         *internals.Manager
 	commandSource            *redisdata.LoggedCommandSource
-	outgoing                 core.CommandResponder
-	sentCommandsResults      core.CommandResponseLog
+	commandResponder         *redisdata.LoggedCommandResponder
 	agentCommands            core.AgentCommands
 	settings                 *configs.Settings
 	scheduler                *scheduling.Scheduler
@@ -55,8 +54,6 @@ func NewApplication(settingsPath string) *Application {
 
 	app := Application{
 		redisPool: redisPool,
-		outgoing: redisdata.NewRedisCommandResponder(redisPool),
-		sentCommandsResults: redisdata.LoggedCommandResponse(redisPool),
 		agentCommands: redisdata.AgentCommands(redisPool),
 		liveAgents: agentdata.NewAgentData(),
 		producers: make(map[string]chan *core.PollData),
@@ -74,7 +71,12 @@ func NewApplication(settingsPath string) *Application {
 		app.commandSource = loggedSource
 	}
 
-	app.internalCommands = internals.NewManager(app.liveAgents, app.outgoing, app.sendResponse)
+	app.commandResponder = &redisdata.LoggedCommandResponder{
+		CommandResponder: redisdata.NewRedisCommandResponder(redisPool),
+		Log: redisdata.NewCommandResponseLog(redisPool),
+	}
+
+	app.internalCommands = internals.NewManager(app.liveAgents, app.commandResponder)
 	app.scheduler = scheduling.NewScheduler(app.redisPool, app.commandSource)
 
 	app.internalCommands.RegisterProcessor("scheduler_add", app.scheduler.Add)
@@ -92,7 +94,7 @@ func NewApplication(settingsPath string) *Application {
 		app.events,
 		app.getProducerChan,
 		app.redisPool,
-		app.sendResponse,
+		app.commandResponder,
 		app.settings,
 	)
 
@@ -100,7 +102,7 @@ func NewApplication(settingsPath string) *Application {
 		&app.settings.Processor,
 		app.redisPool,
 		app.commandSource.Log,
-		app.sentCommandsResults,
+		app.commandResponder.Log,
 	)
 	if err != nil {
 		log.Fatal("Failed to load processors module", err)
@@ -207,20 +209,20 @@ func newRedisPool(addr string, password string) *redis.Pool {
 	}
 }
 
-func (app *Application) sendResponse(response *core.CommandResponse) {
-
-	// Respond
-	err := app.outgoing.RespondToCommand(response)
-	if err != nil {
-		log.Fatal("Could not respond to %v", response)
-	}
-
-	// Log for processing
-	err = app.sentCommandsResults.Push(response)
-	if err != nil {
-		log.Fatal("Could not log %v", response)
-	}
-}
+//func (app *Application) sendResponse(response *core.CommandResponse) {
+//
+//	// Respond
+//	err := app.commandResponder.RespondToCommand(response)
+//	if err != nil {
+//		log.Fatal("Could not respond to %v", response)
+//	}
+//
+//	// Log for processing
+//	err = app.sentCommandsResults.Push(response)
+//	if err != nil {
+//		log.Fatal("Could not log %v", response)
+//	}
+//}
 
 func (app *Application) processSingleCommand() {
 
@@ -241,10 +243,10 @@ func (app *Application) processSingleCommand() {
 	} else {
 		targetAgents, errResponse := agentsForCommand(app.liveAgents, command)
 		if errResponse != nil {
-			app.sendResponse(errResponse)
+			app.commandResponder.RespondToCommand(errResponse)
 		}
 		app.distributeCommandToAgents(targetAgents, command)
-		app.outgoing.SignalAsQueued(command)
+		app.commandResponder.SignalAsQueued(command)
 	}
 }
 
@@ -260,7 +262,7 @@ func (app *Application) distributeCommandToAgents(agents []core.AgentID, command
 		}
 
 		response := queuedResponseFor(command, agentID)
-		app.sendResponse(response)
+		app.commandResponder.RespondToCommand(response)
 	}
 }
 
@@ -326,7 +328,7 @@ func (app *Application) getProducerChan(gid string, nid string) chan <- *core.Po
 					case msgChan <- string(pendingCommand.JSON):
 					//caller consumed this job, it's safe to set it's state to RUNNING now.
 						response := runningResponseFor(pendingCommand, agentID)
-						app.sendResponse(response)
+						app.commandResponder.RespondToCommand(response)
 					default:
 					//caller didn't want to receive this command. have to repush it
 					//directly on the agent queue. to avoid doing the redispatching.

@@ -8,14 +8,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type CommandResponder func(result *core.CommandResponse)
-
 type Manager struct {
 	engine              *gin.Engine
 	eventHandler        *events.Handler
 	producerChanFactory core.ProducerChanFactory
 	redisPool           *redis.Pool
-	commandResponder    CommandResponder
+	commandResponder    core.CommandResponder
 	settings            *configs.Settings
 }
 
@@ -23,7 +21,7 @@ func NewManager(
 	eventHandler *events.Handler,
 	producerChanFactory core.ProducerChanFactory,
 	redisPool *redis.Pool,
-	commandResponder CommandResponder,
+	commandResponder core.CommandResponder,
 	settings *configs.Settings,
 ) *Manager {
 
