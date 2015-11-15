@@ -2,7 +2,7 @@ package core
 
 
 // Temporary storage for executed commands
-type LoggedCommands interface {
+type CommandLog interface {
 
 	Push(*Command) error
 

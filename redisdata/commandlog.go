@@ -10,7 +10,7 @@ type loggedCommands struct {
 	redisQueue ds.CommandList
 }
 
-func LoggedCommands(connPool *redis.Pool) core.LoggedCommands {
+func NewCommandLog(connPool *redis.Pool) core.CommandLog {
 	return &loggedCommands{
 		connPool: connPool,
 		redisQueue: ds.CommandList{ds.List{Name: "cmds.log.queue"}},

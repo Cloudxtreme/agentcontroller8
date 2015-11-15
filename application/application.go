@@ -29,9 +29,8 @@ const (
 type Application struct {
 	redisPool                *redis.Pool
 	internalCommands         *internals.Manager
-	commandSource            core.CommandSource
+	commandSource            *redisdata.LoggedCommandSource
 	outgoing                 core.Outgoing
-	receivedCommands         core.LoggedCommands
 	sentCommandsResults      core.LoggedCommandResponses
 	agentCommands            core.AgentCommands
 	settings                 *configs.Settings
@@ -54,16 +53,25 @@ func NewApplication(settingsPath string) *Application {
 	redisPool := newRedisPool(settings.Main.RedisHost, settings.Main.RedisPassword)
 	panicIfRedisIsNotOK(redisPool)
 
-	app := Application {
+	app := Application{
 		redisPool: redisPool,
-		commandSource: interceptors.Intercept(redisdata.CommandSource(redisPool), redisPool),
 		outgoing: redisdata.Outgoing(redisPool),
-		receivedCommands: redisdata.LoggedCommands(redisPool),
 		sentCommandsResults: redisdata.LoggedCommandResponse(redisPool),
 		agentCommands: redisdata.AgentCommands(redisPool),
 		liveAgents: agentdata.NewAgentData(),
-		producers: make(map[string]chan* core.PollData),
+		producers: make(map[string]chan *core.PollData),
 		settings: settings,
+	}
+
+	{
+		redisSource := redisdata.NewCommandSource(redisPool)
+		interceptedSource := interceptors.Intercept(redisSource, redisPool)
+		commandLog := redisdata.NewCommandLog(redisPool)
+		loggedSource := &redisdata.LoggedCommandSource{
+			CommandSource: interceptedSource,
+			Log: commandLog,
+		}
+		app.commandSource = loggedSource
 	}
 
 	app.internalCommands = internals.NewManager(app.liveAgents, app.outgoing, app.sendResponse)
@@ -91,7 +99,7 @@ func NewApplication(settingsPath string) *Application {
 	commandProcessor, err := commandprocessing.NewProcessor(
 		&app.settings.Processor,
 		app.redisPool,
-		app.receivedCommands,
+		app.commandSource.Log,
 		app.sentCommandsResults,
 	)
 	if err != nil {
@@ -181,7 +189,7 @@ func newRedisPool(addr string, password string) *redis.Pool {
 		MaxIdle:   80,
 		MaxActive: 12000,
 		Dial: func() (redis.Conn, error) {
-			c, err := redis.DialTimeout("tcp", addr, 0, agentInteractiveAfterOver/2, 0)
+			c, err := redis.DialTimeout("tcp", addr, 0, agentInteractiveAfterOver / 2, 0)
 
 			if err != nil {
 				panic(err.Error())
@@ -225,11 +233,6 @@ func (app *Application) processSingleCommand() {
 		log.Fatal("Coulnd't read new commands from redis", err)
 	}
 
-	err = app.receivedCommands.Push(command)
-	if err != nil {
-		log.Println("[-] log push error: ", err)
-	}
-
 	log.Println("Received command:", command)
 
 	if command.IsInternal() {
@@ -261,7 +264,7 @@ func (app *Application) distributeCommandToAgents(agents []core.AgentID, command
 	}
 }
 
-func (app *Application) getProducerChan(gid string, nid string) chan<- *core.PollData {
+func (app *Application) getProducerChan(gid string, nid string) chan <- *core.PollData {
 	key := fmt.Sprintf("%s:%s", gid, nid)
 
 	app.producersLock.Lock()
@@ -321,7 +324,7 @@ func (app *Application) getProducerChan(gid string, nid string) chan<- *core.Pol
 
 					select {
 					case msgChan <- string(pendingCommand.JSON):
-						//caller consumed this job, it's safe to set it's state to RUNNING now.
+					//caller consumed this job, it's safe to set it's state to RUNNING now.
 						response := runningResponseFor(pendingCommand, agentID)
 						app.sendResponse(response)
 					default:

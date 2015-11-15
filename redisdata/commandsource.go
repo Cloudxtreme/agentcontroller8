@@ -10,7 +10,9 @@ type commandSource struct {
 	redisQueue	ds.CommandList
 }
 
-func CommandSource(connPool *redis.Pool) core.CommandSource {
+// Constructs a core.CommandSource implementation that only pops commands off of a queue from a shared
+// Redis server.
+func NewCommandSource(connPool *redis.Pool) core.CommandSource {
 	return &commandSource{
 		connPool: connPool,
 		redisQueue: ds.CommandList{List: ds.List{Name: "cmds.queue"}},
