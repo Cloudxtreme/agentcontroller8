@@ -11,7 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
+	"github.com/Jumpscale/agentcontroller2/utils"
 )
 
 type Handler struct {
@@ -65,14 +65,13 @@ func (handler *Handler) Event(c *gin.Context) {
 		return
 	}
 
-	gid := c.Param("gid")
-	nid := c.Param("nid")
+	agentID := utils.GetAgentID(c)
 
-	log.Printf("[+] gin: event (gid: %s, nid: %s)\n", gid, nid)
+	log.Printf("[+] gin: event (%v)\n", agentID)
 
 	//force initializing of producer since the event is the first thing agent sends
 
-	handler.producerChanFactory(gid, nid)
+	handler.producerChanFactory(agentID)
 
 	content, err := ioutil.ReadAll(c.Request.Body)
 
@@ -90,9 +89,6 @@ func (handler *Handler) Event(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, "Error")
 	}
 
-	igid, _ := strconv.Atoi(gid)
-	inid, _ := strconv.Atoi(nid)
-
 	go func(payload EventRequest, gid int, nid int) {
 		_, err = handler.module.Apply(payload.Name, map[string]interface{}{
 			"gid": gid,
@@ -104,7 +100,7 @@ func (handler *Handler) Event(c *gin.Context) {
 			log.Println(err, handler.module.Error())
 		}
 
-	}(payload, igid, inid)
+	}(payload, int(agentID.GID), int(agentID.NID))
 
 	c.JSON(http.StatusOK, "ok")
 }

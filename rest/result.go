@@ -6,16 +6,16 @@ import (
 	"log"
 	"net/http"
 	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller2/utils"
 )
 
 func (r *Manager) result(c *gin.Context) {
-	gid := c.Param("gid")
-	nid := c.Param("nid")
+	agentID := utils.GetAgentID(c)
 
 	db := r.redisPool.Get()
 	defer db.Close()
 
-	log.Printf("[+] gin: result (gid: %s, nid: %s)\n", gid, nid)
+	log.Printf("[+] gin: result (%v)\n", agentID)
 
 	// read body
 	content, err := ioutil.ReadAll(c.Request.Body)

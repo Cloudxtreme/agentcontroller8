@@ -5,22 +5,22 @@ import (
 "net/http"
 	"time"
 "github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller2/utils"
 )
 
 func (r *Manager) cmd(c *gin.Context) {
-	gid := c.Param("gid")
-	nid := c.Param("nid")
+	agentID := utils.GetAgentID(c)
 
 	query := c.Request.URL.Query()
 	roles := query["role"]
-	log.Printf("[+] gin: execute (gid: %s, nid: %s)\n", gid, nid)
+	log.Printf("[+] gin: execute (%v)\n", agentID)
 
 	// listen for http closing
 	notify := c.Writer.(http.CloseNotifier).CloseNotify()
 
 	timeout := 60 * time.Second
 
-	producer := r.producerChanFactory(gid, nid)
+	producer := r.producerChanFactory(agentID)
 
 	data := &core.PollData{
 		Roles:   roles,

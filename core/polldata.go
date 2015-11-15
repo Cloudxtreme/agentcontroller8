@@ -10,4 +10,4 @@ type PollData struct {
 	MsgChan chan string
 }
 
-type ProducerChanFactory func(string, string) chan<- *PollData
+type ProducerChanFactory func(AgentID) chan<- *PollData

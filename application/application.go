@@ -15,7 +15,6 @@ import (
 	"github.com/Jumpscale/agentcontroller2/agentdata"
 	"fmt"
 	"time"
-	"strconv"
 	hubbleAuth "github.com/Jumpscale/hubble/auth"
 	"net/http"
 	"crypto/tls"
@@ -252,17 +251,14 @@ func (app *Application) distributeCommandToAgents(agents []core.AgentID, command
 	}
 }
 
-func (app *Application) getProducerChan(gid string, nid string) chan <- *core.PollData {
-	key := fmt.Sprintf("%s:%s", gid, nid)
+func (app *Application) getProducerChan(agentID core.AgentID) chan <- *core.PollData {
+	key := fmt.Sprintf("%s:%s", agentID.GID, agentID.NID)
 
 	app.producersLock.Lock()
 	producer, ok := app.producers[key]
 	if !ok {
-		igid, _ := strconv.Atoi(gid)
-		inid, _ := strconv.Atoi(nid)
-		agentID := core.AgentID{GID: uint(igid), NID: uint(inid)}
 		//start routine for this agent.
-		log.Printf("Agent %s:%s active, starting agent routine\n", gid, nid)
+		log.Printf("Agent %v active, starting agent routine\n", agentID)
 
 		producer = make(chan *core.PollData)
 		app.producers[key] = producer

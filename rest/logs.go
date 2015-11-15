@@ -5,17 +5,17 @@ import (
 	"io/ioutil"
 "net/http"
 	"fmt"
+	"github.com/Jumpscale/agentcontroller2/utils"
 )
 
 
 func (r *Manager) logs(c *gin.Context) {
-	gid := c.Param("gid")
-	nid := c.Param("nid")
+	agentID := utils.GetAgentID(c)
 
 	db := r.redisPool.Get()
 	defer db.Close()
 
-	log.Printf("[+] gin: log (gid: %s, nid: %s)\n", gid, nid)
+	log.Printf("[+] gin: log (%v)\n", agentID)
 
 	// read body
 	content, err := ioutil.ReadAll(c.Request.Body)
@@ -27,7 +27,7 @@ func (r *Manager) logs(c *gin.Context) {
 	}
 
 	// push body to redis
-	id := fmt.Sprintf("%s:%s:log", gid, nid)
+	id := fmt.Sprintf("%s:%s:log", agentID.GID, agentID.NID)
 	log.Printf("[+] message destination [%s]\n", id)
 
 	// push message to client queue
