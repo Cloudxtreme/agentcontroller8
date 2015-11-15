@@ -15,7 +15,7 @@ type commandSource struct {
 func NewCommandSource(connPool *redis.Pool) core.CommandSource {
 	return &commandSource{
 		connPool: connPool,
-		redisQueue: ds.CommandList{List: ds.List{Name: "cmds.queue"}},
+		redisQueue: ds.CommandList{List: ds.GetList("cmds.queue")},
 	}
 }
 

@@ -2,12 +2,9 @@
 package interceptors
 
 import (
-	"crypto/md5"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
-	"github.com/garyburd/redigo/redis"
 	"github.com/Jumpscale/agentcontroller2/core"
 )
 
@@ -18,13 +15,13 @@ const (
 type commandInterceptor func(map[string]interface{}, *manager) (map[string]interface{}, error)
 
 type manager struct {
-	redisPool *redis.Pool
-	interceptors map[string]commandInterceptor
+	jumpscriptStore core.JumpScriptStore
+	interceptors    map[string]commandInterceptor
 }
 
-func newManager(redisPool *redis.Pool) *manager {
+func newManager(jumpscriptStore core.JumpScriptStore) *manager {
 	return &manager{
-		redisPool: redisPool,
+		jumpscriptStore: jumpscriptStore,
 		interceptors: map[string]commandInterceptor{
 			"jumpscript_content": jumpscriptHasherInterceptor,
 		},
@@ -49,23 +46,20 @@ func jumpscriptHasherInterceptor(cmd map[string]interface{}, manager *manager) (
 		return nil, errors.New("jumpscript_content doesn't have content payload")
 	}
 
-	contentstr, ok := content.(string)
+	jumpscriptContent, ok := content.(string)
 	if !ok {
 		return nil, errors.New("Expected 'content' to be string")
 	}
 
-	hash := fmt.Sprintf("%x", md5.Sum([]byte(contentstr)))
+	id, err := manager.jumpscriptStore.Add(core.JumpScriptContent(jumpscriptContent))
 
-	db := manager.redisPool.Get()
-	defer db.Close()
-
-	if _, err := db.Do("SET", hash, contentstr, "EX", scriptHashTimeout); err != nil {
+	if err != nil {
 		return nil, err
 	}
 
 	//hash is stored. Now modify the command and forward it.
 	delete(data, "content")
-	data["hash"] = hash
+	data["hash"] = id
 
 	updatedDatastr, err := json.Marshal(data)
 	if err != nil {

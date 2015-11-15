@@ -12,9 +12,6 @@ import (
 func (r *Manager) result(c *gin.Context) {
 	agentID := utils.GetAgentID(c)
 
-	db := r.redisPool.Get()
-	defer db.Close()
-
 	log.Printf("[+] gin: result (%v)\n", agentID)
 
 	// read body

@@ -30,5 +30,5 @@ func (commands *agentCommands) ReportUnexecutedCommand(command *core.Command, ag
 
 func (commands *agentCommands) redisQueue(id core.AgentID) ds.CommandList {
 	name := fmt.Sprintf("cmds:%d:%d", id.GID, id.NID)
-	return ds.CommandList{List: ds.List{Name: name}}
+	return ds.CommandList{List: ds.GetList(name)}
 }

@@ -37,6 +37,7 @@ type Application struct {
 	events                   *events.Handler
 	executedCommandProcessor commandprocessing.CommandProcessor
 	liveAgents               core.AgentInformationStorage
+	jumpscriptStore          core.JumpScriptStore
 
 	producers                map[string]chan *core.PollData
 	producersLock            sync.Mutex
@@ -57,11 +58,12 @@ func NewApplication(settingsPath string) *Application {
 		liveAgents: agentdata.NewAgentData(),
 		producers: make(map[string]chan *core.PollData),
 		settings: settings,
+		jumpscriptStore: redisdata.NewJumpScriptStore(redisPool),
 	}
 
 	{
 		redisSource := redisdata.NewCommandSource(redisPool)
-		interceptedSource := interceptors.NewInterceptedCommandSource(redisSource, redisPool)
+		interceptedSource := interceptors.NewInterceptedCommandSource(redisSource, app.jumpscriptStore)
 		commandLog := redisdata.NewCommandLog(redisPool)
 		loggedSource := &redisdata.LoggedCommandSource{
 			CommandSource: interceptedSource,
@@ -92,10 +94,10 @@ func NewApplication(settingsPath string) *Application {
 	app.rest = rest.NewManager(
 		app.events,
 		app.getProducerChan,
-		app.redisPool,
 		app.commandResponder,
 		app.settings,
 		redisdata.NewAgentLog(redisPool),
+		app.jumpscriptStore,
 	)
 
 	commandProcessor, err := commandprocessing.NewProcessor(

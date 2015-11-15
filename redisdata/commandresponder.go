@@ -20,16 +20,16 @@ func NewRedisCommandResponder(connPool *redis.Pool) core.CommandResponder {
 }
 
 func listForSignal(command *core.Command) ds.List {
-	return ds.List{Name: fmt.Sprintf("cmd.%s.queued", command.Content.ID)}
+	return ds.GetList(fmt.Sprintf("cmd.%s.queued", command.Content.ID))
 }
 
 func hashForCommandResult(commandResult *core.CommandResponse) ds.CommandResultHash {
-	return ds.CommandResultHash{Hash: ds.Hash{Name: fmt.Sprintf("jobresult:%s", commandResult.Content.ID)}}
+	return ds.CommandResultHash{ds.GetHash(fmt.Sprintf("jobresult:%s", commandResult.Content.ID))}
 }
 
 func singletonListForCommandResult(result *core.CommandResponse) ds.CommandResultList {
 	name := fmt.Sprintf("cmd.%s.%d.%d", result.Content.ID, result.Content.Gid, result.Content.Nid)
-	return ds.CommandResultList{List: ds.List{Name: name}}
+	return ds.GetCommandResultList(name)
 }
 
 func (outgoing *commandResponder) SignalAsQueued(command *core.Command) {

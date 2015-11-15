@@ -13,7 +13,7 @@ type commandResponseLog struct {
 func NewCommandResponseLog(connPool *redis.Pool) core.CommandResponseLog {
 	return &commandResponseLog{
 		connPool: connPool,
-		redisQueue: ds.CommandResultList{List: ds.List{Name: "results.queue"}},
+		redisQueue: ds.GetCommandResultList("results.queue"),
 	}
 }
 

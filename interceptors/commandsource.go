@@ -1,7 +1,6 @@
 package interceptors
 import (
 	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/garyburd/redigo/redis"
 )
 
 type interceptedCommands struct {
@@ -20,9 +19,9 @@ func (interceptor *interceptedCommands) Pop() (*core.Command, error) {
 
 // Returns a core.IncomingCommands implementation that intercepts the commands received from the passed
 // source of commands and mutates commands on-the-fly.
-func NewInterceptedCommandSource(source core.CommandSource, redisConnPool *redis.Pool) core.CommandSource {
+func NewInterceptedCommandSource(source core.CommandSource, jumpscriptStore core.JumpScriptStore) core.CommandSource {
 	return &interceptedCommands{
 		CommandSource: source,
-		interceptor: newManager(redisConnPool),
+		interceptor: newManager(jumpscriptStore),
 	}
 }

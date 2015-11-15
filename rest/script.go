@@ -2,8 +2,8 @@ package rest
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"github.com/garyburd/redigo/redis"
 	"log"
+	"github.com/Jumpscale/agentcontroller2/core"
 )
 
 //Gets hashed scripts from redis.
@@ -17,19 +17,14 @@ func (r *Manager) script(c *gin.Context) {
 		return
 	}
 
-	hash := hashes[0]
+	id := hashes[0]
 
-	db := r.redisPool.Get()
-	defer db.Close()
-
-	payload, err := redis.String(db.Do("GET", hash))
+	jumpscriptContent, err := r.jumpscriptStore.Get(core.JumpScriptID(id))
 	if err != nil {
 		log.Println("Script get error:", err)
-		c.String(http.StatusNotFound, "Script with hash '%s' not found", hash)
+		c.String(http.StatusNotFound, "Script with hash '%s' not found", id)
 		return
 	}
 
-	log.Println(payload)
-
-	c.String(http.StatusOK, payload)
+	c.String(http.StatusOK, string(jumpscriptContent))
 }

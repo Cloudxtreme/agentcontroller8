@@ -7,7 +7,11 @@ import (
 )
 
 type List struct {
-	Name string
+	Value
+}
+
+func GetList(name string) List {
+	return List{Value{Name: name}}
 }
 
 // BLPOP from the list

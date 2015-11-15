@@ -9,6 +9,10 @@ type CommandResultList struct {
 	List List
 }
 
+func GetCommandResultList(name string) CommandResultList {
+	return CommandResultList{GetList(name)}
+}
+
 func (list CommandResultList) BlockingLeftPop(connPool *redis.Pool,
 	timeout time.Duration) (*core.CommandResponse, error) {
 	jsonData, err := list.List.BlockingLeftPop(connPool, timeout)
