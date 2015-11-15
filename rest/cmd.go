@@ -8,11 +8,18 @@ import (
 	"github.com/Jumpscale/agentcontroller2/utils"
 )
 
+func extractRoles(ctx *gin.Context) []core.AgentRole {
+	var roles []core.AgentRole
+	for _, role := range ctx.Request.URL.Query()["role"] {
+		roles = append(roles, core.AgentRole(role))
+	}
+	return roles
+}
+
 func (r *Manager) cmd(c *gin.Context) {
 	agentID := utils.GetAgentID(c)
 
-	query := c.Request.URL.Query()
-	roles := query["role"]
+	roles := extractRoles(c)
 	log.Printf("[+] gin: execute (%v)\n", agentID)
 
 	// listen for http closing

@@ -289,13 +289,7 @@ func (app *Application) getProducerChan(agentID core.AgentID) chan <- *core.Poll
 					msgChan := data.MsgChan
 					defer close(msgChan)
 
-					roles := data.Roles
-
-					var agentRoles []core.AgentRole
-					for _, role := range roles {
-						agentRoles = append(agentRoles, core.AgentRole(role))
-					}
-					app.liveAgents.SetRoles(agentID, agentRoles)
+					app.liveAgents.SetRoles(agentID, data.Roles)
 
 					pendingCommand, err := app.agentCommands.Dequeue(agentID)
 					if err != nil {
