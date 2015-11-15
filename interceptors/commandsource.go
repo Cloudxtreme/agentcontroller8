@@ -5,12 +5,12 @@ import (
 )
 
 type interceptedCommands struct {
-	source      core.CommandSource
+	core.CommandSource
 	interceptor *manager
 }
 
 func (interceptor *interceptedCommands) Pop() (*core.Command, error) {
-	freshCommand, err := interceptor.source.Pop()
+	freshCommand, err := interceptor.CommandSource.Pop()
 	if err != nil {
 		return nil, err
 	}
@@ -18,15 +18,11 @@ func (interceptor *interceptedCommands) Pop() (*core.Command, error) {
 	return mutatedCommand, nil
 }
 
-func (interceptor *interceptedCommands) Push(command *core.Command) error {
-	return interceptor.source.Push(command)
-}
-
 // Returns a core.IncomingCommands implementation that intercepts the commands received from the passed
 // source of commands and mutates commands on-the-fly.
-func Intercept(source core.CommandSource, redisConnPool *redis.Pool) core.CommandSource {
+func NewInterceptedCommandSource(source core.CommandSource, redisConnPool *redis.Pool) core.CommandSource {
 	return &interceptedCommands{
-		source: source,
+		CommandSource: source,
 		interceptor: newManager(redisConnPool),
 	}
 }

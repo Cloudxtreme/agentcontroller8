@@ -62,7 +62,7 @@ func NewApplication(settingsPath string) *Application {
 
 	{
 		redisSource := redisdata.NewCommandSource(redisPool)
-		interceptedSource := interceptors.Intercept(redisSource, redisPool)
+		interceptedSource := interceptors.NewInterceptedCommandSource(redisSource, redisPool)
 		commandLog := redisdata.NewCommandLog(redisPool)
 		loggedSource := &redisdata.LoggedCommandSource{
 			CommandSource: interceptedSource,
