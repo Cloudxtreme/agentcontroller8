@@ -95,6 +95,7 @@ func NewApplication(settingsPath string) *Application {
 		app.redisPool,
 		app.commandResponder,
 		app.settings,
+		redisdata.NewAgentLog(redisPool),
 	)
 
 	commandProcessor, err := commandprocessing.NewProcessor(

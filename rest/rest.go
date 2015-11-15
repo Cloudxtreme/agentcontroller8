@@ -15,15 +15,16 @@ type Manager struct {
 	redisPool           *redis.Pool
 	commandResponder    core.CommandResponder
 	settings            *configs.Settings
+	agentLog            core.AgentLog
 }
 
-func NewManager(
-	eventHandler *events.Handler,
+func NewManager(eventHandler *events.Handler,
 	producerChanFactory core.ProducerChanFactory,
 	redisPool *redis.Pool,
 	commandResponder core.CommandResponder,
 	settings *configs.Settings,
-) *Manager {
+	agentLog core.AgentLog,
+	) *Manager {
 
 	r := Manager{
 		engine:              gin.Default(),
@@ -32,6 +33,7 @@ func NewManager(
 		redisPool:           redisPool,
 		commandResponder:    commandResponder,
 		settings:            settings,
+		agentLog: 			 agentLog,
 	}
 
 	r.engine.GET("/:gid/:nid/cmd", r.cmd)
