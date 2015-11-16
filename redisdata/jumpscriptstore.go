@@ -22,10 +22,10 @@ const scriptTTL = 86400 * time.Second
 
 func (store *jumpscriptStore) Add(content core.JumpScriptContent) (core.JumpScriptID, error) {
 
-	id := fmt.Sprintf("jumpscript:%x", md5.Sum([]byte(content)))
+	id := fmt.Sprintf("%x", md5.Sum([]byte(content)))
 	jumpscriptID := core.JumpScriptID(id)
 
-	redisValue := ds.Value{Name: id}
+	redisValue := ds.Value{Name: fmt.Sprintf("jumpscript:%s", id)}
 	err := redisValue.Set(store.connPool, []byte(content))
 	if err != nil {
 		return jumpscriptID, err

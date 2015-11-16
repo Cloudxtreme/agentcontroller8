@@ -11,6 +11,11 @@ go get github.com/Jumpscale/agentcontroller2
 go run main.go -c agentcontroller2.toml
 ```
 
+# Testing #
+```bash
+TEST_REDIS_PORT=6379 go test ./...
+```
+
 # REST Service
 Note: GID, NID and JID is extracted from URL or from JSON body
 
