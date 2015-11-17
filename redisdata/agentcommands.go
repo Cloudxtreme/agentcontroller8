@@ -20,7 +20,7 @@ func (commands *agentCommands) Enqueue(agentID core.AgentID, command *core.Comma
 	return commands.redisQueue(agentID).RightPush(commands.pool, command)
 }
 
-func (commands *agentCommands) Dequeue(agentID core.AgentID) (*core.Command, error) {
+func (commands *agentCommands) BlockingDequeue(agentID core.AgentID) (*core.Command, error) {
 	return commands.redisQueue(agentID).BlockingLeftPop(commands.pool, 0)
 }
 

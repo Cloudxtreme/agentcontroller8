@@ -5,5 +5,5 @@ type CommandResponseLog interface {
 
 	Push(*CommandResponse) error
 
-	Pop() (*CommandResponse, error)
+	BlockingPop() (*CommandResponse, error)
 }

@@ -21,6 +21,6 @@ func (logger *commandResponseLog) Push(commandResult *core.CommandResponse) erro
 	return logger.redisQueue.RightPush(logger.connPool, commandResult)
 }
 
-func (logger *commandResponseLog) Pop() (*core.CommandResponse, error) {
+func (logger *commandResponseLog) BlockingPop() (*core.CommandResponse, error) {
 	return logger.redisQueue.BlockingLeftPop(logger.connPool, 0)
 }

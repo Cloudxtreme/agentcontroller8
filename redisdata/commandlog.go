@@ -21,6 +21,6 @@ func (logger *loggedCommands) Push(command *core.Command) error {
 	return logger.redisQueue.RightPush(logger.connPool, command)
 }
 
-func (logger *loggedCommands) Pop() (*core.Command, error) {
+func (logger *loggedCommands) BlockingPop() (*core.Command, error) {
 	return logger.redisQueue.BlockingLeftPop(logger.connPool, 0)
 }

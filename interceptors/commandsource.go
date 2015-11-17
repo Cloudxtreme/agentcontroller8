@@ -9,7 +9,7 @@ type interceptedCommands struct {
 }
 
 func (interceptor *interceptedCommands) Pop() (*core.Command, error) {
-	freshCommand, err := interceptor.CommandSource.Pop()
+	freshCommand, err := interceptor.CommandSource.BlockingPop()
 	if err != nil {
 		return nil, err
 	}

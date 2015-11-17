@@ -19,7 +19,7 @@ func NewCommandSource(connPool *redis.Pool) core.CommandSource {
 	}
 }
 
-func (incoming *commandSource) Pop() (*core.Command, error) {
+func (incoming *commandSource) BlockingPop() (*core.Command, error) {
 	return incoming.redisQueue.BlockingLeftPop(incoming.connPool, 0)
 }
 

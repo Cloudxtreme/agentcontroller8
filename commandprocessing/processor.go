@@ -57,7 +57,7 @@ func NewProcessor(config *configs.Extension, pool *redis.Pool,
 
 func (processor *processorImpl) processSingleResult() error {
 
-	commandResultMessage, err := processor.commandResults.Pop()
+	commandResultMessage, err := processor.commandResults.BlockingPop()
 
 	if err != nil {
 		if core.IsTimeout(err) {
@@ -80,7 +80,7 @@ func (processor *processorImpl) processSingleResult() error {
 
 func (processor *processorImpl) processSingleCommand() error {
 
-	commandMessage, err := processor.commands.Pop()
+	commandMessage, err := processor.commands.BlockingPop()
 
 	if err != nil {
 		if core.IsTimeout(err) {

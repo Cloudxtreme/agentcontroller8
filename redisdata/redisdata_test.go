@@ -3,6 +3,7 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"testing"
 	"syscall"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestingRedisPool(t *testing.T) *redis.Pool {
@@ -29,9 +30,8 @@ func TestingRedisPool(t *testing.T) *redis.Pool {
 	db := pool.Get()
 	defer db.Close()
 
-	if _, err := db.Do("PING"); err != nil {
-		t.FailNow()
-	}
+	_, err := db.Do("PING")
+	assert.NoError(t, err)
 
 	return pool
 }

@@ -11,7 +11,7 @@ type LoggedCommandSource struct {
 }
 
 func (commandSource *LoggedCommandSource) Pop() (*core.Command, error) {
-	command, err := commandSource.CommandSource.Pop()
+	command, err := commandSource.CommandSource.BlockingPop()
 	if err != nil {
 		return nil, err
 	}

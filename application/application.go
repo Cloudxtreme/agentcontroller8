@@ -294,7 +294,7 @@ func (app *Application) getProducerChan(agentID core.AgentID) chan <- *core.Poll
 
 					app.liveAgents.SetRoles(agentID, data.Roles)
 
-					pendingCommand, err := app.agentCommands.Dequeue(agentID)
+					pendingCommand, err := app.agentCommands.BlockingDequeue(agentID)
 					if err != nil {
 						if !core.IsTimeout(err) {
 							log.Println("Couldn't get new job for agent", key, err)
