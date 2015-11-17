@@ -2,13 +2,13 @@ package scheduling
 
 import (
 	"encoding/json"
+	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller2/internals"
 	"github.com/garyburd/redigo/redis"
 	"github.com/pborman/uuid"
 	"github.com/robfig/cron"
 	"log"
 	"strings"
-	"github.com/Jumpscale/agentcontroller2/internals"
-	"github.com/Jumpscale/agentcontroller2/core"
 )
 
 const (
@@ -53,24 +53,41 @@ func (job *Job) Run() {
 //NewScheduler created a new instance of the scheduler
 func NewScheduler(pool *redis.Pool, commandPipeline core.CommandSource) *Scheduler {
 	sched := &Scheduler{
-		cron: cron.New(),
-		pool: pool,
+		cron:            cron.New(),
+		pool:            pool,
 		commandPipeline: commandPipeline,
 	}
 
 	return sched
 }
 
-//Add create a schdule with the cmd ID (overrides old ones)
-func (sched *Scheduler) Add(_ *internals.Manager, cmd *core.Command) (interface{}, error) {
+//AddJob adds a job to the scheduler (overrides old ones)
+func (sched *Scheduler) AddJob(job *Job) error {
+	_, err := cron.Parse(job.Cron)
+	if err != nil {
+		return err
+	}
+
 	defer sched.restart()
 
 	db := sched.pool.Get()
 	defer db.Close()
 
-	job := &Job{
-		commandPipeline: sched.commandPipeline,
+	data, err := json.Marshal(job)
+	if err != nil {
+		return err
 	}
+
+	//we can safely push the command to the hashset now.
+	_, err = db.Do("HSET", hashScheduleKey, job.ID, data)
+	return err
+}
+
+//Add create a schdule with the cmd ID (overrides old ones).
+//This add method is compatible withe the 'internals' manager interface so it can be
+//called remotely via the client.
+func (sched *Scheduler) Add(_ *internals.Manager, cmd *core.Command) (interface{}, error) {
+	job := &Job{}
 
 	err := json.Unmarshal([]byte(cmd.Content.Data), job)
 
@@ -79,14 +96,12 @@ func (sched *Scheduler) Add(_ *internals.Manager, cmd *core.Command) (interface{
 		return nil, err
 	}
 
-	_, err = cron.Parse(job.Cron)
+	job.ID = cmd.Content.ID
+
+	err = sched.AddJob(job)
 	if err != nil {
 		return nil, err
 	}
-
-	job.ID = cmd.Content.ID
-	//we can safely push the command to the hashset now.
-	db.Do("HSET", hashScheduleKey, cmd.Content.ID, cmd.Content.Data)
 
 	return true, nil
 }
@@ -99,12 +114,11 @@ func (sched *Scheduler) List(_ *internals.Manager, _ *core.Command) (interface{}
 	return redis.StringMap(db.Do("HGETALL", hashScheduleKey))
 }
 
-//Remove removes the scheduled job that has this cmd.ID
-func (sched *Scheduler) Remove(_ *internals.Manager, cmd *core.Command) (interface{}, error) {
+func (sched *Scheduler) RemoveID(ID string) (int, error) {
 	db := sched.pool.Get()
 	defer db.Close()
 
-	value, err := redis.Int(db.Do("HDEL", hashScheduleKey, cmd.Content.ID))
+	value, err := redis.Int(db.Do("HDEL", hashScheduleKey, ID))
 
 	if value > 0 {
 		//actuall job was deleted. need to restart the scheduler
@@ -112,6 +126,11 @@ func (sched *Scheduler) Remove(_ *internals.Manager, cmd *core.Command) (interfa
 	}
 
 	return value, err
+}
+
+//Remove removes the scheduled job that has this cmd.ID
+func (sched *Scheduler) Remove(_ *internals.Manager, cmd *core.Command) (interface{}, error) {
+	return sched.RemoveID(cmd.Content.ID)
 }
 
 //RemovePrefix removes all scheduled jobs that has the cmd.ID as a prefix
