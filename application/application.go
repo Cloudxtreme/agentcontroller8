@@ -232,7 +232,10 @@ func (app *Application) processSingleCommand() {
 		targetAgents := agentsForCommand(app.liveAgents, command)
 		if len(targetAgents) == 0 {
 			errResponse := errorResponseFor(command, "No matching connected agents found")
-			app.commandResponder.RespondToCommand(errResponse)
+			err := app.commandResponder.RespondToCommand(errResponse)
+			if err != nil {
+				panic("Failed to send error response")
+			}
 			return
 		}
 		app.distributeCommandToAgents(targetAgents, command)
