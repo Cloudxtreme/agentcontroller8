@@ -231,12 +231,12 @@ func (app *Application) processSingleCommand() {
 	} else {
 		targetAgents := agentsForCommand(app.liveAgents, command)
 		if len(targetAgents) == 0 {
-			app.commandResponder.SignalAsQueued(command)
 			errResponse := errorResponseFor(command, "No matching connected agents found")
 			err := app.commandResponder.RespondToCommand(errResponse)
 			if err != nil {
 				panic("Failed to send error response")
 			}
+			app.commandResponder.SignalAsQueued(command)
 			return
 		}
 		app.distributeCommandToAgents(targetAgents, command)
