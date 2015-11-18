@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"crypto/tls"
 	"net"
+	"github.com/Jumpscale/agentcontroller2/logged"
 )
 
 const (
@@ -28,8 +29,8 @@ const (
 type Application struct {
 	redisPool                *redis.Pool
 	internalCommands         *internals.Manager
-	commandSource            *redisdata.LoggedCommandSource
-	commandResponder         *redisdata.LoggedCommandResponder
+	commandSource            *logged.CommandSource
+	commandResponder         *logged.CommandResponder
 	agentCommands            core.AgentCommands
 	settings                 *configs.Settings
 	scheduler                *scheduling.Scheduler
@@ -65,14 +66,14 @@ func NewApplication(settingsPath string) *Application {
 		redisSource := redisdata.NewCommandSource(redisPool)
 		interceptedSource := interceptors.NewInterceptedCommandSource(redisSource, app.jumpscriptStore)
 		commandLog := redisdata.NewCommandLog(redisPool)
-		loggedSource := &redisdata.LoggedCommandSource{
+		loggedSource := &logged.CommandSource{
 			CommandSource: interceptedSource,
 			Log: commandLog,
 		}
 		app.commandSource = loggedSource
 	}
 
-	app.commandResponder = &redisdata.LoggedCommandResponder{
+	app.commandResponder = &logged.CommandResponder{
 		CommandResponder: redisdata.NewRedisCommandResponder(redisPool),
 		Log: redisdata.NewCommandResponseLog(redisPool),
 	}

@@ -1,16 +1,16 @@
-package redisdata
+package logged
 import (
 	"github.com/Jumpscale/agentcontroller2/core"
 	"fmt"
 )
 
 // A CommandSource that logs about each popped command in its internal log
-type LoggedCommandSource struct {
+type CommandSource struct {
 	core.CommandSource
 	Log core.CommandLog
 }
 
-func (commandSource *LoggedCommandSource) Pop() (*core.Command, error) {
+func (commandSource *CommandSource) Pop() (*core.Command, error) {
 	command, err := commandSource.CommandSource.BlockingPop()
 	if err != nil {
 		return nil, err

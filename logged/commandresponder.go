@@ -1,16 +1,16 @@
-package redisdata
+package logged
 import (
 	"github.com/Jumpscale/agentcontroller2/core"
 	"fmt"
 )
 
 // A CommandResponder that logs its responses in its internal log
-type LoggedCommandResponder struct {
+type CommandResponder struct {
 	core.CommandResponder
 	Log core.CommandResponseLog
 }
 
-func (responder *LoggedCommandResponder) RespondToCommand(response *core.CommandResponse) error {
+func (responder *CommandResponder) RespondToCommand(response *core.CommandResponse) error {
 	err := responder.CommandResponder.RespondToCommand(response)
 	if err != nil {
 		return err
