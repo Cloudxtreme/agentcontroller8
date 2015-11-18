@@ -229,8 +229,9 @@ func (app *Application) processSingleCommand() {
 		go app.internalCommands.ExecuteInternalCommand(command)
 		return
 	} else {
-		targetAgents, errResponse := agentsForCommand(app.liveAgents, command)
-		if errResponse != nil {
+		targetAgents := agentsForCommand(app.liveAgents, command)
+		if len(targetAgents) == 0 {
+			errResponse := errorResponseFor(command, "No matching connected agents found")
 			app.commandResponder.RespondToCommand(errResponse)
 			return
 		}
