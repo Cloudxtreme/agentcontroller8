@@ -14,10 +14,7 @@ func errorResponseFor(command *core.Command, message string) *core.CommandRespon
 		Data:      message,
 		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 	}
-	response, err := core.CommandResponseFromContent(&content)
-	if err != nil {
-		panic(err)
-	}
+	response := core.CommandResponseFromContent(&content)
 	return response
 }
 
@@ -31,10 +28,7 @@ func queuedResponseFor(command *core.Command, queuedOn core.AgentID) *core.Comma
 		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 	}
 
-	response, err := core.CommandResponseFromContent(&content)
-	if err != nil {
-		panic(err)
-	}
+	response := core.CommandResponseFromContent(&content)
 
 	return response
 }
@@ -50,11 +44,7 @@ func runningResponseFor(command *core.Command, runningOn core.AgentID) *core.Com
 		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 	}
 
-	response, err :=
-	core.CommandResponseFromContent(&content)
-	if err != nil {
-		panic(err)
-	}
+	response := core.CommandResponseFromContent(&content)
 
 	return response
 }

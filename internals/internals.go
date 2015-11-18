@@ -62,10 +62,7 @@ func (manager *Manager) ExecuteInternalCommand(commandMessage *core.Command) {
 		result.State = core.CommandStateErrorUnknownCommand
 	}
 
-	resultMessage, err := core.CommandResponseFromContent(result)
-	if err != nil {
-		panic(err)
-	}
+	resultMessage := core.CommandResponseFromContent(result)
 
 	manager.commandResponder.RespondToCommand(resultMessage)
 	manager.commandResponder.SignalAsQueued(commandMessage)

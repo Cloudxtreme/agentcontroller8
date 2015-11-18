@@ -214,7 +214,7 @@ func newRedisPool(addr string, password string) *redis.Pool {
 
 func (app *Application) processSingleCommand() {
 
-	command, err := app.commandSource.Pop()
+	command, err := app.commandSource.BlockingPop()
 	if err != nil {
 		if core.IsTimeout(err) {
 			return

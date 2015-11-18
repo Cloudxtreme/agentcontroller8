@@ -95,12 +95,27 @@ func CommandResponseFromJSON(payload []byte) (*CommandResponse, error) {
 	}, nil
 }
 
-func CommandResponseFromContent(content *CommandReponseContent) (*CommandResponse, error) {
+func CommandResponseFromContent(content *CommandReponseContent) *CommandResponse {
 	jsonData, err := json.Marshal(content)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return CommandResponseFromJSON(jsonData)
+	return &CommandResponse{
+		Content: *content,
+		JSON: jsonData,
+	}
+}
+
+func CommandFromContent(content *CommandContent) *Command {
+	jsonData, err := json.Marshal(content)
+	if err != nil {
+		panic(err)
+	}
+	command, err := CommandFromJSON(jsonData)
+	if err != nil {
+		panic(err)
+	}
+	return command
 }
 
 func (command *Command) String() string {
