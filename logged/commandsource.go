@@ -10,7 +10,7 @@ type CommandSource struct {
 	Log core.CommandLog
 }
 
-func (commandSource *CommandSource) Pop() (*core.Command, error) {
+func (commandSource *CommandSource) BlockingPop() (*core.Command, error) {
 	command, err := commandSource.CommandSource.BlockingPop()
 	if err != nil {
 		return nil, err
