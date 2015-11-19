@@ -65,5 +65,5 @@ func (manager *Manager) ExecuteInternalCommand(commandMessage *core.Command) {
 	resultMessage := core.CommandResponseFromContent(result)
 
 	manager.commandResponder.RespondToCommand(resultMessage)
-	manager.commandResponder.SignalAsQueued(commandMessage)
+	manager.commandResponder.SignalAsPickedUp(commandMessage)
 }

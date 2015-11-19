@@ -34,3 +34,7 @@ func TestItLogsAboutResponses(t *testing.T) {
 	responder.AssertCalled(t, "RespondToCommand", response)
 	responder.AssertNumberOfCalls(t, "RespondToCommand", 1)
 }
+
+func TestImplementsCommandResponder(t *testing.T) {
+	assert.Implements(t, (*core.CommandResponder)(nil), new(logged.CommandResponder))
+}

@@ -7,7 +7,7 @@ type CommandResponder struct {
 	mock.Mock
 }
 
-func (_m *CommandResponder) SignalAsQueued(_a0 *core.Command) {
+func (_m *CommandResponder) SignalAsPickedUp(_a0 *core.Command) {
 	_m.Called(_a0)
 }
 func (_m *CommandResponder) RespondToCommand(_a0 *core.CommandResponse) error {

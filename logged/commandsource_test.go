@@ -32,3 +32,7 @@ func TestItLogsAboutPoppedCommands(t *testing.T) {
 	commandLog.AssertCalled(t, "Push", command)
 	commandLog.AssertNumberOfCalls(t, "Push", 1)
 }
+
+func TestImplementsCommandSource(t *testing.T) {
+	assert.Implements(t, (*core.CommandSource)(nil), new(logged.CommandSource))
+}

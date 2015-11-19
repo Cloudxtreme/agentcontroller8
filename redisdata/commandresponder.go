@@ -32,7 +32,7 @@ func singletonListForCommandResult(result *core.CommandResponse) ds.CommandResul
 	return ds.GetCommandResultList(name)
 }
 
-func (outgoing *commandResponder) SignalAsQueued(command *core.Command) {
+func (outgoing *commandResponder) SignalAsPickedUp(command *core.Command) {
 	listForSignal(command).RightPush(outgoing.connPool, []byte("queued"))
 }
 

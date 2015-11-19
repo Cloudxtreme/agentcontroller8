@@ -239,7 +239,7 @@ func (app *Application) processSingleCommand() {
 		} else {
 			app.distributeCommandToAgents(targetAgents, command)
 		}
-		app.commandResponder.SignalAsQueued(command)
+		app.commandResponder.SignalAsPickedUp(command)
 	}
 }
 
