@@ -1,25 +1,27 @@
 package application
+
 import (
-	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/internals"
-	"github.com/Jumpscale/agentcontroller2/interceptors"
-	"github.com/garyburd/redigo/redis"
-	"github.com/Jumpscale/agentcontroller2/configs"
-	"github.com/Jumpscale/agentcontroller2/scheduling"
-	"github.com/Jumpscale/agentcontroller2/events"
-	"sync"
-	"github.com/Jumpscale/agentcontroller2/rest"
-	"github.com/Jumpscale/agentcontroller2/commandprocessing"
-	"github.com/Jumpscale/agentcontroller2/redisdata"
-	"log"
-	"github.com/Jumpscale/agentcontroller2/agentdata"
-	"fmt"
-	"time"
-	hubbleAuth "github.com/Jumpscale/hubble/auth"
-	"net/http"
 	"crypto/tls"
-	"net"
+	"fmt"
+	"github.com/Jumpscale/agentcontroller2/agentdata"
+	"github.com/Jumpscale/agentcontroller2/commandprocessing"
+	"github.com/Jumpscale/agentcontroller2/configs"
+	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller2/events"
+	"github.com/Jumpscale/agentcontroller2/interceptors"
+	"github.com/Jumpscale/agentcontroller2/internals"
+	"github.com/Jumpscale/agentcontroller2/jswatcher"
 	"github.com/Jumpscale/agentcontroller2/logged"
+	"github.com/Jumpscale/agentcontroller2/redisdata"
+	"github.com/Jumpscale/agentcontroller2/rest"
+	"github.com/Jumpscale/agentcontroller2/scheduling"
+	hubbleAuth "github.com/Jumpscale/hubble/auth"
+	"github.com/garyburd/redigo/redis"
+	"log"
+	"net"
+	"net/http"
+	"sync"
+	"time"
 )
 
 const (
@@ -34,16 +36,16 @@ type Application struct {
 	agentCommands            core.AgentCommands
 	settings                 *configs.Settings
 	scheduler                *scheduling.Scheduler
+	jswatcher                jswatcher.JSWatcher
 	rest                     *rest.Manager
 	events                   *events.Handler
 	executedCommandProcessor commandprocessing.CommandProcessor
 	liveAgents               core.AgentInformationStorage
 	jumpscriptStore          core.JumpScriptStore
 
-	producers                map[string]chan *core.PollData
-	producersLock            sync.Mutex
+	producers     map[string]chan *core.PollData
+	producersLock sync.Mutex
 }
-
 
 func NewApplication(settingsPath string) *Application {
 
@@ -54,11 +56,11 @@ func NewApplication(settingsPath string) *Application {
 	panicIfRedisIsNotOK(redisPool)
 
 	app := Application{
-		redisPool: redisPool,
-		agentCommands: redisdata.AgentCommands(redisPool),
-		liveAgents: agentdata.NewAgentData(),
-		producers: make(map[string]chan *core.PollData),
-		settings: settings,
+		redisPool:       redisPool,
+		agentCommands:   redisdata.AgentCommands(redisPool),
+		liveAgents:      agentdata.NewAgentData(),
+		producers:       make(map[string]chan *core.PollData),
+		settings:        settings,
 		jumpscriptStore: redisdata.NewJumpScriptStore(redisPool),
 	}
 
@@ -68,14 +70,14 @@ func NewApplication(settingsPath string) *Application {
 		commandLog := redisdata.NewCommandLog(redisPool)
 		loggedSource := &logged.CommandSource{
 			CommandSource: interceptedSource,
-			Log: commandLog,
+			Log:           commandLog,
 		}
 		app.commandSource = loggedSource
 	}
 
 	app.commandResponder = &logged.CommandResponder{
 		CommandResponder: redisdata.NewRedisCommandResponder(redisPool),
-		Log: redisdata.NewCommandResponseLog(redisPool),
+		Log:              redisdata.NewCommandResponseLog(redisPool),
 	}
 
 	app.internalCommands = internals.NewManager(app.liveAgents, app.commandResponder)
@@ -85,6 +87,13 @@ func NewApplication(settingsPath string) *Application {
 	app.internalCommands.RegisterProcessor("scheduler_list", app.scheduler.List)
 	app.internalCommands.RegisterProcessor("scheduler_remove", app.scheduler.Remove)
 	app.internalCommands.RegisterProcessor("scheduler_remove_prefix", app.scheduler.RemovePrefix)
+
+	jswatcher, err := jswatcher.NewJSWatcher(&app.settings.Jumpscripts, app.scheduler)
+	if err != nil {
+		log.Fatal("Failed to load automatic jumpscript scheduler", err)
+	}
+
+	app.jswatcher = jswatcher
 
 	eventHandler, err := events.NewEventsHandler(&app.settings.Events, app.getProducerChan)
 	if err != nil {
@@ -124,6 +133,7 @@ func (app *Application) Run() {
 	}()
 
 	app.scheduler.Start()
+	app.jswatcher.Start()
 
 	app.executedCommandProcessor.Start()
 
@@ -188,13 +198,12 @@ func panicIfRedisIsNotOK(redisConnPool *redis.Pool) {
 	}
 }
 
-
 func newRedisPool(addr string, password string) *redis.Pool {
 	return &redis.Pool{
 		MaxIdle:   80,
 		MaxActive: 12000,
 		Dial: func() (redis.Conn, error) {
-			c, err := redis.DialTimeout("tcp", addr, 0, agentInteractiveAfterOver / 2, 0)
+			c, err := redis.DialTimeout("tcp", addr, 0, agentInteractiveAfterOver/2, 0)
 
 			if err != nil {
 				panic(err.Error())
@@ -243,7 +252,6 @@ func (app *Application) processSingleCommand() {
 	app.commandResponder.SignalAsPickedUp(command)
 }
 
-
 func (app *Application) distributeCommandToAgents(agents []core.AgentID, command *core.Command) {
 
 	for _, agentID := range agents {
@@ -259,7 +267,7 @@ func (app *Application) distributeCommandToAgents(agents []core.AgentID, command
 	}
 }
 
-func (app *Application) getProducerChan(agentID core.AgentID) chan <- *core.PollData {
+func (app *Application) getProducerChan(agentID core.AgentID) chan<- *core.PollData {
 
 	key := fmt.Sprintf("%v:%v", agentID.GID, agentID.NID)
 
@@ -290,7 +298,7 @@ func (app *Application) getProducerChan(agentID core.AgentID) chan <- *core.Poll
 					select {
 					case data = <-producer:
 					case <-time.After(agentInteractiveAfterOver):
-					//no active agent for 10 min
+						//no active agent for 10 min
 						log.Println("Agent", key, "is inactive for over ", agentInteractiveAfterOver, ", cleaning up.")
 						return false
 					}
@@ -311,12 +319,12 @@ func (app *Application) getProducerChan(agentID core.AgentID) chan <- *core.Poll
 
 					select {
 					case msgChan <- string(pendingCommand.JSON):
-					//caller consumed this job, it's safe to set it's state to RUNNING now.
+						//caller consumed this job, it's safe to set it's state to RUNNING now.
 						response := runningResponseFor(pendingCommand, agentID)
 						app.commandResponder.RespondToCommand(response)
 					default:
-					//caller didn't want to receive this command. have to repush it
-					//directly on the agent queue. to avoid doing the redispatching.
+						//caller didn't want to receive this command. have to repush it
+						//directly on the agent queue. to avoid doing the redispatching.
 						app.agentCommands.ReportUnexecutedCommand(pendingCommand, agentID)
 					}
 

@@ -42,8 +42,9 @@ type Settings struct {
 		Password string
 	}
 
-	Events    Extension
-	Processor Extension
+	Events      Extension
+	Processor   Extension
+	Jumpscripts Extension
 
 	Syncthing struct {
 		Port int
