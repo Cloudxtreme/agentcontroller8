@@ -2,8 +2,6 @@
 package interceptors
 
 import (
-	"encoding/json"
-	"errors"
 	"log"
 	"github.com/Jumpscale/agentcontroller2/core"
 )
@@ -12,7 +10,7 @@ const (
 	scriptHashTimeout = 86400 // seconds
 )
 
-type commandInterceptor func(map[string]interface{}, *manager) (map[string]interface{}, error)
+type commandInterceptor func(core.RawCommand) (core.RawCommand, error)
 
 type manager struct {
 	jumpscriptStore core.JumpScriptStore
@@ -23,52 +21,9 @@ func newManager(jumpscriptStore core.JumpScriptStore) *manager {
 	return &manager{
 		jumpscriptStore: jumpscriptStore,
 		interceptors: map[string]commandInterceptor{
-			"jumpscript_content": jumpscriptHasherInterceptor,
+			"jumpscript_content": jumpscriptInterceptor(jumpscriptStore),
 		},
 	}
-}
-
-// Hashes jumpscripts executed by the jumpscript_content and store it in redis. Alters the passed command as needed
-func jumpscriptHasherInterceptor(cmd map[string]interface{}, manager *manager) (map[string]interface{}, error) {
-	datastr, ok := cmd["data"].(string)
-	if !ok {
-		return nil, errors.New("Expecting command 'data' to be string")
-	}
-
-	data := make(map[string]interface{})
-	err := json.Unmarshal([]byte(datastr), &data)
-	if err != nil {
-		return nil, err
-	}
-
-	content, ok := data["content"]
-	if !ok {
-		return nil, errors.New("jumpscript_content doesn't have content payload")
-	}
-
-	jumpscriptContent, ok := content.(string)
-	if !ok {
-		return nil, errors.New("Expected 'content' to be string")
-	}
-
-	id, err := manager.jumpscriptStore.Add(core.JumpScriptContent(jumpscriptContent))
-
-	if err != nil {
-		return nil, err
-	}
-
-	//hash is stored. Now modify the command and forward it.
-	delete(data, "content")
-	data["hash"] = id
-
-	updatedDatastr, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
-	}
-
-	cmd["data"] = string(updatedDatastr)
-
-	return cmd, nil
 }
 
 func (manager *manager) Intercept(command *core.Command) *core.Command {
@@ -86,7 +41,7 @@ func (manager *manager) Intercept(command *core.Command) *core.Command {
 		return command
 	}
 
-	updatedRawCommand, err := interceptor(cmd, manager)
+	updatedRawCommand, err := interceptor(command.Raw)
 	if err != nil {
 		log.Println("Failed to intercept command", err)
 		return command
