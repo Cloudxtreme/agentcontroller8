@@ -5,15 +5,15 @@ import (
 
 type interceptedCommands struct {
 	core.CommandSource
-	interceptor *manager
+	i *manager
 }
 
-func (interceptor *interceptedCommands) Pop() (*core.Command, error) {
+func (interceptor *interceptedCommands) BlockingPop() (*core.Command, error) {
 	freshCommand, err := interceptor.CommandSource.BlockingPop()
 	if err != nil {
 		return nil, err
 	}
-	mutatedCommand := interceptor.interceptor.Intercept(freshCommand)
+	mutatedCommand := interceptor.i.Intercept(freshCommand)
 	return mutatedCommand, nil
 }
 
@@ -22,6 +22,6 @@ func (interceptor *interceptedCommands) Pop() (*core.Command, error) {
 func NewInterceptedCommandSource(source core.CommandSource, jumpscriptStore core.JumpScriptStore) core.CommandSource {
 	return &interceptedCommands{
 		CommandSource: source,
-		interceptor: newManager(jumpscriptStore),
+		i: newManager(jumpscriptStore),
 	}
 }

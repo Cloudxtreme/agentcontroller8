@@ -1,0 +1,55 @@
+package interceptors_test
+import (
+	"testing"
+	"github.com/Jumpscale/agentcontroller2/inmemorydata"
+	"github.com/Jumpscale/agentcontroller2/core/mocks"
+	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller2/utils"
+	"github.com/Jumpscale/agentcontroller2/interceptors"
+	"github.com/stretchr/testify/assert"
+	"fmt"
+)
+
+// Tests only the jumpscriptInterceptor
+func TestInterceptingPoppedCommands(t *testing.T) {
+
+	jumpscriptStore := inmemorydata.NewJumpScriptStore()
+
+	dummyContent := core.JumpScriptContent("My awesome script content")
+	var command *core.Command
+	{
+		commandData := make(map[string]interface{})
+		commandData["content"] = dummyContent
+
+		rawCommand := make(core.RawCommand)
+		rawCommand["data"] = string(utils.MustJsonMarshal(commandData))
+		rawCommand["cmd"] = "jumpscript_content"
+
+		var err error
+		command, err = core.CommandFromRawCommand(rawCommand)
+		assert.NoError(t, err)
+	}
+
+
+	commandSource := new(mocks.CommandSource)
+	commandSource.On("BlockingPop").Return(command, nil)
+
+	interceptedCommandSource := interceptors.NewInterceptedCommandSource(commandSource, jumpscriptStore)
+
+	poppedCommand, err := interceptedCommandSource.BlockingPop()
+	assert.NoError(t, err)
+	fmt.Println(poppedCommand)
+
+	poppedCommandData := make(map[string]interface{})
+	utils.MustJsonUnmarshal([]byte(poppedCommand.Raw["data"].(string)), &poppedCommandData)
+
+	hash := poppedCommandData["hash"]
+	assert.NotNil(t, hash)
+
+	id := core.JumpScriptID(hash.(string))
+
+	retrievedContent, err := jumpscriptStore.Get(id)
+	assert.NoError(t, err)
+
+	assert.Equal(t, retrievedContent, dummyContent)
+}
