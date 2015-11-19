@@ -4,37 +4,35 @@ import (
 	"github.com/Jumpscale/agentcontroller2/configs"
 	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/Jumpscale/agentcontroller2/events"
-	"github.com/garyburd/redigo/redis"
 	"github.com/gin-gonic/gin"
-	"github.com/Jumpscale/agentcontroller2/messages"
 )
-
-type CommandResponder func(result *messages.CommandResultMessage) error
 
 type Manager struct {
 	engine              *gin.Engine
-	eventHandler        *events.EventsHandler
+	eventHandler        *events.Handler
 	producerChanFactory core.ProducerChanFactory
-	redisPool           *redis.Pool
-	commandResponder    CommandResponder
+	commandResponder    core.CommandResponder
 	settings            *configs.Settings
+	agentLog            core.AgentLog
+	jumpscriptStore 	core.JumpScriptStore
 }
 
-func NewManager(
-	eventHandler *events.EventsHandler,
+func NewManager(eventHandler *events.Handler,
 	producerChanFactory core.ProducerChanFactory,
-	redisPool *redis.Pool,
-	commandResponder CommandResponder,
+	commandResponder core.CommandResponder,
 	settings *configs.Settings,
-) *Manager {
+	agentLog core.AgentLog,
+	jumpscriptStore core.JumpScriptStore,
+	) *Manager {
 
 	r := Manager{
 		engine:              gin.Default(),
 		eventHandler:        eventHandler,
 		producerChanFactory: producerChanFactory,
-		redisPool:           redisPool,
 		commandResponder:    commandResponder,
 		settings:            settings,
+		agentLog: 			 agentLog,
+		jumpscriptStore: 	 jumpscriptStore,
 	}
 
 	r.engine.GET("/:gid/:nid/cmd", r.cmd)

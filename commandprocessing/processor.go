@@ -1,36 +1,31 @@
-package processors
+// Post-execution processing of commands and command results
+package commandprocessing
 
 import (
 	"fmt"
 	"github.com/Jumpscale/agentcontroller2/configs"
 	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/messages"
 	"github.com/Jumpscale/pygo"
 	"github.com/garyburd/redigo/redis"
 	"log"
 	"os"
 )
 
-//Processor is an extension to agentcontroller that does further processing on results and commands
-//by calling external python code.
-//The current processor impl will load the python module (defined by the config.Extension) and then call
-//process_command for each received command and process_result for each received result.
-type Processor interface {
+type CommandProcessor interface {
 	Start()
 }
 
 type processorImpl struct {
-	enabled       bool
-	resultsQueue  messages.RedisCommandResultList
-	commandsQueue messages.RedisCommandList
-	pool          *redis.Pool
-
-	module pygo.Pygo
+	enabled        bool
+	commandResults core.CommandResponseLog
+	commands       core.CommandLog
+	pool           *redis.Pool
+	module         pygo.Pygo
 }
 
 //NewProcessor Creates a new processor
 func NewProcessor(config *configs.Extension, pool *redis.Pool,
-	commandsQueue messages.RedisCommandList, resultsQueue messages.RedisCommandResultList) (Processor, error) {
+	commands core.CommandLog, commandResults core.CommandResponseLog) (CommandProcessor, error) {
 
 	var module pygo.Pygo
 	var err error
@@ -52,8 +47,8 @@ func NewProcessor(config *configs.Extension, pool *redis.Pool,
 	processor := &processorImpl{
 		enabled:       config.Enabled,
 		pool:          pool,
-		resultsQueue:  resultsQueue,
-		commandsQueue: commandsQueue,
+		commandResults:  commandResults,
+		commands: commands,
 		module:        module,
 	}
 
@@ -62,7 +57,7 @@ func NewProcessor(config *configs.Extension, pool *redis.Pool,
 
 func (processor *processorImpl) processSingleResult() error {
 
-	commandResultMessage, err := processor.resultsQueue.BlockingPop(processor.pool, 0)
+	commandResultMessage, err := processor.commandResults.BlockingPop()
 
 	if err != nil {
 		if core.IsTimeout(err) {
@@ -85,7 +80,7 @@ func (processor *processorImpl) processSingleResult() error {
 
 func (processor *processorImpl) processSingleCommand() error {
 
-	commandMessage, err := processor.commandsQueue.BlockingPop(processor.pool, 0)
+	commandMessage, err := processor.commands.BlockingPop()
 
 	if err != nil {
 		if core.IsTimeout(err) {

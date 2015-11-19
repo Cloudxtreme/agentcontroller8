@@ -11,10 +11,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
+	"github.com/Jumpscale/agentcontroller2/utils"
 )
 
-type EventsHandler struct {
+type Handler struct {
 	module              pygo.Pygo
 	enabled             bool
 	producerChanFactory core.ProducerChanFactory
@@ -26,7 +26,7 @@ type EventRequest struct {
 	Data string `json:"data"`
 }
 
-func NewEventsHandler(settings *configs.Extension, producerChanFactory core.ProducerChanFactory) (*EventsHandler, error) {
+func NewEventsHandler(settings *configs.Extension, producerChanFactory core.ProducerChanFactory) (*Handler, error) {
 	opts := pygo.PyOpts{
 		PythonPath: settings.PythonPath,
 		Env: []string{
@@ -50,7 +50,7 @@ func NewEventsHandler(settings *configs.Extension, producerChanFactory core.Prod
 		log.Println("Init passed successfully")
 	}
 
-	handler := &EventsHandler{
+	handler := &Handler{
 		module:              module,
 		enabled:             settings.Enabled,
 		producerChanFactory: producerChanFactory,
@@ -59,20 +59,19 @@ func NewEventsHandler(settings *configs.Extension, producerChanFactory core.Prod
 	return handler, nil
 }
 
-func (handler *EventsHandler) Event(c *gin.Context) {
+func (handler *Handler) Event(c *gin.Context) {
 	if !handler.enabled {
 		c.JSON(http.StatusOK, "ok")
 		return
 	}
 
-	gid := c.Param("gid")
-	nid := c.Param("nid")
+	agentID := utils.GetAgentID(c)
 
-	log.Printf("[+] gin: event (gid: %s, nid: %s)\n", gid, nid)
+	log.Printf("[+] gin: event (%v)\n", agentID)
 
 	//force initializing of producer since the event is the first thing agent sends
 
-	handler.producerChanFactory(gid, nid)
+	handler.producerChanFactory(agentID)
 
 	content, err := ioutil.ReadAll(c.Request.Body)
 
@@ -90,9 +89,6 @@ func (handler *EventsHandler) Event(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, "Error")
 	}
 
-	igid, _ := strconv.Atoi(gid)
-	inid, _ := strconv.Atoi(nid)
-
 	go func(payload EventRequest, gid int, nid int) {
 		_, err = handler.module.Apply(payload.Name, map[string]interface{}{
 			"gid": gid,
@@ -104,7 +100,7 @@ func (handler *EventsHandler) Event(c *gin.Context) {
 			log.Println(err, handler.module.Error())
 		}
 
-	}(payload, igid, inid)
+	}(payload, int(agentID.GID), int(agentID.NID))
 
 	c.JSON(http.StatusOK, "ok")
 }

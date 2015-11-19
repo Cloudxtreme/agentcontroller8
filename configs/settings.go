@@ -51,19 +51,21 @@ type Settings struct {
 }
 
 //LoadSettingsFromTomlFile does exactly what the name says, it loads a toml in a Settings struct
-func LoadSettingsFromTomlFile(filename string) (settings Settings, err error) {
+func LoadSettingsFromTomlFile(filename string) (*Settings, error) {
 	f, err := os.Open(filename)
 	if err != nil {
-		return
+		return nil, err
 	}
 	defer f.Close()
 	buf, err := ioutil.ReadAll(f)
 	if err != nil {
-		return
+		return nil, err
 	}
-	err = toml.Unmarshal(buf, &settings)
-	return
 
+	var settings Settings
+	err = toml.Unmarshal(buf, &settings)
+
+	return &settings, nil
 }
 
 //TLSEnabled returns true if TLS settings are present

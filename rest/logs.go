@@ -1,24 +1,20 @@
 package rest
 import (
-"github.com/gin-gonic/gin"
-"log"
+	"github.com/gin-gonic/gin"
+	"log"
 	"io/ioutil"
-"net/http"
-	"fmt"
+	"net/http"
+	"github.com/Jumpscale/agentcontroller2/utils"
 )
 
 
 func (r *Manager) logs(c *gin.Context) {
-	gid := c.Param("gid")
-	nid := c.Param("nid")
+	agentID := utils.GetAgentID(c)
 
-	db := r.redisPool.Get()
-	defer db.Close()
-
-	log.Printf("[+] gin: log (gid: %s, nid: %s)\n", gid, nid)
+	log.Printf("[+] gin: log (%v)\n", agentID)
 
 	// read body
-	content, err := ioutil.ReadAll(c.Request.Body)
+	entry, err := ioutil.ReadAll(c.Request.Body)
 
 	if err != nil {
 		log.Println("[-] cannot read body:", err)
@@ -26,12 +22,12 @@ func (r *Manager) logs(c *gin.Context) {
 		return
 	}
 
-	// push body to redis
-	id := fmt.Sprintf("%s:%s:log", gid, nid)
-	log.Printf("[+] message destination [%s]\n", id)
-
-	// push message to client queue
-	_, err = db.Do("RPUSH", id, content)
+	err = r.agentLog.Push(agentID, entry)
+	if err != nil {
+		log.Println("Failed to store agent log entry")
+		c.JSON(http.StatusInternalServerError, "error")
+		return
+	}
 
 	c.JSON(http.StatusOK, "ok")
 }

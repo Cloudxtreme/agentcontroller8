@@ -10,6 +10,7 @@ import (
 	influxdb "github.com/influxdb/influxdb/client"
 	"strings"
 	"time"
+	"github.com/Jumpscale/agentcontroller2/utils"
 )
 
 //StatsRequest stats request
@@ -21,10 +22,9 @@ type StatsRequest struct {
 var influxDbTags = []string{"gid", "nid", "command", "domain", "name", "measurement"}
 
 func (r *Manager) stats(c *gin.Context) {
-	gid := c.Param("gid")
-	nid := c.Param("nid")
+	agentID := utils.GetAgentID(c)
 
-	log.Printf("[+] gin: stats (gid: %s, nid: %s)\n", gid, nid)
+	log.Printf("[+] gin: stats (%v)\n", agentID)
 
 	// read body
 	content, err := ioutil.ReadAll(c.Request.Body)

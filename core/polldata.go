@@ -6,8 +6,8 @@ package core
 //    for new commands
 // 2- Prevent multiple clients polling on a single gid:nid at the same time.
 type PollData struct {
-	Roles   []string
+	Roles   []AgentRole
 	MsgChan chan string
 }
 
-type ProducerChanFactory func(string, string) chan<- *PollData
+type ProducerChanFactory func(AgentID) chan<- *PollData

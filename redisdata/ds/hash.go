@@ -4,13 +4,18 @@ import (
 )
 
 type Hash struct {
-	Name string
+	Value
 }
 
-// HSET the JSON-encoded value on this Hash.
+func GetHash(name string) Hash {
+	return Hash{Value{Name: name}}
+}
+
+// HSET to the hash
 func (hash Hash) Set(connPool *redis.Pool, key string, data []byte) error {
 	conn := connPool.Get()
 	defer conn.Close()
 
 	return conn.Send("HSET", hash.Name, key, data)
 }
+

@@ -1,29 +1,27 @@
+// Middleware for received commands that kick in before received commands are dispatched or executed
 package interceptors
 
 import (
-	"crypto/md5"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
-	"github.com/garyburd/redigo/redis"
-	"github.com/Jumpscale/agentcontroller2/messages"
+	"github.com/Jumpscale/agentcontroller2/core"
 )
 
 const (
 	scriptHashTimeout = 86400 // seconds
 )
 
-type commandInterceptor func(map[string]interface{}, *Manager) (map[string]interface{}, error)
+type commandInterceptor func(map[string]interface{}, *manager) (map[string]interface{}, error)
 
-type Manager struct {
-	redisPool *redis.Pool
-	interceptors map[string]commandInterceptor
+type manager struct {
+	jumpscriptStore core.JumpScriptStore
+	interceptors    map[string]commandInterceptor
 }
 
-func NewManager(redisPool *redis.Pool) *Manager {
-	return &Manager {
-		redisPool: redisPool,
+func newManager(jumpscriptStore core.JumpScriptStore) *manager {
+	return &manager{
+		jumpscriptStore: jumpscriptStore,
 		interceptors: map[string]commandInterceptor{
 			"jumpscript_content": jumpscriptHasherInterceptor,
 		},
@@ -31,7 +29,7 @@ func NewManager(redisPool *redis.Pool) *Manager {
 }
 
 // Hashes jumpscripts executed by the jumpscript_content and store it in redis. Alters the passed command as needed
-func jumpscriptHasherInterceptor(cmd map[string]interface{}, manager *Manager) (map[string]interface{}, error) {
+func jumpscriptHasherInterceptor(cmd map[string]interface{}, manager *manager) (map[string]interface{}, error) {
 	datastr, ok := cmd["data"].(string)
 	if !ok {
 		return nil, errors.New("Expecting command 'data' to be string")
@@ -48,23 +46,20 @@ func jumpscriptHasherInterceptor(cmd map[string]interface{}, manager *Manager) (
 		return nil, errors.New("jumpscript_content doesn't have content payload")
 	}
 
-	contentstr, ok := content.(string)
+	jumpscriptContent, ok := content.(string)
 	if !ok {
 		return nil, errors.New("Expected 'content' to be string")
 	}
 
-	hash := fmt.Sprintf("%x", md5.Sum([]byte(contentstr)))
+	id, err := manager.jumpscriptStore.Add(core.JumpScriptContent(jumpscriptContent))
 
-	db := manager.redisPool.Get()
-	defer db.Close()
-
-	if _, err := db.Do("SET", hash, contentstr, "EX", scriptHashTimeout); err != nil {
+	if err != nil {
 		return nil, err
 	}
 
 	//hash is stored. Now modify the command and forward it.
 	delete(data, "content")
-	data["hash"] = hash
+	data["hash"] = id
 
 	updatedDatastr, err := json.Marshal(data)
 	if err != nil {
@@ -76,7 +71,7 @@ func jumpscriptHasherInterceptor(cmd map[string]interface{}, manager *Manager) (
 	return cmd, nil
 }
 
-func (manager *Manager) Intercept(command *messages.CommandMessage) *messages.CommandMessage {
+func (manager *manager) Intercept(command *core.Command) *core.Command {
 
 	cmd := command.Raw
 
@@ -97,7 +92,7 @@ func (manager *Manager) Intercept(command *messages.CommandMessage) *messages.Co
 		return command
 	}
 
-	updatedCommand, err := messages.CommandMessageFromRawCommand(updatedRawCommand)
+	updatedCommand, err := core.CommandFromRawCommand(updatedRawCommand)
 	if err != nil {
 		log.Println(err)
 		return command
