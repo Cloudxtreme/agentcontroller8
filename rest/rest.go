@@ -26,7 +26,7 @@ func NewManager(eventHandler *events.Handler,
 	) *Manager {
 
 	r := Manager{
-		engine:              gin.Default(),
+		engine:              gin.New(),
 		eventHandler:        eventHandler,
 		producerChanFactory: producerChanFactory,
 		commandResponder:    commandResponder,
@@ -34,6 +34,9 @@ func NewManager(eventHandler *events.Handler,
 		agentLog: 			 agentLog,
 		jumpscriptStore: 	 jumpscriptStore,
 	}
+
+	r.engine.Use(gin.Recovery())
+	r.engine.Use(LoggerWithWriter(gin.DefaultWriter))
 
 	r.engine.GET("/:gid/:nid/cmd", r.cmd)
 	r.engine.POST("/:gid/:nid/log", r.logs)
