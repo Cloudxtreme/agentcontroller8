@@ -260,7 +260,8 @@ func (app *Application) distributeCommandToAgents(agents []core.AgentID, command
 }
 
 func (app *Application) getProducerChan(agentID core.AgentID) chan <- *core.PollData {
-	key := fmt.Sprintf("%s:%s", agentID.GID, agentID.NID)
+
+	key := fmt.Sprintf("%v:%v", agentID.GID, agentID.NID)
 
 	app.producersLock.Lock()
 	producer, ok := app.producers[key]

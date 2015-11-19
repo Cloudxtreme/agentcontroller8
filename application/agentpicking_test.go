@@ -10,16 +10,16 @@ func TestAgentPickingForCommandRouting(t *testing.T) {
 
 	agentInformation := agentdata.NewAgentData()
 
-	agent1 := core.AgentID{1, 0}
+	agent1 := core.AgentID{GID: 1, NID: 0}
 	agentInformation.SetRoles(agent1, []core.AgentRole{"super", "node"})
 
-	agent2 := core.AgentID{1, 1}
+	agent2 := core.AgentID{GID: 1, NID: 1}
 	agentInformation.SetRoles(agent2, []core.AgentRole{"cpu", "node"})
 
-	agent3 := core.AgentID{3, 1}
+	agent3 := core.AgentID{GID: 3, NID: 1}
 	agentInformation.SetRoles(agent3, []core.AgentRole{"worker", "cpu"})
 
-	agent4 := core.AgentID{3, 2}
+	agent4 := core.AgentID{GID: 3, NID: 2}
 	agentInformation.SetRoles(agent4, []core.AgentRole{"super", "net"})
 
 	// Matching with roles (fanning out)

@@ -24,7 +24,7 @@ func listForSignal(command *core.Command) ds.List {
 }
 
 func hashForCommandResult(commandResult *core.CommandResponse) ds.CommandResultHash {
-	return ds.CommandResultHash{ds.GetHash(fmt.Sprintf("jobresult:%s", commandResult.Content.ID))}
+	return ds.CommandResultHash{Hash: ds.GetHash(fmt.Sprintf("jobresult:%s", commandResult.Content.ID))}
 }
 
 func singletonListForCommandResult(result *core.CommandResponse) ds.CommandResultList {
