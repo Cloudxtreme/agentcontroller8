@@ -2,10 +2,10 @@ package redisdata
 import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/Jumpscale/agentcontroller2/core"
-	"crypto/md5"
 	"fmt"
 	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
 	"time"
+	"github.com/Jumpscale/agentcontroller2/utils"
 )
 
 type jumpscriptStore struct {
@@ -22,7 +22,7 @@ const scriptTTL = 86400 * time.Second
 
 func (store *jumpscriptStore) Add(content core.JumpScriptContent) (core.JumpScriptID, error) {
 
-	id := fmt.Sprintf("%x", md5.Sum([]byte(content)))
+	id := utils.MD5Hex([]byte(content))
 	jumpscriptID := core.JumpScriptID(id)
 
 	redisValue := ds.Value{Name: fmt.Sprintf("jumpscript:%s", id)}
