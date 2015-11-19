@@ -236,10 +236,9 @@ func (app *Application) processSingleCommand() {
 			if err != nil {
 				panic("Failed to send error response")
 			}
-			app.commandResponder.SignalAsQueued(command)
-			return
+		} else {
+			app.distributeCommandToAgents(targetAgents, command)
 		}
-		app.distributeCommandToAgents(targetAgents, command)
 		app.commandResponder.SignalAsQueued(command)
 	}
 }
