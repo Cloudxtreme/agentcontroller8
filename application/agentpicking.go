@@ -18,20 +18,19 @@ func agentsForCommand(liveAgents core.AgentInformationStorage, command *core.Com
 
 		if command.Content.Fanout {
 			return matchingAgents
-		} else {
-			randomAgent := matchingAgents[rand.Intn(len(matchingAgents))]
-			return []core.AgentID{randomAgent}
 		}
 
-	} else {
-		// Matching with a specific GID,NID
-		agentID := core.AgentID{GID: uint(command.Content.Gid), NID: uint(command.Content.Nid)}
-		if !liveAgents.IsConnected(agentID) {
-			// Choose none
-			return []core.AgentID{}
-		} else {
-			// Choose the chosen one
-			return []core.AgentID{agentID}
-		}
+		randomAgent := matchingAgents[rand.Intn(len(matchingAgents))]
+		return []core.AgentID{randomAgent}
 	}
+
+	// Matching with a specific GID,NID
+	agentID := core.AgentID{GID: uint(command.Content.Gid), NID: uint(command.Content.Nid)}
+	if !liveAgents.IsConnected(agentID) {
+		// Choose none
+		return []core.AgentID{}
+	}
+
+	// Choose the chosen one
+	return []core.AgentID{agentID}
 }

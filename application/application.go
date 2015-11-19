@@ -228,19 +228,19 @@ func (app *Application) processSingleCommand() {
 	if command.IsInternal() {
 		go app.internalCommands.ExecuteInternalCommand(command)
 		return
-	} else {
-		targetAgents := agentsForCommand(app.liveAgents, command)
-		if len(targetAgents) == 0 {
-			errResponse := errorResponseFor(command, "No matching connected agents found")
-			err := app.commandResponder.RespondToCommand(errResponse)
-			if err != nil {
-				panic("Failed to send error response")
-			}
-		} else {
-			app.distributeCommandToAgents(targetAgents, command)
-		}
-		app.commandResponder.SignalAsPickedUp(command)
 	}
+
+	targetAgents := agentsForCommand(app.liveAgents, command)
+	if len(targetAgents) == 0 {
+		errResponse := errorResponseFor(command, "No matching connected agents found")
+		err := app.commandResponder.RespondToCommand(errResponse)
+		if err != nil {
+			panic("Failed to send error response")
+		}
+	} else {
+		app.distributeCommandToAgents(targetAgents, command)
+	}
+	app.commandResponder.SignalAsPickedUp(command)
 }
 
 
