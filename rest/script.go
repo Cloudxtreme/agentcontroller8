@@ -1,14 +1,14 @@
 package rest
+
 import (
-	"github.com/gin-gonic/gin"
-	"net/http"
-	"log"
 	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/gin-gonic/gin"
+	"log"
+	"net/http"
 )
 
 //Gets hashed scripts from redis.
 func (r *Manager) script(c *gin.Context) {
-
 	query := c.Request.URL.Query()
 	hashes, ok := query["hash"]
 	if !ok {

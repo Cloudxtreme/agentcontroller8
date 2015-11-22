@@ -13,6 +13,8 @@ def get_or_create_command(command_guid):
     try:
         return osis.command.get(command_guid)
     except Exception, e:
+        if not hasattr(e, 'eco'):
+            raise
         if e.eco['exceptionclassname'] == 'KeyError':
             return osis.command.new()
         raise

@@ -1,13 +1,14 @@
 package core
+
 import (
 	"encoding/json"
 )
 
 const (
-	CommandStateQueued  = "QUEUED"
-	CommandStateRunning = "RUNNING"
-	CommandStateError   = "ERROR"
-	CommandStateSuccess = "SUCCESS"
+	CommandStateQueued              = "QUEUED"
+	CommandStateRunning             = "RUNNING"
+	CommandStateError               = "ERROR"
+	CommandStateSuccess             = "SUCCESS"
 	CommandStateErrorUnknownCommand = "UNKNOWN_CMD"
 )
 
@@ -21,7 +22,10 @@ type CommandContent struct {
 	Data   string   `json:"data"`
 	Tags   string   `json:"tags"`
 	Args   struct {
-		Name string `json:"name"`
+		Domain  string `json:"domain"`
+		Name    string `json:"name"`
+		Queue   string `json:"queue"`
+		MaxTime int    `json:"max_time"`
 	} `json:"args"`
 }
 
@@ -69,8 +73,8 @@ func CommandFromJSON(payload []byte) (*Command, error) {
 
 	return &Command{
 		Content: command,
-		JSON: payload,
-		Raw: rawCommand,
+		JSON:    payload,
+		Raw:     rawCommand,
 	}, nil
 }
 
@@ -91,7 +95,7 @@ func CommandResponseFromJSON(payload []byte) (*CommandResponse, error) {
 
 	return &CommandResponse{
 		Content: commandResult,
-		JSON: payload,
+		JSON:    payload,
 	}, nil
 }
 
@@ -102,7 +106,7 @@ func CommandResponseFromContent(content *CommandReponseContent) *CommandResponse
 	}
 	return &CommandResponse{
 		Content: *content,
-		JSON: jsonData,
+		JSON:    jsonData,
 	}
 }
 
