@@ -36,10 +36,16 @@ paths:
 
   '/{gid}/{nid}/logs':
     post:
-      summary: Post Agent log to Controller
+      summary: Push a log entry for an Agent
       parameters:
         - $ref: "#/parameters/gid"
         - $ref: "#/parameters/nid"
+        - name: logs
+          in: body
+          schema:
+            type: string
+          required: true
+          description: A log entry for the Agent
       responses:
         '200':
           description: Success
@@ -48,11 +54,14 @@ paths:
 
   '/{gid}/{nid}/result':
     post:
-      summary: Post execution result from Agent to Controller
+      summary: Responds to a command
       parameters:
         - $ref: "#/parameters/gid"
         - $ref: "#/parameters/nid"
-        - $ref: "#/parameters/jid"
+        - name: response
+          in: body
+          schema:
+            $ref: "#/definitions/CommandResponse"
       responses:
         '200':
           description: Success
@@ -86,10 +95,40 @@ parameters:
     required: true
     type: integer
     format: integer
-  jid:
-    name: jid
-    in: query
-    description: Job
-    required: true
-    type: integer
-    format: integer
+
+definitions:
+  CommandResponse:
+    description: The response for an issued command to an Agent
+    properties:
+      Gid:
+        type: integer
+        format: ">= 1"
+      Nid:
+        type: integer
+        format: ">= 0"
+      ID:
+        type: string
+      Cmd:
+        type: string
+      Args:
+        type: object
+        additionalProperties:
+          type: string
+      Data:
+        type: string
+      Streams:
+        type: array
+        items:
+          type: string
+      Critical:
+        type: string
+      Tags:
+        type: string
+      Level:
+        type: integer
+      StartTime:
+        type: integer
+      State:
+        type: string
+      Time:
+        type: integer
