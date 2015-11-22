@@ -1,102 +1,97 @@
 swagger: '2.0'
+
 info:
-  title: AgentController
-  description: JumpScale Agent Controller
-  version: 1.0.0
-host: github.com
+  title: AgentController2
+  description: JumpScale Agent Controller 2
+  version: 1.0.0  # This spec is actually not versioned
+
 schemes:
   - https
+
 basePath: /
+
 produces:
   - application/json
+
 paths:
+
   '/{gid}/{nid}/cmd':
     get:
       summary: Request a forwarded execution command to Agent
       parameters:
-        - name: gid
-          in: path
-          description: Grid
-          required: true
-          type: integer
-          format: integer
-        - name: nid
-          in: path
-          description: Node
-          required: true
-          type: integer
-          format: integer
+        - gid:
+          $ref: "#/parameters/gid"
+        - nid:
+          $ref: "#/parameters/nid"
       responses:
         '200':
           description: The execute command JSON request
         default:
           description: Unexpected error
+
   '/{gid}/{nid}/logs':
     post:
       summary: Post Agent log to Controller
       parameters:
-        - name: gid
-          in: path
-          description: Grid
-          required: true
-          type: integer
-          format: integer
-        - name: nid
-          in: path
-          description: Node
-          required: true
-          type: integer
-          format: integer
+        - gid:
+          $ref: "#/parameters/gid"
+        - nid:
+          $ref: "#/parameters/nid"
       responses:
         '200':
           description: Success
         default:
           description: Unexpected error
+
   '/{gid}/{nid}/result':
     post:
       summary: Post execution result from Agent to Controller
       parameters:
-        - name: gid
-          in: path
-          description: Grid
-          required: true
-          type: integer
-          format: integer
-        - name: nid
-          in: path
-          description: Node
-          required: true
-          type: integer
-          format: integer
-        - name: jid
-          in: query
-          description: Job
-          required: true
-          type: integer
-          format: integer
+        - gid:
+          $ref: "#/parameters/gid"
+        - nid:
+          $ref: "#/parameters/nid"
+        - nid:
+          $ref: "#/parameters/jid"
       responses:
         '200':
           description: Success
         default:
           description: Unexpected error
+
   '/{gid}/{nid}/stats':
     post:
       summary: Post stats which will be saved in influxdb
       parameters:
-        - name: gid
-          in: path
-          description: Grid
-          required: true
-          type: integer
-          format: integer
-        - name: nid
-          in: path
-          description: Node
-          required: true
-          type: integer
-          format: integer
+        - gid:
+          $ref: "#/parameters/gid"
+        - nid:
+          $ref: "#/parameters/nid"
       responses:
         '200':
           description: Success
         default:
           description: Unexpected error
+
+parameters:
+  gid:
+    name: gid
+    in: path
+    description: Grid
+    required: true
+    type: integer
+    format: integer
+  nid:
+    name: nid
+    in: path
+    description: Node
+    required: true
+    type: integer
+    format: integer
+  jid:
+    name: jid
+    in: query
+    description: Job
+    required: true
+    type: integer
+    format: integer
