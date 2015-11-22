@@ -17,12 +17,17 @@ paths:
 
   '/{gid}/{nid}/cmd':
     get:
-      summary: Request a forwarded execution command to Agent
+      summary: Poll for a command
       parameters:
-        - gid:
-          $ref: "#/parameters/gid"
-        - nid:
-          $ref: "#/parameters/nid"
+        - $ref: "#/parameters/gid"
+        - $ref: "#/parameters/nid"
+        - name: roles
+          in: query
+          description: Self-assigned roles of Agent
+          required: true
+          type: array
+          items:
+            type: string
       responses:
         '200':
           description: The execute command JSON request
@@ -33,10 +38,8 @@ paths:
     post:
       summary: Post Agent log to Controller
       parameters:
-        - gid:
-          $ref: "#/parameters/gid"
-        - nid:
-          $ref: "#/parameters/nid"
+        - $ref: "#/parameters/gid"
+        - $ref: "#/parameters/nid"
       responses:
         '200':
           description: Success
@@ -47,12 +50,9 @@ paths:
     post:
       summary: Post execution result from Agent to Controller
       parameters:
-        - gid:
-          $ref: "#/parameters/gid"
-        - nid:
-          $ref: "#/parameters/nid"
-        - nid:
-          $ref: "#/parameters/jid"
+        - $ref: "#/parameters/gid"
+        - $ref: "#/parameters/nid"
+        - $ref: "#/parameters/jid"
       responses:
         '200':
           description: Success
@@ -63,10 +63,8 @@ paths:
     post:
       summary: Post stats which will be saved in influxdb
       parameters:
-        - gid:
-          $ref: "#/parameters/gid"
-        - nid:
-          $ref: "#/parameters/nid"
+        - $ref: "#/parameters/gid"
+        - $ref: "#/parameters/nid"
       responses:
         '200':
           description: Success
@@ -77,14 +75,14 @@ parameters:
   gid:
     name: gid
     in: path
-    description: Grid
+    description: Grid ID
     required: true
     type: integer
     format: integer
   nid:
     name: nid
     in: path
-    description: Node
+    description: Node ID
     required: true
     type: integer
     format: integer
