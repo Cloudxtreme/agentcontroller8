@@ -26,7 +26,19 @@ paths:
             items:
               $ref: "#/definitions/AgentID"
 
+  '/jobs':
+    get:
+      summary: Lists the scheduled jobs
+      responses:
+        '200':
+          description: The scheduled jobs
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/ScheduledJob"
+
 definitions:
+
   AgentID:
     properties:
       GID:
@@ -35,3 +47,35 @@ definitions:
       NID:
         type: integer
         format: unsigned
+
+  Command:
+    description: A command for an Agent (may have extra optional fields)
+    properties:
+      ID:
+        type: string
+      Gid:
+        type: integer
+      Nid:
+        type: integer
+      Cmd:
+        type: string
+      Roles:
+        type: array
+        items:
+          type: string
+      Fanout:
+        type: boolean
+      Data:
+        type: string
+      Tags:
+        type: string
+
+  ScheduledJob:
+    properties:
+      Cmd:
+        $ref: "#/definitions/Command"
+      ID:
+        type: string
+      Cron:
+        type: string
+        format: The schedule timing in Cron syntax
