@@ -86,7 +86,8 @@ func (sched *Scheduler) AddJob(job *Job) error {
 //Add create a schdule with the cmd ID (overrides old ones).
 //This add method is compatible withe the 'internals' manager interface so it can be
 //called remotely via the client.
-func (sched *Scheduler) Add(cmd *core.Command) (interface{}, error) {
+func (sched *Scheduler) AddCommand(cmd *core.Command) (interface{}, error) {
+
 	job := &Job{}
 
 	err := json.Unmarshal([]byte(cmd.Content.Data), job)
@@ -115,11 +116,11 @@ func (sched *Scheduler) List() (interface{}, error) {
 }
 
 
-func (sched *Scheduler) RemoveID(ID string) (int, error) {
+func (sched *Scheduler) RemoveByID(id string) (int, error) {
 	db := sched.pool.Get()
 	defer db.Close()
 
-	value, err := redis.Int(db.Do("HDEL", hashScheduleKey, ID))
+	value, err := redis.Int(db.Do("HDEL", hashScheduleKey, id))
 
 	if value > 0 {
 		//actuall job was deleted. need to restart the scheduler
@@ -129,13 +130,8 @@ func (sched *Scheduler) RemoveID(ID string) (int, error) {
 	return value, err
 }
 
-//Remove removes the scheduled job that has this cmd.ID
-func (sched *Scheduler) Remove(cmd *core.Command) (interface{}, error) {
-	return sched.RemoveID(cmd.Content.ID)
-}
-
-//RemovePrefix removes all scheduled jobs that has the cmd.ID as a prefix
-func (sched *Scheduler) RemovePrefix(cmd *core.Command) (interface{}, error) {
+//RemovePrefix removes all scheduled jobs that has the given ID as a prefix
+func (sched *Scheduler) RemoveByIdPrefix(id string) (interface{}, error) {
 	db := sched.pool.Get()
 	defer db.Close()
 
@@ -154,7 +150,7 @@ func (sched *Scheduler) RemovePrefix(cmd *core.Command) (interface{}, error) {
 
 			for key := range set {
 				log.Println("Deleting cron job:", key)
-				if strings.Index(key, cmd.Content.ID) == 0 {
+				if strings.Index(key, id) == 0 {
 					restart = true
 					db.Do("HDEL", hashScheduleKey, key)
 				}

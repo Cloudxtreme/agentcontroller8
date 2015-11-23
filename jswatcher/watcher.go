@@ -80,7 +80,7 @@ func (watcher *jsWatcher) getJumpscriptID(file string) (string, string) {
 
 func (watcher *jsWatcher) unschedule(domain string, name string) error {
 	jobid := fmt.Sprintf(jumpScriptAutoScheduleKey, domain, name)
-	_, err := watcher.scheduler.RemoveID(jobid)
+	_, err := watcher.scheduler.RemoveByID(jobid)
 	return err
 }
 

@@ -90,10 +90,14 @@ func NewApplication(settingsPath string) *Application {
 		func (_ *internals.Manager, _ *core.Command) (interface{}, error) {return app.scheduler.List()})
 
 	app.internalCommands.RegisterProcessor("scheduler_remove",
-		func (_ *internals.Manager, cmd *core.Command) (interface{}, error) {return app.scheduler.Remove(cmd)})
+		func (_ *internals.Manager, cmd *core.Command) (interface{}, error) {
+			return app.scheduler.RemoveByID(cmd.Content.ID)
+		})
 
 	app.internalCommands.RegisterProcessor("scheduler_remove_prefix",
-		func (_ *internals.Manager, cmd *core.Command) (interface{}, error) {return app.scheduler.RemovePrefix(cmd)})
+		func (_ *internals.Manager, cmd *core.Command) (interface{}, error) {
+			return app.scheduler.RemoveByIdPrefix(cmd.Content.ID)
+		})
 
 	jswatcher, err := jswatcher.NewJSWatcher(&app.settings.Jumpscripts, app.scheduler)
 	if err != nil {
