@@ -84,6 +84,40 @@ paths:
         default:
           description: Unexpected error
 
+  '/{gid}/{nid}/event':
+    post:
+      summary: Reports an event
+      parameters:
+        - $ref: "#/parameters/gid"
+        - $ref: "#/parameters/nid"
+        - name: event
+          in: body
+          schema:
+            $ref: "#/definitions/EventRequest"
+      responses:
+        '200':
+          description: Success
+        default:
+          description: Unexpected error
+
+  '/{gid}/{nid}/script':
+    post:
+      summary: Retrieves a JumpScript mentioned in an earlier command
+      parameters:
+        - $ref: "#/parameters/gid"
+        - $ref: "#/parameters/nid"
+        - name: hash
+          in: query
+          description: The script ID
+          type: string
+      responses:
+        '200':
+          description: The script content
+          schema:
+            type: string
+        default:
+          description: Unexpected error
+
 parameters:
   gid:
     name: gid
@@ -136,6 +170,7 @@ definitions:
         type: string
       Time:
         type: integer
+
   StatsRequest:
     properties:
       Timestamp:
@@ -146,3 +181,10 @@ definitions:
           type: array
           items:
             type: number
+
+  EventRequest:
+    properties:
+      Name:
+        type: string
+      Data:
+        type: string
