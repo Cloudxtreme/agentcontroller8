@@ -74,6 +74,10 @@ paths:
       parameters:
         - $ref: "#/parameters/gid"
         - $ref: "#/parameters/nid"
+        - name: stat
+          in: body
+          schema:
+            $ref: "#/definitions/StatsRequest"
       responses:
         '200':
           description: Success
@@ -132,3 +136,13 @@ definitions:
         type: string
       Time:
         type: integer
+  StatsRequest:
+    properties:
+      Timestamp:
+        type: integer
+      Series:
+        type: array
+        items:
+          type: array
+          items:
+            type: number
