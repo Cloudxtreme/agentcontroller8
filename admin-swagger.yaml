@@ -1,0 +1,37 @@
+swagger: '2.0'
+
+info:
+  title: AgentController2
+  description: JumpScale Agent Controller 2
+  version: 1.0.0  # This spec is actually not versioned
+
+schemes:
+  - https
+
+basePath: /
+
+produces:
+  - application/json
+
+paths:
+
+  '/agents':
+    get:
+      summary: Lists the live agents
+      responses:
+        '200':
+          description: The currently connected agents
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/AgentID"
+
+definitions:
+  AgentID:
+    properties:
+      GID:
+        type: integer
+        format: (> 0)
+      NID:
+        type: integer
+        format: unsigned
