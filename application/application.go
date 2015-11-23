@@ -83,10 +83,17 @@ func NewApplication(settingsPath string) *Application {
 	app.internalCommands = internals.NewManager(app.liveAgents, app.commandResponder)
 	app.scheduler = scheduling.NewScheduler(app.redisPool, app.commandSource)
 
-	app.internalCommands.RegisterProcessor("scheduler_add", app.scheduler.Add)
-	app.internalCommands.RegisterProcessor("scheduler_list", app.scheduler.List)
-	app.internalCommands.RegisterProcessor("scheduler_remove", app.scheduler.Remove)
-	app.internalCommands.RegisterProcessor("scheduler_remove_prefix", app.scheduler.RemovePrefix)
+	app.internalCommands.RegisterProcessor("scheduler_add",
+		func(_ *internals.Manager, cmd *core.Command) (interface{}, error) {return app.scheduler.Add(cmd)})
+
+	app.internalCommands.RegisterProcessor("scheduler_list",
+		func (_ *internals.Manager, _ *core.Command) (interface{}, error) {return app.scheduler.List()})
+
+	app.internalCommands.RegisterProcessor("scheduler_remove",
+		func (_ *internals.Manager, cmd *core.Command) (interface{}, error) {return app.scheduler.Remove(cmd)})
+
+	app.internalCommands.RegisterProcessor("scheduler_remove_prefix",
+		func (_ *internals.Manager, cmd *core.Command) (interface{}, error) {return app.scheduler.RemovePrefix(cmd)})
 
 	jswatcher, err := jswatcher.NewJSWatcher(&app.settings.Jumpscripts, app.scheduler)
 	if err != nil {
