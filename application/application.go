@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"encoding/json"
 )
 
 const (
@@ -84,10 +85,27 @@ func NewApplication(settingsPath string) *Application {
 	app.scheduler = scheduling.NewScheduler(app.redisPool, app.commandSource)
 
 	app.internalCommands.RegisterProcessor("scheduler_add",
-		func(_ *internals.Manager, cmd *core.Command) (interface{}, error) {return app.scheduler.Add(cmd)})
+		func(_ *internals.Manager, cmd *core.Command) (interface{}, error) {
+			job, err := scheduling.JobFromJSON([]byte(cmd.Content.Data))
+			if err != nil {
+				return nil, err
+			}
+			return nil, app.scheduler.AddJob(job)
+		})
 
 	app.internalCommands.RegisterProcessor("scheduler_list",
-		func (_ *internals.Manager, _ *core.Command) (interface{}, error) {return app.scheduler.List()})
+		func (_ *internals.Manager, _ *core.Command) (interface{}, error) {
+			jobs := app.scheduler.ListJobs()
+			jobsMap := make(map[string]string)
+			for _, job := range jobs {
+				jsonJob, err := json.Marshal(job)
+				if err != nil {
+					panic(err)
+				}
+				jobsMap[job.ID] = string(jsonJob)
+			}
+			return app.scheduler.ListJobs(), nil
+		})
 
 	app.internalCommands.RegisterProcessor("scheduler_remove",
 		func (_ *internals.Manager, cmd *core.Command) (interface{}, error) {
@@ -96,7 +114,8 @@ func NewApplication(settingsPath string) *Application {
 
 	app.internalCommands.RegisterProcessor("scheduler_remove_prefix",
 		func (_ *internals.Manager, cmd *core.Command) (interface{}, error) {
-			return app.scheduler.RemoveByIdPrefix(cmd.Content.ID)
+			app.scheduler.RemoveByIdPrefix(cmd.Content.ID)
+			return nil, nil
 		})
 
 	jswatcher, err := jswatcher.NewJSWatcher(&app.settings.Jumpscripts, app.scheduler)
