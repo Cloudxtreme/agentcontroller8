@@ -19,3 +19,10 @@ func (hash Hash) Set(connPool *redis.Pool, key string, data []byte) error {
 	return conn.Send("HSET", hash.Name, key, data)
 }
 
+// HGETALL this hash as a string -> string mapping
+func (hash Hash) ToStringMap(connPool *redis.Pool) (map[string]string, error) {
+	conn := connPool.Get()
+	defer conn.Close()
+
+	return redis.StringMap(conn.Do("HGETALL", hash.Name))
+}
