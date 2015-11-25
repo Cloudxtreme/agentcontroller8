@@ -1,7 +1,7 @@
-# agentcontroller2
+# AgentController2
 [![Build Status](https://travis-ci.org/Jumpscale/agentcontroller2.svg?branch=master)](https://travis-ci.org/Jumpscale/agentcontroller2)
 
-JumpScale agentcontroller2 in Go
+Next-generation AgentController for JumpScale
 
 # Installation
 ```
