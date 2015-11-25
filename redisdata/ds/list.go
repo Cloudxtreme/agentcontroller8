@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/garyburd/redigo/redis"
 	"time"
-"github.com/Jumpscale/agentcontroller2/core"
 )
 
 type List struct {

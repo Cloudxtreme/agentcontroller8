@@ -3,6 +3,8 @@ import (
 "github.com/garyburd/redigo/redis"
 "github.com/Jumpscale/agentcontroller2/core"
 	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
+	"fmt"
+	"time"
 )
 
 type Client struct {
@@ -44,7 +46,45 @@ func (c Client) Send(command *core.Command) error {
 }
 
 // Sends a command and returns a channel for reading the response
-func (c Client) Execute(command *core.Command) (<- chan core.CommandResponse, error) {
-	// TODO
-	panic("TODO")
+func (c Client) Execute(command *core.Command, timeout time.Duration) (<- chan core.CommandResponse, error) {
+
+	err := c.Send(command)
+	if err != nil {
+		return nil, err
+	}
+
+	responseChan := make(chan core.CommandResponse)
+
+	go func() {
+
+		// Waiting for execution to finish
+		waitedOnList := ds.GetList(fmt.Sprintf("cmd.%s.queued", command.Content.ID))
+		data, err := waitedOnList.BlockingRightPopLeftPush(c.connPool, timeout, waitedOnList)
+		if err != nil {
+			panic(fmt.Sprintf("Redis error: %v", err))
+		}
+
+		if data == nil {
+			// Timed-out
+			close(responseChan)
+			return
+		}
+
+		responses, err := ds.GetHash(fmt.Sprintf("jobresult:%s", command.Content.ID)).ToStringMap(c.connPool)
+		if err != nil {
+			panic(fmt.Sprintf("Redis error: %v", err))
+		}
+
+		for _, responseJSON := range responses {
+			response, err := core.CommandResponseFromJSON([]byte(responseJSON))
+			if err != nil {
+				panic(fmt.Sprintf("Malformed response! %v", err))
+			}
+			responseChan <- *response
+		}
+
+		close(responseChan)
+	}()
+
+	return responseChan, nil
 }
