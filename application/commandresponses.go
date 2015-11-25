@@ -5,7 +5,7 @@ import (
 )
 
 func errorResponseFor(command *core.Command, message string) *core.CommandResponse {
-	content := core.CommandReponseContent{
+	content := core.CommandResponseContent{
 		ID:        command.Content.ID,
 		Gid:       command.Content.Gid,
 		Nid:       command.Content.Nid,
@@ -19,7 +19,7 @@ func errorResponseFor(command *core.Command, message string) *core.CommandRespon
 }
 
 func queuedResponseFor(command *core.Command, queuedOn core.AgentID) *core.CommandResponse {
-	content := core.CommandReponseContent{
+	content := core.CommandResponseContent{
 		ID:        command.Content.ID,
 		Gid:       int(queuedOn.GID),
 		Nid:       int(queuedOn.NID),
@@ -35,7 +35,7 @@ func queuedResponseFor(command *core.Command, queuedOn core.AgentID) *core.Comma
 
 func runningResponseFor(command *core.Command, runningOn core.AgentID) *core.CommandResponse {
 
-	content := core.CommandReponseContent{
+	content := core.CommandResponseContent{
 		ID:        command.Content.ID,
 		Gid:       int(runningOn.GID),
 		Nid:       int(runningOn.NID),

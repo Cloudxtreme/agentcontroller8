@@ -8,11 +8,10 @@ import (
 	"github.com/Jumpscale/agentcontroller2/scheduling"
 )
 
-type CommandName string
 type CommandHandler func(*core.Command) (interface{}, error)
 
 type Manager struct {
-	commandHandlers  map[CommandName]CommandHandler
+	commandHandlers  map[core.CommandName]CommandHandler
 	commandResponder core.CommandResponder
 }
 
@@ -21,7 +20,7 @@ func NewManager(agents core.AgentInformationStorage,
 	commandResponder core.CommandResponder) *Manager {
 
 	manager := &Manager{
-		commandHandlers: map[CommandName]CommandHandler{},
+		commandHandlers: map[core.CommandName]CommandHandler{},
 		commandResponder: commandResponder,
 	}
 
@@ -31,7 +30,7 @@ func NewManager(agents core.AgentInformationStorage,
 	return manager
 }
 
-func (manager *Manager) registerProcessor(command CommandName, processor CommandHandler) {
+func (manager *Manager) registerProcessor(command core.CommandName, processor CommandHandler) {
 	manager.commandHandlers[command] = processor
 }
 
@@ -39,7 +38,7 @@ func (manager *Manager) ExecuteInternalCommand(commandMessage *core.Command) {
 
 	command := commandMessage.Content
 
-	result := &core.CommandReponseContent{
+	result := &core.CommandResponseContent{
 		ID:        command.ID,
 		Gid:       command.Gid,
 		Nid:       command.Nid,
@@ -48,7 +47,7 @@ func (manager *Manager) ExecuteInternalCommand(commandMessage *core.Command) {
 		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 	}
 
-	processor, ok := manager.commandHandlers[CommandName(command.Args.Name)]
+	processor, ok := manager.commandHandlers[core.CommandName(command.Args.Name)]
 	if ok {
 		data, err := processor(commandMessage)
 		if err != nil {

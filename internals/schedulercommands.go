@@ -6,15 +6,12 @@ import (
 )
 
 const (
-	COMMAND_INTERNAL_SCHEDULER_ADD CommandName = "scheduler_add"
-	COMMAND_INTERNAL_SCHEDULER_LIST CommandName = "scheduler_list"
-	COMMAND_INTERNAL_SCHEDULER_REMOVE CommandName = "scheduler_remove"
-	COMMAND_INTERNAL_SCHEDULER_REMOVE_PREFIX CommandName = "scheduler_remove"
+
 )
 
 func (manager *Manager) setUpSchedulerCommands(scheduler *scheduling.Scheduler) {
 
-	manager.commandHandlers[COMMAND_INTERNAL_SCHEDULER_ADD] =
+	manager.commandHandlers[core.CommandInternalSchedulerAdd] =
 		func(cmd *core.Command) (interface{}, error) {
 			job, err := scheduling.JobFromJSON([]byte(cmd.Content.Data))
 			if err != nil {
@@ -23,7 +20,7 @@ func (manager *Manager) setUpSchedulerCommands(scheduler *scheduling.Scheduler) 
 			return nil, scheduler.AddJob(job)
 		}
 
-	manager.commandHandlers[COMMAND_INTERNAL_SCHEDULER_LIST] =
+	manager.commandHandlers[core.CommandInternalSchedulerList] =
 		func(_ *core.Command) (interface{}, error) {
 			jobs := scheduler.ListJobs()
 			jobsMap := make(map[string]string)
@@ -37,12 +34,12 @@ func (manager *Manager) setUpSchedulerCommands(scheduler *scheduling.Scheduler) 
 			return scheduler.ListJobs(), nil
 		}
 
-	manager.commandHandlers[COMMAND_INTERNAL_SCHEDULER_REMOVE] =
+	manager.commandHandlers[core.CommandInternalSchedulerRemove] =
 		func (cmd *core.Command) (interface{}, error) {
 			return scheduler.RemoveByID(cmd.Content.ID)
 		}
 
-	manager.commandHandlers[COMMAND_INTERNAL_SCHEDULER_REMOVE_PREFIX] =
+	manager.commandHandlers[core.CommandInternalSchedulerRemovePrefix] =
 		func (cmd *core.Command) (interface{}, error) {
 			scheduler.RemoveByIdPrefix(cmd.Content.ID)
 			return nil, nil

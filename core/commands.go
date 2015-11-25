@@ -12,6 +12,8 @@ const (
 	CommandStateErrorUnknownCommand = "UNKNOWN_CMD"
 )
 
+type CommandName string
+
 type CommandContent struct {
 	ID     string   `json:"id"`
 	Gid    int      `json:"gid"`
@@ -31,7 +33,7 @@ type CommandContent struct {
 
 type RawCommand map[string]interface{}
 
-type CommandReponseContent struct {
+type CommandResponseContent struct {
 	ID        string                 `json:"id"`
 	Gid       int                    `json:"gid"`
 	Nid       int                    `json:"nid"`
@@ -54,7 +56,7 @@ type Command struct {
 }
 
 type CommandResponse struct {
-	Content CommandReponseContent
+	Content CommandResponseContent
 	JSON    []byte
 }
 
@@ -87,7 +89,7 @@ func CommandFromRawCommand(rawCommand RawCommand) (*Command, error) {
 }
 
 func CommandResponseFromJSON(payload []byte) (*CommandResponse, error) {
-	var commandResult CommandReponseContent
+	var commandResult CommandResponseContent
 	err := json.Unmarshal(payload, &commandResult)
 	if err != nil {
 		return nil, err
@@ -99,7 +101,7 @@ func CommandResponseFromJSON(payload []byte) (*CommandResponse, error) {
 	}, nil
 }
 
-func CommandResponseFromContent(content *CommandReponseContent) *CommandResponse {
+func CommandResponseFromContent(content *CommandResponseContent) *CommandResponse {
 	jsonData, err := json.Marshal(content)
 	if err != nil {
 		panic(err)

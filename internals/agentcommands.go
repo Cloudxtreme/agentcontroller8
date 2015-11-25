@@ -5,16 +5,11 @@ import (
 )
 
 
-const (
-	COMMAND_INTERNAL_LIST_AGENTS CommandName = "list_agents"
-)
-
-
 func (manager *Manager) setUpAgentCommands(agentInfo core.AgentInformationStorage) {
 
 	// Caller is expecting a map with keys "GID:NID" of each live agent and values being
 	// the sequence of roles the agent declares.
-	manager.commandHandlers[COMMAND_INTERNAL_LIST_AGENTS] = func(_ *core.Command) (interface{}, error) {
+	manager.commandHandlers[core.CommandInternalListAgents] = func(_ *core.Command) (interface{}, error) {
 		output := make(map[string][]string)
 		for _, agentID := range agentInfo.ConnectedAgents() {
 			var roles []string

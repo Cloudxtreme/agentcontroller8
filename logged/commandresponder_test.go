@@ -9,7 +9,7 @@ import (
 )
 
 func dummyCommandResponse() *core.CommandResponse {
-	return core.CommandResponseFromContent(&core.CommandReponseContent{})
+	return core.CommandResponseFromContent(&core.CommandResponseContent{})
 }
 
 func TestItLogsAboutResponses(t *testing.T) {
