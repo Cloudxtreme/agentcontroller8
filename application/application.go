@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"sync"
 	"time"
-	"encoding/json"
 )
 
 const (
@@ -81,42 +80,8 @@ func NewApplication(settingsPath string) *Application {
 		Log:              redisdata.NewCommandResponseLog(redisPool),
 	}
 
-	app.internalCommands = internals.NewManager(app.liveAgents, app.commandResponder)
 	app.scheduler = scheduling.NewScheduler(app.redisPool, app.commandSource)
-
-	app.internalCommands.RegisterProcessor("scheduler_add",
-		func(_ *internals.Manager, cmd *core.Command) (interface{}, error) {
-			job, err := scheduling.JobFromJSON([]byte(cmd.Content.Data))
-			if err != nil {
-				return nil, err
-			}
-			return nil, app.scheduler.AddJob(job)
-		})
-
-	app.internalCommands.RegisterProcessor("scheduler_list",
-		func (_ *internals.Manager, _ *core.Command) (interface{}, error) {
-			jobs := app.scheduler.ListJobs()
-			jobsMap := make(map[string]string)
-			for _, job := range jobs {
-				jsonJob, err := json.Marshal(job)
-				if err != nil {
-					panic(err)
-				}
-				jobsMap[job.ID] = string(jsonJob)
-			}
-			return app.scheduler.ListJobs(), nil
-		})
-
-	app.internalCommands.RegisterProcessor("scheduler_remove",
-		func (_ *internals.Manager, cmd *core.Command) (interface{}, error) {
-			return app.scheduler.RemoveByID(cmd.Content.ID)
-		})
-
-	app.internalCommands.RegisterProcessor("scheduler_remove_prefix",
-		func (_ *internals.Manager, cmd *core.Command) (interface{}, error) {
-			app.scheduler.RemoveByIdPrefix(cmd.Content.ID)
-			return nil, nil
-		})
+	app.internalCommands = internals.NewManager(app.liveAgents, app.scheduler, app.commandResponder)
 
 	jswatcher, err := jswatcher.NewJSWatcher(&app.settings.Jumpscripts, app.scheduler)
 	if err != nil {
@@ -153,6 +118,8 @@ func NewApplication(settingsPath string) *Application {
 
 	return &app
 }
+
+
 
 func (app *Application) Run() {
 
