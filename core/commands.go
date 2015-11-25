@@ -5,10 +5,10 @@ import (
 )
 
 const (
-	CommandStateQueued              = "QUEUED"
-	CommandStateRunning             = "RUNNING"
-	CommandStateError               = "ERROR"
-	CommandStateSuccess             = "SUCCESS"
+	CommandStateQueued = "QUEUED"
+	CommandStateRunning = "RUNNING"
+	CommandStateError = "ERROR"
+	CommandStateSuccess = "SUCCESS"
 	CommandStateErrorUnknownCommand = "UNKNOWN_CMD"
 )
 
@@ -23,12 +23,14 @@ type CommandContent struct {
 	Fanout bool     `json:"fanout"`
 	Data   string   `json:"data"`
 	Tags   string   `json:"tags"`
-	Args   struct {
-		Domain  string `json:"domain"`
-		Name    string `json:"name"`
-		Queue   string `json:"queue"`
-		MaxTime int    `json:"max_time"`
-	} `json:"args"`
+	Args   CommandArgs `json:"args"`
+}
+
+type CommandArgs struct {
+	Domain  string `json:"domain"`
+	Name    string `json:"name"`
+	Queue   string `json:"queue"`
+	MaxTime int    `json:"max_time"`
 }
 
 type RawCommand map[string]interface{}
