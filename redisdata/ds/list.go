@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/garyburd/redigo/redis"
 	"time"
+"github.com/Jumpscale/agentcontroller2/core"
 )
 
 type List struct {
@@ -50,3 +51,12 @@ func (list List) Expire(connPool *redis.Pool, duration time.Duration) error {
 
 	return conn.Send("EXPIRE", list.Name, duration.Seconds())
 }
+
+// Execute BRPOPLPUSH using this list as a source and the given destination
+func (list List) BlockingRightPopLeftPush(connPool *redis.Pool, destination List) error {
+	conn := connPool.Get()
+	defer conn.Close()
+
+	return conn.Send("BRPOPLPUSH", list.Name, destination.Name, 0)
+}
+
