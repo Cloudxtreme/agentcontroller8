@@ -57,6 +57,6 @@ func (list List) BlockingRightPopLeftPush(connPool *redis.Pool, timeout time.Dur
 	conn := connPool.Get()
 	defer conn.Close()
 
-	return redis.Bytes(conn.Do("BRPOPLPUSH", list.Name, destination.Name, timeout))
+	return redis.Bytes(conn.Do("BRPOPLPUSH", list.Name, destination.Name, int64(timeout)))
 }
 
