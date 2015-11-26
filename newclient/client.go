@@ -5,6 +5,8 @@ import (
 	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
 	"fmt"
 	"time"
+	"strings"
+	"github.com/Jumpscale/agentcontroller2/utils"
 )
 
 type Client struct {
@@ -45,6 +47,67 @@ func (c Client) Send(command *core.Command) error {
 	return ds.GetCommandList("cmds.queue").RightPush(c.connPool, command)
 }
 
+// Blocks and then returns true when the command is picked up, returns false otherwise
+func (c Client) isPickedUp(command *core.Command, timeout time.Duration) bool {
+	signal := ds.GetList(fmt.Sprintf("cmd.%s.queued", command.Content.ID))
+	data, err := signal.BlockingRightPopLeftPush(c.connPool, timeout, signal)
+	if err != nil {
+		panic(fmt.Errorf("Redis error: %v", err))
+	}
+	if data == nil {
+		// Timed-out!
+		return false
+	}
+
+	return true
+}
+
+// Reads the current responses for the specified command
+func (c Client) responsesFor(command *core.Command) map[core.AgentID]core.CommandResponse {
+
+	jsonResponses, err := ds.GetHash(fmt.Sprintf("jobresult:%s", command.Content.ID)).ToStringMap(c.connPool)
+	if err != nil {
+		panic(fmt.Sprintf("Redis error: %v", err))
+	}
+
+	responses := make(map[core.AgentID]core.CommandResponse)
+
+	for strAgentID, jsonResponse := range jsonResponses {
+
+		response, err := core.CommandResponseFromJSON([]byte(jsonResponse))
+		if err != nil {
+			panic(fmt.Sprintf("Malformed response! %v", err))
+		}
+
+		gidnid := strings.Split(strAgentID, ":")
+		agentID := utils.AgentIDFromStrings(gidnid[0], gidnid[1])
+
+		responses[agentID] = *response
+	}
+
+	return responses
+}
+
+// Blocks and returns true when the specified command on the specified Agent is done, false otherwise
+func (c Client) isDone(command *core.Command, agentID core.AgentID, timeout time.Duration) bool {
+	name := fmt.Sprintf("cmd.%s.%d.%d", command.Content.ID, agentID.GID, agentID.NID)
+	signal := ds.GetList(name)
+
+	data, err := signal.BlockingRightPopLeftPush(c.connPool, timeout, signal)
+	if err != nil {
+		panic(fmt.Errorf("Redis error: %v", err))
+	}
+
+	if data == nil {
+		// Timed-out!
+		return false
+	}
+
+	return true
+}
+
+
+
 // Sends a command and returns a channel for reading the response
 func (c Client) Execute(command *core.Command, timeout time.Duration) (<- chan core.CommandResponse, error) {
 
@@ -57,30 +120,35 @@ func (c Client) Execute(command *core.Command, timeout time.Duration) (<- chan c
 
 	go func() {
 
-		// Waiting for execution to finish
-		waitedOnList := ds.GetList(fmt.Sprintf("cmd.%s.queued", command.Content.ID))
-		data, err := waitedOnList.BlockingRightPopLeftPush(c.connPool, timeout, waitedOnList)
-		if err != nil {
-			panic(fmt.Sprintf("Redis error: %v", err))
-		}
-
-		if data == nil {
-			// Timed-out
+		if !c.isPickedUp(command, timeout) {
+			// Something is not right!
 			close(responseChan)
 			return
 		}
 
-		responses, err := ds.GetHash(fmt.Sprintf("jobresult:%s", command.Content.ID)).ToStringMap(c.connPool)
-		if err != nil {
-			panic(fmt.Sprintf("Redis error: %v", err))
+		initialResponses := c.responsesFor(command)
+		for _, response := range initialResponses {
+			responseChan <- response
 		}
 
-		for _, responseJSON := range responses {
-			response, err := core.CommandResponseFromJSON([]byte(responseJSON))
-			if err != nil {
-				panic(fmt.Sprintf("Malformed response! %v", err))
+		// Initial command state is the state of any of the initial responses
+		var initialCommandState string
+		{
+			for _, response := range initialResponses {
+				initialCommandState = response.Content.State
 			}
-			responseChan <- *response
+		}
+
+		if initialCommandState == core.CommandStateSuccess || initialCommandState == core.CommandStateError {
+			// This is done!
+			close(responseChan)
+			return
+		}
+
+		for agentID, _ := range c.responsesFor(command) {
+			if c.isDone(command, agentID, timeout) {
+				responseChan <- c.responsesFor(command)[agentID]
+			}
 		}
 
 		close(responseChan)
