@@ -27,10 +27,11 @@ type CommandContent struct {
 }
 
 type CommandArgs struct {
-	Domain  string `json:"domain"`
-	Name    string `json:"name"`
-	Queue   string `json:"queue"`
-	MaxTime int    `json:"max_time"`
+	Domain  string    `json:"domain"`
+	Name    string    `json:"name"`
+	Queue   string    `json:"queue"`
+	MaxTime int       `json:"max_time"`
+	Args    []string  `json:"args"`
 }
 
 type RawCommand map[string]interface{}

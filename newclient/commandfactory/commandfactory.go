@@ -83,6 +83,7 @@ func (factory CommandFactory) Build() *core.Command {
 			Queue: factory.Arguments.Queue,
 			MaxTime: int(factory.Arguments.MaxRunTime),
 			Domain: factory.Arguments.Domain,
+			Args: factory.Arguments.ExecutableArguments,
 		},
 	}
 
