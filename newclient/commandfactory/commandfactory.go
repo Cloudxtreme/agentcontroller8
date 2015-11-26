@@ -61,18 +61,28 @@ func (factory CommandFactory) AddTag(tag string) {
 	factory.Tags = append(factory.Tags, tag)
 }
 
-func (factory CommandFactory) Build() *core.Command {
+// Extracts roles from a CommandTarget for usage directly in a core.CommandContent
+func builtRoles(target CommandTarget) []string {
 
-	var roles []string
-	for _, role := range factory.Target.Roles {
-		roles = append(roles, string(role))
+	var stringRoles []string
+	for _, role := range target.Roles {
+		stringRoles = append(stringRoles, string(role))
 	}
+
+	if len(stringRoles) == 0 {
+		return []string{"*"}
+	}
+
+	return stringRoles
+}
+
+func (factory CommandFactory) Build() *core.Command {
 
 	content := &core.CommandContent{
 		ID: uuid.New(),
 		Gid: int(factory.Target.GID),
 		Nid: int(factory.Target.NID),
-		Roles: roles,
+		Roles: builtRoles(factory.Target),
 		Fanout: factory.Target.Fanout,
 
 		Cmd: string(factory.Name),
