@@ -1,4 +1,4 @@
-package newclient
+package commandfactory
 import (
 	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/pborman/uuid"
@@ -24,15 +24,18 @@ type CommandTarget struct {
 // Command-specific argument
 type CommandArguments struct {
 
-	Name       string
+	Name                string
 
-	Domain     string
+	Domain              string
 
 	// Internal queue on Agent for job execution
-	Queue      string
+	Queue               string
 
 	// Maximum time allowed for the command to execute (0 is forever)
-	MaxRunTime uint
+	MaxRunTime          uint
+
+	// Arguments passed down to an executable in the case of the EXECUTE command
+	ExecutableArguments []string
 }
 
 type CommandFactory struct {
@@ -75,7 +78,7 @@ func (factory CommandFactory) Build() *core.Command {
 		Cmd: string(factory.Name),
 		Data: factory.Data,
 		Tags: factory.Data,
-		Args: core.CommandArgs {
+		Args: core.CommandArgs{
 			Name: factory.Arguments.Name,
 			Queue: factory.Arguments.Queue,
 			MaxTime: int(factory.Arguments.MaxRunTime),
@@ -87,25 +90,4 @@ func (factory CommandFactory) Build() *core.Command {
 }
 
 
-// Builds and returns a GetProcessStats command for the given target
-func CommandGetProcessStats(target CommandTarget) *core.Command {
-	return CommandFactory{
-		Name: core.CommandGetProcessStats,
-		Target: target,
-	}.Build()
-}
-
-
-func CommandInternalListAgents() *core.Command {
-	return CommandFactory{
-		Name: core.CommandInternalListAgents,
-	}.Build()
-}
-
-
-func CommandInternalSchedulerListJobs() *core.Command {
-	return CommandFactory{
-		Name: core.CommandInternalSchedulerListJobs,
-	}.Build()
-}
 
