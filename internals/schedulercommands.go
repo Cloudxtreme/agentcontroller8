@@ -11,7 +11,7 @@ const (
 
 func (manager *Manager) setUpSchedulerCommands(scheduler *scheduling.Scheduler) {
 
-	manager.commandHandlers[core.CommandInternalSchedulerAddJob] =
+	manager.commandHandlers[SchedulerAddJob] =
 		func(cmd *core.Command) (interface{}, error) {
 			job, err := scheduling.JobFromJSON([]byte(cmd.Content.Data))
 			if err != nil {
@@ -20,7 +20,7 @@ func (manager *Manager) setUpSchedulerCommands(scheduler *scheduling.Scheduler) 
 			return nil, scheduler.AddJob(job)
 		}
 
-	manager.commandHandlers[core.CommandInternalSchedulerListJobs] =
+	manager.commandHandlers[SchedulerListJobs] =
 		func(_ *core.Command) (interface{}, error) {
 			jobs := scheduler.ListJobs()
 			jobsMap := make(map[string]string)
@@ -34,12 +34,12 @@ func (manager *Manager) setUpSchedulerCommands(scheduler *scheduling.Scheduler) 
 			return scheduler.ListJobs(), nil
 		}
 
-	manager.commandHandlers[core.CommandInternalSchedulerRemoveJob] =
+	manager.commandHandlers[SchedulerRemoveJob] =
 		func (cmd *core.Command) (interface{}, error) {
 			return scheduler.RemoveByID(cmd.Content.ID)
 		}
 
-	manager.commandHandlers[core.CommandInternalSchedulerRemoveJobByIdPrefix] =
+	manager.commandHandlers[SchedulerRemoveJobByIdPrefix] =
 		func (cmd *core.Command) (interface{}, error) {
 			scheduler.RemoveByIdPrefix(cmd.Content.ID)
 			return nil, nil

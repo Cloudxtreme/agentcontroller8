@@ -9,7 +9,7 @@ func (manager *Manager) setUpAgentCommands(agentInfo core.AgentInformationStorag
 
 	// Caller is expecting a map with keys "GID:NID" of each live agent and values being
 	// the sequence of roles the agent declares.
-	manager.commandHandlers[core.CommandInternalListAgents] = func(_ *core.Command) (interface{}, error) {
+	manager.commandHandlers[ListAgents] = func(_ *core.Command) (interface{}, error) {
 		output := make(map[string][]string)
 		for _, agentID := range agentInfo.ConnectedAgents() {
 			var roles []string

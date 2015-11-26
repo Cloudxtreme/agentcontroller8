@@ -9,9 +9,13 @@ import (
 
 // Extracts an Agent ID from a Gin context
 func GetAgentID(ctx *gin.Context) core.AgentID {
+	return AgentIDFromStrings(ctx.Param("gid"), ctx.Param("nid"))
+}
+
+func AgentIDFromStrings(gid, nid string) core.AgentID {
 	var agentID core.AgentID
-	fmt.Sscanf(ctx.Param("gid"), "%v", &agentID.GID)
-	fmt.Sscanf(ctx.Param("nid"), "%v", &agentID.NID)
+	fmt.Sscanf(gid, "%v", &agentID.GID)
+	fmt.Sscanf(nid, "%v", &agentID.NID)
 	return agentID
 }
 

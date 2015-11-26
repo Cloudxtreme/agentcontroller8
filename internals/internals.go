@@ -8,10 +8,20 @@ import (
 	"github.com/Jumpscale/agentcontroller2/scheduling"
 )
 
+type InternalCommandName string
 type CommandHandler func(*core.Command) (interface{}, error)
 
+const (
+	ListAgents = InternalCommandName("list_agents")
+	SchedulerAddJob = InternalCommandName("scheduler_add")
+	SchedulerListJobs = InternalCommandName("scheduler_list")
+	SchedulerRemoveJob = InternalCommandName("scheduler_remove")
+	SchedulerRemoveJobByIdPrefix = InternalCommandName("scheduler_remove_prefix")
+
+)
+
 type Manager struct {
-	commandHandlers  map[core.CommandName]CommandHandler
+	commandHandlers  map[InternalCommandName]CommandHandler
 	commandResponder core.CommandResponder
 }
 
@@ -20,7 +30,7 @@ func NewManager(agents core.AgentInformationStorage,
 	commandResponder core.CommandResponder) *Manager {
 
 	manager := &Manager{
-		commandHandlers: map[core.CommandName]CommandHandler{},
+		commandHandlers: map[InternalCommandName]CommandHandler{},
 		commandResponder: commandResponder,
 	}
 
@@ -28,10 +38,6 @@ func NewManager(agents core.AgentInformationStorage,
 	manager.setUpSchedulerCommands(scheduler)
 
 	return manager
-}
-
-func (manager *Manager) registerProcessor(command core.CommandName, processor CommandHandler) {
-	manager.commandHandlers[command] = processor
 }
 
 func (manager *Manager) ExecuteInternalCommand(commandMessage *core.Command) {
@@ -47,7 +53,7 @@ func (manager *Manager) ExecuteInternalCommand(commandMessage *core.Command) {
 		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 	}
 
-	processor, ok := manager.commandHandlers[core.CommandName(command.Args.Name)]
+	processor, ok := manager.commandHandlers[InternalCommandName(command.Args.Name)]
 	if ok {
 		data, err := processor(commandMessage)
 		if err != nil {
