@@ -110,14 +110,12 @@ func (c Client) isDone(command *core.Command, agentID core.AgentID) bool {
 	return true
 }
 
-
-
 // Sends a command and returns a channel for reading the responses
-func (c Client) Execute(command *core.Command) (<- chan core.CommandResponse, error) {
+func (c Client) Execute(command *core.Command) <- chan core.CommandResponse {
 
 	err := c.Send(command)
 	if err != nil {
-		return nil, err
+		panic(fmt.Errorf("Redis error: %v", err))
 	}
 
 	responseChan := make(chan core.CommandResponse)
@@ -158,5 +156,5 @@ func (c Client) Execute(command *core.Command) (<- chan core.CommandResponse, er
 		close(responseChan)
 	}()
 
-	return responseChan, nil
+	return responseChan
 }
