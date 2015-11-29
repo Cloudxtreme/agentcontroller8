@@ -13,7 +13,7 @@ import (
 // a response.
 const responseTimeout = 1 * time.Minute
 
-type Client struct {
+type LowLevelClient struct {
 	connPool *redis.Pool
 }
 
@@ -40,19 +40,19 @@ func newRedisPool(address string, password string) *redis.Pool {
 	}
 }
 
-func NewClient(redisAddress, redisPassword string) Client {
-	return Client{
+func NewLowLevelClient(redisAddress, redisPassword string) LowLevelClient {
+	return LowLevelClient{
 		connPool: newRedisPool(redisAddress, redisPassword),
 	}
 }
 
 // Sends a command without receiving a response
-func (c Client) Send(command *core.Command) error {
+func (c LowLevelClient) Send(command *core.Command) error {
 	return ds.GetCommandList("cmds.queue").RightPush(c.connPool, command)
 }
 
 // Blocks and then returns true when the command is picked up, returns false otherwise
-func (c Client) isPickedUp(command *core.Command) bool {
+func (c LowLevelClient) isPickedUp(command *core.Command) bool {
 	signal := ds.GetList(fmt.Sprintf("cmd.%s.queued", command.Content.ID))
 	data, err := signal.BlockingRightPopLeftPush(c.connPool, responseTimeout, signal)
 	if err != nil {
@@ -67,7 +67,7 @@ func (c Client) isPickedUp(command *core.Command) bool {
 }
 
 // Reads the current responses for the specified command
-func (c Client) responsesFor(command *core.Command) map[core.AgentID]core.CommandResponse {
+func (c LowLevelClient) responsesFor(command *core.Command) map[core.AgentID]core.CommandResponse {
 
 	jsonResponses, err := ds.GetHash(fmt.Sprintf("jobresult:%s", command.Content.ID)).ToStringMap(c.connPool)
 	if err != nil {
@@ -93,7 +93,7 @@ func (c Client) responsesFor(command *core.Command) map[core.AgentID]core.Comman
 }
 
 // Blocks and returns true when the specified command on the specified Agent is done, false otherwise
-func (c Client) isDone(command *core.Command, agentID core.AgentID) bool {
+func (c LowLevelClient) isDone(command *core.Command, agentID core.AgentID) bool {
 	name := fmt.Sprintf("cmd.%s.%d.%d", command.Content.ID, agentID.GID, agentID.NID)
 	signal := ds.GetList(name)
 
@@ -111,7 +111,7 @@ func (c Client) isDone(command *core.Command, agentID core.AgentID) bool {
 }
 
 // Sends a command and returns a channel for reading the responses
-func (c Client) Execute(command *core.Command) <- chan core.CommandResponse {
+func (c LowLevelClient) Execute(command *core.Command) <- chan core.CommandResponse {
 
 	err := c.Send(command)
 	if err != nil {
@@ -157,28 +157,4 @@ func (c Client) Execute(command *core.Command) <- chan core.CommandResponse {
 	}()
 
 	return responseChan
-}
-
-// Filters responses and only passes through the success/error final responses
-func DoneResponses(incoming <-chan core.CommandResponse) <-chan core.CommandResponse {
-
-	outgoing := make(chan core.CommandResponse)
-
-	go func() {
-		for {
-			select {
-			case response, isOpen := <-incoming:
-				if !isOpen {
-					close(outgoing)
-					return
-				}
-				state := response.Content.State
-				if state == core.CommandStateSuccess || state == core.CommandStateError {
-					outgoing <- response
-				}
-			}
-		}
-	}()
-
-	return outgoing
 }
