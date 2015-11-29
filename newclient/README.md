@@ -43,6 +43,9 @@ target := newclient.AnyNode()
 // For example, we'll command the target nodes to execute the "ls" executable with the arguments "/opt"
 responseChan, errChan := client.ExecuteExecutable(target, "ls", []string{"/opt"})
 
+// Since we're targetting a single node, we're expecting a single response
+// If we were targetting more than one node we should expect as many responses out of the response channel as there are
+// targetted nodes
 select {
 case response := <-responseChan:
 	fmt.Println("Success:", response.StandardOut)
@@ -50,5 +53,33 @@ case err := <-errChan:
 	fmt.Println("Error:", err)
 case <-time.After(300 * time.Millisecond):
 	fmt.Println("This is taking too long!")
+}
+```
+
+Alternatively you can use more manage your own low-level communication by handling command construction and response parsing yourself.
+
+```go
+client := newclient.NewLowLevelClient("localhost:9999", "")
+
+target := newclient.AllNodes()
+
+// Command factories are here to help you construct various commands
+command := commandfactory.CommandExecute(target, "false", []string{"/opt"})
+
+responseChan := newclient.DoneResponses(client.Execute(command))
+
+// You'll be reciving QUEUED as well as SUCCESS and/or ERROR responses from each targeted agent
+for {
+	select {
+	case response, isOpen := <-responseChan:
+		// Recieve until channel is closed
+		if !isOpen {
+			return
+		}
+		fmt.Println("Got response", &response)
+		
+	case <- time.After(300 * time.Millisecond):
+		fmt.Println("This is taking too much time!")
+	}
 }
 ```
