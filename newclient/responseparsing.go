@@ -19,7 +19,7 @@ func parseCommandInternalListAgents(response *core.CommandResponse) []core.Agent
 		panic(fmt.Errorf("Malformed response"))
 	}
 
-	var agents []core.AgentID
+	agents := []core.AgentID{}
 	for agentStr, _ := range agentMap {
 		gidnid := strings.Split(agentStr, ":")
 		if len(gidnid) != 2 {
