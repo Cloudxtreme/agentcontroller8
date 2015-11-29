@@ -51,7 +51,7 @@ func (outgoing *commandResponder) RespondToCommand(response *core.CommandRespons
 	}
 
 	// Signal as done if appropriate
-	if response.Content.State == core.CommandStateSuccess || response.Content.State == core.CommandStateError {
+	if response.Content.State != core.CommandStateRunning && response.Content.State != core.CommandStateQueued {
 		outgoing.signalAsDone(response)
 	}
 
@@ -62,7 +62,7 @@ func (outgoing *commandResponder) signalAsDone(response *core.CommandResponse) {
 
 	list := listForDoneSignal(response)
 
-	err :=list.RightPush(outgoing.connPool, response)
+	err := list.RightPush(outgoing.connPool, response)
 	if err != nil {
 		panic(fmt.Errorf("Redis error: %v", err))
 	}
