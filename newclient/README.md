@@ -10,27 +10,27 @@ responses back to the client from the targeted Agent2 instances.
 ## 1. Choose your target(s) ##
 ```go
 // Target any one node
-target := newclient.CommandTarget{}
+target := commandfactory.CommandTarget{}
 ```
 ... or ...
 ```go
 // Target all available nodes
-target := newclient.CommandTarget{Fanout: true}
+target := commandfactory.CommandTarget{Fanout: true}
 ```
 ... or ...
 ```go
 // Target any node on Grid 42
-target := newclient.CommandTarget{GID: 42}
+target := commandfactory.CommandTarget{GID: 42}
 ```
 ... or ...
 ```go
 // Target all nodes on Grid 42
-target := newclient.CommandTarget{GID: 42, Fanout: true}
+target := commandfactory.CommandTarget{GID: 42, Fanout: true}
 ```
 ... or ...
 ```go
 // Target the specific node 23 on Grid 7
-target := newclient.CommandTarget{GID: 7, NID: 23}
+target := commandfactory.CommandTarget{GID: 7, NID: 23}
 ```
 
 ## 2. Issue commands to chosen targets ##
