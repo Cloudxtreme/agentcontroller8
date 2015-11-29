@@ -10,6 +10,10 @@ type Client struct{LowLevelClient}
 
 type CommandTarget commandfactory.CommandTarget
 
+func NewClient(address, redisPassword string) Client {
+	return Client{NewLowLevelClient(address, redisPassword)}
+}
+
 func AnyNode() CommandTarget {
 	return CommandTarget{}
 }
