@@ -40,7 +40,7 @@ client := newclient.NewClient("localhost:9999", "")
 
 target := newclient.AnyNode()
 
-# For example, we'll command the target nodes to execute the "ls" executable with the arguments "/opt"
+// For example, we'll command the target nodes to execute the "ls" executable with the arguments "/opt"
 responseChan, errChan := client.ExecuteExecutable(target, "ls", []string{"/opt"})
 
 select {
