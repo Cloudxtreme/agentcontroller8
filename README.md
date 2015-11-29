@@ -8,6 +8,9 @@ Next-generation AgentController for JumpScale
 go run main.go -c agentcontroller2.toml
 ```
 
+# Using it #
+See the [Go client](/newclient).
+
 # Testing #
 ```bash
 TEST_REDIS_PORT=6379 go test ./...
