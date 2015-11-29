@@ -155,3 +155,7 @@ func (command *Command) AttachedGID() *uint {
 	gid := uint(command.Content.Gid)
 	return &gid
 }
+
+func IsTerminalCommandState(state string) bool {
+	return state != CommandStateQueued && state != CommandStateRunning
+}

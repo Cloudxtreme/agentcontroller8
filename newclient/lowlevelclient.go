@@ -141,7 +141,7 @@ func (c LowLevelClient) Execute(command *core.Command) <- chan core.CommandRespo
 			}
 		}
 
-		if initialCommandState == core.CommandStateSuccess || initialCommandState == core.CommandStateError {
+		if core.IsTerminalCommandState(initialCommandState) {
 			// This is done!
 			close(responseChan)
 			return

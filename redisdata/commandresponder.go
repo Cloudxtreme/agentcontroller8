@@ -51,7 +51,7 @@ func (outgoing *commandResponder) RespondToCommand(response *core.CommandRespons
 	}
 
 	// Signal as done if appropriate
-	if response.Content.State != core.CommandStateRunning && response.Content.State != core.CommandStateQueued {
+	if core.IsTerminalCommandState(response.Content.State) {
 		outgoing.signalAsDone(response)
 	}
 
