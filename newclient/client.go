@@ -3,12 +3,10 @@ import (
 	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/Jumpscale/agentcontroller2/newclient/commandfactory"
 	"fmt"
-	"encoding/json"
-	"strings"
-	"github.com/Jumpscale/agentcontroller2/utils"
 )
 
-type Client struct {LowLevelClient}
+// A high-level client with future-based APIs for speaking to AgentController2
+type Client struct{LowLevelClient}
 
 // Retrieves information about the current live agents
 func (client Client) LiveAgents() (<- chan []core.AgentID, <- chan error) {
@@ -20,27 +18,11 @@ func (client Client) LiveAgents() (<- chan []core.AgentID, <- chan error) {
 
 	go func() {
 		select {
-		case response := <- responses:
+		case response := <-responses:
 			if response.Content.State == core.CommandStateError {
 				errChan <- fmt.Errorf(response.Content.Data)
 			} else {
-				data := response.Content.Data
-				agentMap := map[string](interface{}){}
-				err := json.Unmarshal([]byte(data), &agentMap)
-				if err != nil {
-					panic(fmt.Errorf("Malformed response"))
-				}
-
-				var agents []core.AgentID
-				for agentStr, _ := range agentMap {
-					gidnid := strings.Split(agentStr, ":")
-					if len(gidnid) != 2 {
-						panic("Malformed response")
-					}
-					agents = append(agents, utils.AgentIDFromStrings(gidnid[0], gidnid[1]))
-				}
-
-				agentsChan <- agents
+				agentsChan <- parseCommandInternalListAgents(&response)
 			}
 		}
 
@@ -49,4 +31,31 @@ func (client Client) LiveAgents() (<- chan []core.AgentID, <- chan error) {
 	}()
 
 	return agentsChan, errChan
+}
+
+
+func (client Client) ExecuteExecutable(target commandfactory.CommandTarget,
+	executable string, args []string) (<-chan ExecutableResult, <-chan error) {
+
+	errChan := make(chan error)
+	responseChan := make(chan ExecutableResult)
+
+	command := commandfactory.CommandExecute(target, executable, args)
+	responses := DoneResponses(client.LowLevelClient.Execute(command))
+
+	go func() {
+		select {
+		case response := <-responses:
+			if response.Content.State == core.CommandStateError {
+				errChan <- fmt.Errorf(response.Content.Data)
+			} else {
+				responseChan <- parseCommandExecute(&response)
+			}
+		}
+
+		close(errChan)
+		close(responseChan)
+	}()
+
+	return responseChan, errChan
 }
