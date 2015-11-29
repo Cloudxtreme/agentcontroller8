@@ -253,14 +253,14 @@ func (app *Application) distributeCommandToAgents(agents []core.AgentID, command
 
 	for _, agentID := range agents {
 
+		response := queuedResponseFor(command, agentID)
+		app.commandResponder.RespondToCommand(response)
+
 		log.Println("Dispatching message to", agentID)
 		err := app.agentCommands.Enqueue(agentID, command)
 		if err != nil {
-			log.Println("[-] push error: ", err)
+			panic(fmt.Errorf("[-] push error: ", err))
 		}
-
-		response := queuedResponseFor(command, agentID)
-		app.commandResponder.RespondToCommand(response)
 	}
 }
 
