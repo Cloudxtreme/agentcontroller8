@@ -7,4 +7,48 @@ responses back to the client from the targeted Agent2 instances.
 ![Workflow](https://raw.githubusercontent.com/Jumpscale/agentcontroller2/master/newclient/ac2.png)
 
 # Usage #
-*TODO*
+## 1. Choose your target(s) ##
+```go
+// Target any one node
+target := newclient.CommandTarget{}
+```
+... or ...
+```go
+// Target all available nodes
+target := newclient.CommandTarget{Fanout: true}
+```
+... or ...
+```go
+// Target any node on Grid 42
+target := newclient.CommandTarget{GID: 42}
+```
+... or ...
+```go
+// Target all nodes on Grid 42
+target := newclient.CommandTarget{GID: 42, Fanout: true}
+```
+... or ...
+```go
+// Target the specific node 23 on Grid 7
+target := newclient.CommandTarget{GID: 7, NID: 23}
+```
+
+## 2. Issue commands to chosen targets ##
+You can use the high-level client's rich non-blocking API for issuing commands and receiving responses very easily.
+```go
+client := newclient.NewClient("localhost:9999", "")
+
+target := newclient.AnyNode()
+
+# For example, we'll command the target nodes to execute the "ls" executable with the arguments "/opt"
+responseChan, errChan := client.ExecuteExecutable(target, "ls", []string{"/opt"})
+
+select {
+case response := <-responseChan:
+	fmt.Println("Success:", response.StandardOut)
+case err := <-errChan:
+	fmt.Println("Error:", err)
+case <-time.After(300 * time.Millisecond):
+	fmt.Println("This is taking too long!")
+}
+```
