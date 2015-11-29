@@ -34,6 +34,9 @@ target := commandfactory.CommandTarget{GID: 7, NID: 23}
 ```
 
 ## 2. Issue commands to chosen targets ##
+
+*Note:* Communication from a client to AgentController2 is achieved via passing messages back and forth on synchronized data structure in a shared Redis instance. In order to start communicating, you need to know the host name and port of your Redis instance used for communication.
+
 You can use the high-level client's rich non-blocking API for issuing commands and receiving responses very easily.
 ```go
 client := newclient.NewClient("localhost:9999", "")
