@@ -8,6 +8,16 @@ import (
 // A high-level client with future-based APIs for speaking to AgentController2
 type Client struct{LowLevelClient}
 
+type CommandTarget commandfactory.CommandTarget
+
+func AnyNode() CommandTarget {
+	return CommandTarget{}
+}
+
+func AllNodes() CommandTarget {
+	return CommandTarget{Fanout: true}
+}
+
 // Retrieves information about the current live agents
 func (client Client) LiveAgents() (<- chan []core.AgentID, <- chan error) {
 
