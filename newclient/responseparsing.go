@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"github.com/Jumpscale/agentcontroller2/utils"
+	"github.com/Jumpscale/agentcontroller2/scheduling"
 )
 
 type ExecutableResult struct {
@@ -72,4 +73,13 @@ func parseCommandGetProcessStats(response *core.CommandResponse) []RunningComman
 		panic(fmt.Errorf("Malformed response: %v in %v", err, string(response.JSON)))
 	}
 	return runningStats
+}
+
+func parseCommandInternalSchedulerListJobs(response *core.CommandResponse) []scheduling.Job {
+	jobs := []scheduling.Job{}
+	err := json.Unmarshal([]byte(response.Content.Data), &jobs)
+	if err != nil {
+		panic(fmt.Errorf("Malformed response: %v", err))
+	}
+	return jobs
 }

@@ -3,6 +3,7 @@ import (
 	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/Jumpscale/agentcontroller2/newclient/commandfactory"
 	"fmt"
+	"github.com/Jumpscale/agentcontroller2/scheduling"
 )
 
 // A high-level client with future-based APIs for speaking to AgentController2
@@ -95,6 +96,34 @@ func (client Client) GetProcessStats(target commandfactory.CommandTarget) (<-cha
 					errChan <- fmt.Errorf(response.Content.Data)
 				} else {
 					responseChan <- parseCommandGetProcessStats(&response)
+				}
+			}
+		}
+	}()
+
+	return responseChan, errChan
+}
+
+func (client Client) SchedulerListJobs() (<-chan []scheduling.Job, <-chan error) {
+
+	errChan := make(chan error)
+	responseChan := make(chan []scheduling.Job)
+
+	command := commandfactory.CommandInternalSchedulerListJobs()
+	responses := DoneResponses(client.LowLevelClient.Execute(command))
+
+	go func() {
+		defer close(errChan)
+		defer close(responseChan)
+
+		for {
+			select {
+			case response, isOpen := <-responses:
+				if !isOpen { return }
+				if response.Content.State == core.CommandStateError {
+					errChan <- fmt.Errorf(response.Content.Data)
+				} else {
+					responseChan <- parseCommandInternalSchedulerListJobs(&response)
 				}
 			}
 		}
