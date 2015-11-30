@@ -68,9 +68,10 @@ func builtRoles(target CommandTarget) []string {
 		stringRoles = append(stringRoles, string(role))
 	}
 
-//	if len(stringRoles) == 0 {
-//		return []string{"*"}
-//	}
+	// If GID is set and nothing else, it should match all roles
+	if target.GID != 0 && len(stringRoles) == 0 && target.NID == 0 {
+		return []string{"*"}
+	}
 
 	return stringRoles
 }
