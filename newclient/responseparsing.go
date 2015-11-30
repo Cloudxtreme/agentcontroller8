@@ -57,7 +57,7 @@ type RunningCommandStats struct {
 				Roles []string `json:"roles"`
 				Tags  string   `json:"tags"`
 			} `json:"cmd"`
-	CPU     int    `json:"cpu"`
+	CPU     float64    `json:"cpu"`
 	Debug   string `json:"debug"`
 	Rss     int    `json:"rss"`
 	Swap    int    `json:"swap"`
@@ -69,7 +69,7 @@ func parseCommandGetProcessStats(response *core.CommandResponse) []RunningComman
 	runningStats := []RunningCommandStats{}
 	err := json.Unmarshal([]byte(response.Content.Data), &runningStats)
 	if err != nil {
-		panic("Malformed response")
+		panic(fmt.Errorf("Malformed response: %v in %v", err, string(response.JSON)))
 	}
 	return runningStats
 }
