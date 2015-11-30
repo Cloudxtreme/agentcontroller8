@@ -1,6 +1,8 @@
 package core
 import (
 	"time"
+	"encoding/json"
+	"fmt"
 )
 
 // Constructs an error response for the specified command
@@ -48,5 +50,41 @@ func RunningResponseFor(command *Command, runningOn AgentID) *CommandResponse {
 
 	response := CommandResponseFromContent(&content)
 
+	return response
+}
+
+func SuccessResponseFor(command *Command, result interface{}, level int) *CommandResponse {
+
+	jsonResult, err := json.Marshal(result)
+	if err != nil {
+		panic(fmt.Errorf("Failed to serialize: %v", err))
+	}
+
+	content := CommandResponseContent{
+		ID:        command.Content.ID,
+		Gid:       command.Content.Gid,
+		Nid:       command.Content.Nid,
+		Tags:      command.Content.Tags,
+		State:     CommandStateSuccess,
+		Data:      string(jsonResult),
+		Level: 	   level,
+		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
+	}
+
+	response := CommandResponseFromContent(&content)
+	return response
+}
+
+func UnknownCommandResponseFor(command *Command) *CommandResponse {
+	content := CommandResponseContent{
+		ID:        command.Content.ID,
+		Gid:       command.Content.Gid,
+		Nid:       command.Content.Nid,
+		Tags:      command.Content.Tags,
+		State:     CommandStateErrorUnknownCommand,
+		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
+	}
+
+	response := CommandResponseFromContent(&content)
 	return response
 }

@@ -3,8 +3,6 @@
 package internals
 import (
 	"github.com/Jumpscale/agentcontroller2/core"
-	"time"
-	"encoding/json"
 	"github.com/Jumpscale/agentcontroller2/scheduling"
 )
 
@@ -17,7 +15,6 @@ const (
 	SchedulerListJobs = InternalCommandName("scheduler_list")
 	SchedulerRemoveJob = InternalCommandName("scheduler_remove")
 	SchedulerRemoveJobByIdPrefix = InternalCommandName("scheduler_remove_prefix")
-
 )
 
 type Manager struct {
@@ -40,39 +37,22 @@ func NewManager(agents core.AgentInformationStorage,
 	return manager
 }
 
-func (manager *Manager) ExecuteInternalCommand(commandMessage *core.Command) {
+func (manager *Manager) ExecuteInternalCommand(command *core.Command) {
 
-	command := commandMessage.Content
+	var response *core.CommandResponse = nil
 
-	result := &core.CommandResponseContent{
-		ID:        command.ID,
-		Gid:       command.Gid,
-		Nid:       command.Nid,
-		Tags:      command.Tags,
-		State:     core.CommandStateError,
-		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
-	}
-
-	processor, ok := manager.commandHandlers[InternalCommandName(command.Args.Name)]
+	handler, ok := manager.commandHandlers[InternalCommandName(command.Content.Args.Name)]
 	if ok {
-		data, err := processor(commandMessage)
+		data, err := handler(command)
 		if err != nil {
-			result.Data = err.Error()
+			response = core.ErrorResponseFor(command, err.Error())
 		} else {
-			serialized, err := json.Marshal(data)
-			if err != nil {
-				result.Data = err.Error()
-			}
-			result.State = core.CommandStateSuccess
-			result.Data = string(serialized)
-			result.Level = 20
+			response = core.SuccessResponseFor(command, data, 20)
 		}
 	} else {
-		result.State = core.CommandStateErrorUnknownCommand
+		response = core.UnknownCommandResponseFor(command)
 	}
 
-	resultMessage := core.CommandResponseFromContent(result)
-
-	manager.commandResponder.RespondToCommand(resultMessage)
-	manager.commandResponder.SignalAsPickedUp(commandMessage)
+	manager.commandResponder.RespondToCommand(response)
+	manager.commandResponder.SignalAsPickedUp(command)
 }
