@@ -68,9 +68,9 @@ func builtRoles(target CommandTarget) []string {
 		stringRoles = append(stringRoles, string(role))
 	}
 
-	if len(stringRoles) == 0 {
-		return []string{"*"}
-	}
+//	if len(stringRoles) == 0 {
+//		return []string{"*"}
+//	}
 
 	return stringRoles
 }
