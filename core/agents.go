@@ -1,8 +1,8 @@
 package core
 
 type AgentID struct {
-	GID uint
-	NID uint
+	GID uint	`json:"gid"`
+	NID uint	`json:"nid"`
 }
 
 type AgentRole string
