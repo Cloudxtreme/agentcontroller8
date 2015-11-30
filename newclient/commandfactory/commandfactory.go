@@ -35,8 +35,7 @@ type CommandArguments struct {
 	MaxRunTime          uint
 
 	// Arguments passed down to an executable in the case of the EXECUTE command
-	ExecutableArguments []string
-}
+	ExecutableArguments []string }
 
 type CommandFactory struct {
 
@@ -77,7 +76,6 @@ func builtRoles(target CommandTarget) []string {
 }
 
 func (factory CommandFactory) Build() *core.Command {
-
 	content := &core.CommandContent{
 		ID: uuid.New(),
 		Gid: int(factory.Target.GID),

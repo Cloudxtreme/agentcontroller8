@@ -74,3 +74,31 @@ func (client Client) ExecuteExecutable(target commandfactory.CommandTarget,
 
 	return responseChan, errChan
 }
+
+func (client Client) GetProcessStats(target commandfactory.CommandTarget) (<-chan []RunningCommandStats, <-chan error) {
+
+	errChan := make(chan error)
+	responseChan := make(chan []RunningCommandStats)
+
+	command := commandfactory.CommandGetProcessStats(target)
+	responses := DoneResponses(client.LowLevelClient.Execute(command))
+
+	go func() {
+		defer close(errChan)
+		defer close(responseChan)
+
+		for {
+			select {
+			case response, isOpen := <-responses:
+				if !isOpen { return }
+				if response.Content.State == core.CommandStateError {
+					errChan <- fmt.Errorf(response.Content.Data)
+				} else {
+					responseChan <- parseCommandGetProcessStats(&response)
+				}
+			}
+		}
+	}()
+
+	return responseChan, errChan
+}

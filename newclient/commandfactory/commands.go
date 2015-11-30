@@ -9,6 +9,7 @@ func CommandGetProcessStats(target CommandTarget) *core.Command {
 	return CommandFactory{
 		Name: core.CommandGetProcessStats,
 		Target: target,
+		Data: "{\"domain\": null, \"name\": null}",		// Filtering is not supported in this client for simplicity
 	}.Build()
 }
 

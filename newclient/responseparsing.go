@@ -37,3 +37,39 @@ func parseCommandExecute(response *core.CommandResponse) ExecutableResult {
 		StandardErr: response.Content.Streams[1],
 	}
 }
+
+
+type RunningCommandStats struct {
+	Command struct {
+				Args  struct {
+						  Args          []string `json:"args"`
+						  Domain        string      `json:"domain"`
+						  MaxTime       int         `json:"max_time"`
+						  Name          string      `json:"name"`
+						  Queue         string      `json:"queue"`
+						  StatsInterval int         `json:"stats_interval"`
+					  } `json:"args"`
+				Cmd   string   `json:"cmd"`
+				Data  string   `json:"data"`
+				GID   int      `json:"gid"`
+				ID    string   `json:"id"`
+				NID   int      `json:"nid"`
+				Roles []string `json:"roles"`
+				Tags  string   `json:"tags"`
+			} `json:"cmd"`
+	CPU     int    `json:"cpu"`
+	Debug   string `json:"debug"`
+	Rss     int    `json:"rss"`
+	Swap    int    `json:"swap"`
+	Vms     int    `json:"vms"`
+}
+
+
+func parseCommandGetProcessStats(response *core.CommandResponse) []RunningCommandStats {
+	runningStats := []RunningCommandStats{}
+	err := json.Unmarshal([]byte(response.Content.Data), &runningStats)
+	if err != nil {
+		panic("Malformed response")
+	}
+	return runningStats
+}
