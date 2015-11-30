@@ -238,7 +238,7 @@ func (app *Application) processSingleCommand() {
 
 	targetAgents := agentsForCommand(app.liveAgents, command)
 	if len(targetAgents) == 0 {
-		errResponse := errorResponseFor(command, "No matching connected agents found")
+		errResponse := core.ErrorResponseFor(command, "No matching connected agents found")
 		err := app.commandResponder.RespondToCommand(errResponse)
 		if err != nil {
 			panic("Failed to send error response")
@@ -253,7 +253,7 @@ func (app *Application) distributeCommandToAgents(agents []core.AgentID, command
 
 	for _, agentID := range agents {
 
-		response := queuedResponseFor(command, agentID)
+		response := core.QueuedResponseFor(command, agentID)
 		app.commandResponder.RespondToCommand(response)
 
 		log.Println("Dispatching message to", agentID)
@@ -317,7 +317,7 @@ func (app *Application) getProducerChan(agentID core.AgentID) chan<- *core.PollD
 					select {
 					case msgChan <- string(pendingCommand.JSON):
 						//caller consumed this job, it's safe to set it's state to RUNNING now.
-						response := runningResponseFor(pendingCommand, agentID)
+						response := core.RunningResponseFor(pendingCommand, agentID)
 						app.commandResponder.RespondToCommand(response)
 					default:
 						//caller didn't want to receive this command. have to repush it
