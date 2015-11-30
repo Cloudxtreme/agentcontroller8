@@ -31,7 +31,7 @@ func (manager *Manager) setUpSchedulerCommands(scheduler *scheduling.Scheduler) 
 				}
 				jobsMap[job.ID] = string(jsonJob)
 			}
-			return scheduler.ListJobs(), nil
+			return jobsMap, nil
 		}
 
 	manager.commandHandlers[SchedulerRemoveJob] =
