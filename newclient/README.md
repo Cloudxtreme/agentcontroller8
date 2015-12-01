@@ -37,7 +37,7 @@ target := commandfactory.CommandTarget{GID: 7, NID: 23}
 
 *Note:* Communication from a client to AgentController2 is achieved via passing messages back and forth on synchronized data structure in a shared Redis instance. In order to start communicating, you need to know the host name and port of your Redis instance used for communication.
 
-You can use the high-level client's rich non-blocking API for issuing commands and receiving responses very easily.
+You can use the high-level client's [rich non-blocking API](https://godoc.org/github.com/Jumpscale/agentcontroller2/newclient#Client) for issuing commands and receiving responses very easily.
 ```go
 client := newclient.NewClient("localhost:9999", "")
 
@@ -59,7 +59,7 @@ case <-time.After(300 * time.Millisecond):
 }
 ```
 
-Alternatively you can manage your own low-level communication by handling command construction and response parsing yourself.
+Alternatively you can manage your own [low-level communication](https://godoc.org/github.com/Jumpscale/agentcontroller2/newclient#LowLevelClient) by handling command construction and response parsing yourself.
 
 ```go
 client := newclient.NewLowLevelClient("localhost:9999", "")
