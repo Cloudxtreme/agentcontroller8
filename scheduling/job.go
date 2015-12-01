@@ -1,9 +1,10 @@
 package scheduling
 import (
-"log"
-"github.com/Jumpscale/agentcontroller2/core"
-"encoding/json"
-"github.com/pborman/uuid"
+	"log"
+	"github.com/Jumpscale/agentcontroller2/core"
+	"encoding/json"
+	"github.com/pborman/uuid"
+	"fmt"
 )
 
 //SchedulerJob represented a shceduled job as stored in redis
@@ -41,6 +42,7 @@ func (job *Job) Run() {
 }
 
 func JobFromJSON(data []byte) (*Job, error) {
+	fmt.Println("Unmarshaling scheduling job", string(data))
 	job := Job{}
 	err := json.Unmarshal(data, &job)
 	if err != nil {

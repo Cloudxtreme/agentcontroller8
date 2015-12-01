@@ -8,10 +8,7 @@ import (
 	"log"
 	"strings"
 	"fmt"
-)
-
-const (
-	hashScheduleKey = "controller.schedule"
+	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
 )
 
 //Scheduler schedules cron jobs
@@ -19,6 +16,7 @@ type Scheduler struct {
 	cron            *cron.Cron
 	pool            *redis.Pool
 	commandPipeline core.CommandSource
+	commands        ds.Hash
 }
 
 func NewScheduler(pool *redis.Pool, commandPipeline core.CommandSource) *Scheduler {
@@ -26,6 +24,7 @@ func NewScheduler(pool *redis.Pool, commandPipeline core.CommandSource) *Schedul
 		cron:            cron.New(),
 		pool:            pool,
 		commandPipeline: commandPipeline,
+		commands: ds.GetHash("controller.schedule"),
 	}
 
 	return sched
@@ -59,7 +58,7 @@ func (sched *Scheduler) AddJob(job *Job) error {
 	}
 
 	//we can safely push the command to the hashset now.
-	_, err = db.Do("HSET", hashScheduleKey, job.ID, data)
+	err = sched.commands.Set(sched.pool, job.ID, data)
 	return err
 }
 
@@ -69,7 +68,7 @@ func (sched *Scheduler) ListJobs() []Job {
 	db := sched.pool.Get()
 	defer db.Close()
 
-	jobsMap, err := redis.StringMap(db.Do("HGETALL", hashScheduleKey))
+	jobsMap, err := sched.commands.ToStringMap(sched.pool)
 	if err != nil {
 		panic(fmt.Errorf("Redis failure: %v", err))
 	}
@@ -88,17 +87,11 @@ func (sched *Scheduler) ListJobs() []Job {
 
 
 func (sched *Scheduler) RemoveByID(id string) (int, error) {
-	db := sched.pool.Get()
-	defer db.Close()
-
-	value, err := redis.Int(db.Do("HDEL", hashScheduleKey, id))
-
-	if value > 0 {
-		//actuall job was deleted. need to restart the scheduler
-		sched.restart()
+	deleted, err := sched.commands.Delete(sched.pool, id)
+	if !deleted {
+		return 0, err
 	}
-
-	return value, err
+	return 1, err
 }
 
 // Removes all scheduled jobs that have the given ID prefix
@@ -109,7 +102,7 @@ func (sched *Scheduler) RemoveByIdPrefix(idPrefix string) {
 	restart := false
 	var cursor int
 	for {
-		slice, err := redis.Values(db.Do("HSCAN", hashScheduleKey, cursor))
+		slice, err := redis.Values(db.Do("HSCAN", sched.commands.Name, cursor))
 		if err != nil {
 			log.Println("Failed to load schedule from redis", err)
 			break
@@ -123,7 +116,7 @@ func (sched *Scheduler) RemoveByIdPrefix(idPrefix string) {
 				log.Println("Deleting cron job:", key)
 				if strings.Index(key, idPrefix) == 0 {
 					restart = true
-					db.Do("HDEL", hashScheduleKey, key)
+					sched.commands.Delete(sched.pool, key)
 				}
 			}
 		} else {
@@ -154,7 +147,7 @@ func (sched *Scheduler) Start() {
 
 	var cursor int
 	for {
-		slice, err := redis.Values(db.Do("HSCAN", hashScheduleKey, cursor))
+		slice, err := redis.Values(db.Do("HSCAN", sched.commands.Name, cursor))
 		if err != nil {
 			log.Println("Failed to load schedule from redis", err)
 			break
