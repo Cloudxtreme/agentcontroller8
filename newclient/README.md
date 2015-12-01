@@ -59,7 +59,7 @@ case <-time.After(300 * time.Millisecond):
 }
 ```
 
-Alternatively you can use more manage your own low-level communication by handling command construction and response parsing yourself.
+Alternatively you can manage your own low-level communication by handling command construction and response parsing yourself.
 
 ```go
 client := newclient.NewLowLevelClient("localhost:9999", "")
