@@ -27,7 +27,7 @@ func (client Client) LiveAgents() (<- chan []core.AgentID, <- chan error) {
 	errChan := make(chan error)
 	agentsChan := make(chan []core.AgentID)
 
-	responses := DoneResponses(client.LowLevelClient.Execute(commandfactory.CommandInternalListAgents()))
+	responses := TerminalResponse(client.LowLevelClient.Execute(commandfactory.CommandInternalListAgents()))
 
 	go func() {
 		select {
@@ -54,7 +54,7 @@ func (client Client) ExecuteExecutable(target commandfactory.CommandTarget,
 	responseChan := make(chan ExecutableResult)
 
 	command := commandfactory.CommandExecute(target, executable, args)
-	responses := DoneResponses(client.LowLevelClient.Execute(command))
+	responses := TerminalResponse(client.LowLevelClient.Execute(command))
 
 	go func() {
 		defer close(errChan)
@@ -82,7 +82,7 @@ func (client Client) GetProcessStats(target commandfactory.CommandTarget) (<-cha
 	responseChan := make(chan []RunningCommandStats)
 
 	command := commandfactory.CommandGetProcessStats(target)
-	responses := DoneResponses(client.LowLevelClient.Execute(command))
+	responses := TerminalResponse(client.LowLevelClient.Execute(command))
 
 	go func() {
 		defer close(errChan)
@@ -110,7 +110,7 @@ func (client Client) SchedulerListJobs() (<-chan []scheduling.Job, <-chan error)
 	responseChan := make(chan []scheduling.Job)
 
 	command := commandfactory.CommandInternalSchedulerListJobs()
-	responses := DoneResponses(client.LowLevelClient.Execute(command))
+	responses := TerminalResponse(client.LowLevelClient.Execute(command))
 
 	go func() {
 		defer close(errChan)

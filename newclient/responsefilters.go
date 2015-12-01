@@ -2,12 +2,13 @@ package newclient
 import "github.com/Jumpscale/agentcontroller2/core"
 
 
-// Filters responses and only passes through the success/error final responses
-func DoneResponses(incoming <-chan core.CommandResponse) <-chan core.CommandResponse {
+// Filters responses and only passes through the terminal response
+func TerminalResponse(incoming <-chan core.CommandResponse) <-chan core.CommandResponse {
 
 	outgoing := make(chan core.CommandResponse)
 
 	go func() {
+		defer close(outgoing)
 		for {
 			select {
 			case response, isOpen := <-incoming:
@@ -15,9 +16,9 @@ func DoneResponses(incoming <-chan core.CommandResponse) <-chan core.CommandResp
 					close(outgoing)
 					return
 				}
-				state := response.Content.State
-				if state == core.CommandStateSuccess || state == core.CommandStateError {
+				if core.IsTerminalCommandState(response.Content.State) {
 					outgoing <- response
+					return
 				}
 			}
 		}
