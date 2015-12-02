@@ -14,7 +14,6 @@ func TerminalResponses(incoming <-chan core.CommandResponse) <-chan core.Command
 			select {
 			case response, isOpen := <-incoming:
 				if !isOpen {
-					close(outgoing)
 					return
 				}
 				if core.IsTerminalCommandState(response.Content.State) {
