@@ -44,7 +44,7 @@ func CommandInternalSchedulerAdd(id string, command *core.Command, timingSpec st
 
 	return CommandFactory{
 		ID: id, // On the server end, this will be used as the Job ID
-		Data: scheduling.JobToJSON(&job),
+		Data: string(scheduling.JobToJSON(&job)),
 	}.Build()
 }
 
