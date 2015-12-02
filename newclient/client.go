@@ -4,6 +4,7 @@ import (
 	"github.com/Jumpscale/agentcontroller2/newclient/commandfactory"
 	"fmt"
 	"github.com/Jumpscale/agentcontroller2/scheduling"
+	"log"
 )
 
 // A high-level client with future-based APIs for speaking to AgentController2
@@ -121,6 +122,7 @@ func (client Client) SchedulerListJobs() (<-chan []scheduling.Job, <-chan error)
 			case response, isOpen := <-responses:
 				if !isOpen { return }
 				if response.Content.State == core.CommandStateError {
+					log.Println("COMMAND ERRRO", fmt.Errorf(response.Content.Data))
 					errChan <- fmt.Errorf(response.Content.Data)
 				} else {
 					responseChan <- parseCommandInternalSchedulerListJobs(&response)
@@ -130,6 +132,26 @@ func (client Client) SchedulerListJobs() (<-chan []scheduling.Job, <-chan error)
 	}()
 
 	return responseChan, errChan
+}
+
+// The channel of scheduling.Job may return nothing and immediately be closed if there are no jobs with
+// the specified ID.
+func (client Client) SchedulerGetJob(id string) (<-chan scheduling.Job, <-chan error) {
+	jobChan := make(chan scheduling.Job)
+	jobsChan, errChan := client.SchedulerListJobs()
+	go func() {
+		select {
+		case jobs := <- jobsChan:
+			for _, job := range jobs {
+				if job.ID == id {
+					jobChan <- job
+				}
+			}
+		}
+		close(jobChan)
+	}()
+
+	return jobChan, errChan
 }
 
 func (client Client) SchedulerAddJob(id string, scheduledCommand *core.Command, timingSpec string) <-chan error {
