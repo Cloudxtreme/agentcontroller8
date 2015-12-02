@@ -65,9 +65,6 @@ func (sched *Scheduler) AddJob(job *Job) error {
 
 // Lists all scheduled jobs
 func (sched *Scheduler) ListJobs() []Job {
-	db := sched.pool.Get()
-	defer db.Close()
-
 	jobsMap, err := sched.commands.ToStringMap(sched.pool)
 	if err != nil {
 		panic(fmt.Errorf("Redis failure: %v", err))
