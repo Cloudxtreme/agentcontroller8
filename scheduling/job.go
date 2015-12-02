@@ -50,3 +50,11 @@ func JobFromJSON(data []byte) (*Job, error) {
 	}
 	return &job, err
 }
+
+func JobToJSON(job *Job) []byte {
+	jsonData, err := json.Marshal(job)
+	if err != nil {
+		panic(fmt.Errorf("Failed to JSON Marshal: %v", err))
+	}
+	return jsonData
+}

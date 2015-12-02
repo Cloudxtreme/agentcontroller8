@@ -2,6 +2,7 @@ package commandfactory
 import (
 	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/Jumpscale/agentcontroller2/internals"
+	"github.com/Jumpscale/agentcontroller2/scheduling"
 )
 
 // Builds and returns a GetProcessStats command for the given target
@@ -30,6 +31,20 @@ func CommandInternalSchedulerListJobs() *core.Command {
 		Arguments: CommandArguments{
 			Name: string(internals.SchedulerListJobs),
 		},
+	}.Build()
+}
+
+// Schedules the given command according to the given spec and with the given ID
+func CommandInternalSchedulerAdd(id string, command *core.Command, timingSpec string) *core.Command {
+
+	job := scheduling.Job{
+		Cmd: command.Raw,
+		Cron: timingSpec,
+	}
+
+	return CommandFactory{
+		ID: id, // On the server end, this will be used as the Job ID
+		Data: scheduling.JobToJSON(&job),
 	}.Build()
 }
 

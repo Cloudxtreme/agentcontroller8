@@ -131,3 +131,27 @@ func (client Client) SchedulerListJobs() (<-chan []scheduling.Job, <-chan error)
 
 	return responseChan, errChan
 }
+
+func (client Client) SchedulerAddJob(id string, scheduledCommand *core.Command, timingSpec string) <-chan error {
+
+	errChan := make(chan error)
+
+	command := commandfactory.CommandInternalSchedulerAdd(id, scheduledCommand, timingSpec)
+	responses := TerminalResponses(client.LowLevelClient.Execute(command))
+
+	go func() {
+		defer close(errChan)
+
+		for {
+			select {
+			case response, isOpen := <-responses:
+				if !isOpen { return }
+				if response.Content.State == core.CommandStateError {
+					errChan <- fmt.Errorf(response.Content.Data)
+				}
+			}
+		}
+	}()
+
+	return errChan
+}

@@ -39,13 +39,6 @@ func validateCronSpec(timing string) error {
 	return nil
 }
 
-func jobToJSON(job *Job) []byte {
-	jsonData, err := json.Marshal(job)
-	if err != nil {
-		panic(fmt.Errorf("Failed to JSON Marshal: %v", err))
-	}
-	return jsonData
-}
 
 // Adds a job to the scheduler (overrides old ones)
 func (sched *Scheduler) AddJob(job *Job) error {
@@ -58,7 +51,7 @@ func (sched *Scheduler) AddJob(job *Job) error {
 	defer sched.restart()
 
 	//we can safely push the command to the hashset now.
-	err = sched.commands.Set(sched.pool, job.ID, jobToJSON(job))
+	err = sched.commands.Set(sched.pool, job.ID, JobToJSON(job))
 	return err
 }
 
