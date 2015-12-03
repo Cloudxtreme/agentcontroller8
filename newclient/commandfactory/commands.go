@@ -40,6 +40,7 @@ func CommandInternalSchedulerAdd(id string, command *core.Command, timingSpec st
 	job := scheduling.Job{
 		Cmd: command.Raw,
 		Cron: timingSpec,
+		ID: id,
 	}
 
 	return CommandFactory{
