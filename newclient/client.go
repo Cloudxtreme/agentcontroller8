@@ -4,7 +4,6 @@ import (
 	"github.com/Jumpscale/agentcontroller2/newclient/commandfactory"
 	"fmt"
 	"github.com/Jumpscale/agentcontroller2/scheduling"
-	"log"
 )
 
 // A high-level client with future-based APIs for speaking to AgentController2
@@ -122,7 +121,6 @@ func (client Client) SchedulerListJobs() (<-chan []scheduling.Job, <-chan error)
 			case response, isOpen := <-responses:
 				if !isOpen { return }
 				if response.Content.State == core.CommandStateError {
-					log.Println("COMMAND ERRRO", fmt.Errorf(response.Content.Data))
 					errChan <- fmt.Errorf(response.Content.Data)
 				} else {
 					responseChan <- parseCommandInternalSchedulerListJobs(&response)
@@ -138,20 +136,23 @@ func (client Client) SchedulerListJobs() (<-chan []scheduling.Job, <-chan error)
 // the specified ID.
 func (client Client) SchedulerGetJob(id string) (<-chan scheduling.Job, <-chan error) {
 	jobChan := make(chan scheduling.Job)
+	newErrChan := make(chan error)
 	jobsChan, errChan := client.SchedulerListJobs()
 	go func() {
 		select {
-		case jobs := <- jobsChan:
+		case jobs := <-jobsChan:
 			for _, job := range jobs {
 				if job.ID == id {
 					jobChan <- job
 				}
 			}
+		case err := <-errChan:
+			newErrChan <- err
 		}
 		close(jobChan)
 	}()
 
-	return jobChan, errChan
+	return jobChan, newErrChan
 }
 
 func (client Client) SchedulerAddJob(id string, scheduledCommand *core.Command, timingSpec string) <-chan error {
@@ -164,16 +165,41 @@ func (client Client) SchedulerAddJob(id string, scheduledCommand *core.Command, 
 	go func() {
 		defer close(errChan)
 
-		for {
-			select {
-			case response, isOpen := <-responses:
-				if !isOpen { return }
-				if response.Content.State == core.CommandStateError {
-					errChan <- fmt.Errorf(response.Content.Data)
-				}
+		select {
+		case response, isOpen := <-responses:
+			if !isOpen { return }
+			if response.Content.State == core.CommandStateError {
+				errChan <- fmt.Errorf(response.Content.Data)
 			}
 		}
 	}()
 
 	return errChan
+}
+
+func (client Client) SchedulerRemoveJob(id string) (chan bool, <-chan error) {
+
+	errChan := make(chan error)
+	responseChan := make(chan bool)
+
+	// This client is receiving older responses
+
+	command := commandfactory.CommandInternalSchedulerRemoveJob(id)
+	responses := TerminalResponses(client.LowLevelClient.Execute(command))
+
+	go func() {
+		defer close(errChan)
+		defer close(responseChan)
+
+		select {
+		case response := <-responses:
+			if response.Content.State == core.CommandStateError {
+				errChan <- fmt.Errorf(response.Content.Data)
+			} else {
+				responseChan <- parseCommandInternalSchedulerRemoveJob(&response)
+			}
+		}
+	}()
+
+	return responseChan, errChan
 }

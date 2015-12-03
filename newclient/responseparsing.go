@@ -83,3 +83,7 @@ func parseCommandInternalSchedulerListJobs(response *core.CommandResponse) []sch
 	}
 	return jobs
 }
+
+func parseCommandInternalSchedulerRemoveJob(response *core.CommandResponse) bool {
+	return string(response.Content.Data) == "1"
+}
