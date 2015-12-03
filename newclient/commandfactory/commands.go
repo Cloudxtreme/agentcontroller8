@@ -3,6 +3,7 @@ import (
 	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/Jumpscale/agentcontroller2/internals"
 	"github.com/Jumpscale/agentcontroller2/scheduling"
+	"fmt"
 )
 
 // Builds and returns a GetProcessStats command for the given target
@@ -54,7 +55,7 @@ func CommandInternalSchedulerAdd(id string, command *core.Command, timingSpec st
 
 func CommandInternalSchedulerRemoveJob(id string) *core.Command {
 	return CommandFactory{
-		Data: id,
+		Data: fmt.Sprintf("\"%s\"", id),
 		Name: core.CommandInternal,
 		Arguments: CommandArguments{
 			Name: string(internals.SchedulerRemoveJob),

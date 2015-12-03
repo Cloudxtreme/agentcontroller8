@@ -2,6 +2,7 @@ package internals
 import (
 	"github.com/Jumpscale/agentcontroller2/scheduling"
 	"github.com/Jumpscale/agentcontroller2/core"
+	"encoding/json"
 )
 
 func (manager *Manager) setUpSchedulerCommands(scheduler *scheduling.Scheduler) {
@@ -22,12 +23,22 @@ func (manager *Manager) setUpSchedulerCommands(scheduler *scheduling.Scheduler) 
 
 	manager.commandHandlers[SchedulerRemoveJob] =
 		func (cmd *core.Command) (interface{}, error) {
-			return scheduler.RemoveByID(cmd.Content.Data)
+			var jobID string
+			err := json.Unmarshal([]byte(cmd.Content.Data), &jobID)
+			if err != nil {
+				return nil, err
+			}
+			return scheduler.RemoveByID(jobID)
 		}
 
 	manager.commandHandlers[SchedulerRemoveJobByIdPrefix] =
 		func (cmd *core.Command) (interface{}, error) {
-			scheduler.RemoveByIdPrefix(cmd.Content.Data)
+			var jobIDPrefix string
+			err := json.Unmarshal([]byte(cmd.Content.Data), &jobIDPrefix)
+			if err != nil {
+				return nil, err
+			}
+			scheduler.RemoveByIdPrefix(jobIDPrefix)
 			return nil, nil
 		}
 }
