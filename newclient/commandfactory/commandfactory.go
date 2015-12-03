@@ -39,9 +39,6 @@ type CommandArguments struct {
 
 type CommandFactory struct {
 
-	// Default is an auto-generated globally unique value
-	ID        string
-
 	Target    CommandTarget
 
 	Name      core.CommandName
@@ -81,15 +78,8 @@ func builtRoles(target CommandTarget) []string {
 
 func (factory CommandFactory) Build() *core.Command {
 
-	var id string
-	if len(factory.ID) == 0 {
-		id = uuid.New()
-	} else {
-		id = factory.ID
-	}
-
 	content := &core.CommandContent{
-		ID: id,
+		ID: uuid.New(),
 		Gid: int(factory.Target.GID),
 		Nid: int(factory.Target.NID),
 		Roles: builtRoles(factory.Target),

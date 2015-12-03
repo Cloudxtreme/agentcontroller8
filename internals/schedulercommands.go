@@ -12,7 +12,6 @@ func (manager *Manager) setUpSchedulerCommands(scheduler *scheduling.Scheduler) 
 			if err != nil {
 				return nil, err
 			}
-			job.ID = cmd.Content.ID		// Essential, this is how the Job gets its ID
 			return nil, scheduler.AddJob(job)
 		}
 
@@ -23,12 +22,12 @@ func (manager *Manager) setUpSchedulerCommands(scheduler *scheduling.Scheduler) 
 
 	manager.commandHandlers[SchedulerRemoveJob] =
 		func (cmd *core.Command) (interface{}, error) {
-			return scheduler.RemoveByID(cmd.Content.ID)
+			return scheduler.RemoveByID(cmd.Content.Data)
 		}
 
 	manager.commandHandlers[SchedulerRemoveJobByIdPrefix] =
 		func (cmd *core.Command) (interface{}, error) {
-			scheduler.RemoveByIdPrefix(cmd.Content.ID)
+			scheduler.RemoveByIdPrefix(cmd.Content.Data)
 			return nil, nil
 		}
 }

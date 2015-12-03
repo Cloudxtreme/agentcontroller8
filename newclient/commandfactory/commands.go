@@ -44,7 +44,6 @@ func CommandInternalSchedulerAdd(id string, command *core.Command, timingSpec st
 
 	return CommandFactory{
 		Name: core.CommandInternal,
-		ID: id, // On the server end, this will be used as the Job ID
 		Data: string(scheduling.JobToJSON(&job)),
 		Arguments: CommandArguments{
 			Name: string(internals.SchedulerAddJob),
@@ -54,7 +53,7 @@ func CommandInternalSchedulerAdd(id string, command *core.Command, timingSpec st
 
 func CommandInternalSchedulerRemoveJob(id string) *core.Command {
 	return CommandFactory{
-		ID: id,
+		Data: id,
 		Name: core.CommandInternal,
 		Arguments: CommandArguments{
 			Name: string(internals.SchedulerRemoveJob),
