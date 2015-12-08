@@ -47,8 +47,8 @@ target := newclient.AnyNode()
 responseChan, errChan := client.ExecuteExecutable(target, "ls", []string{"/opt"})
 
 // Since we're targetting a single node, we're expecting a single response
-// If we were targetting more than one node we should expect as many responses out of the response channel as there are
-// targetted nodes
+// If we were targetting more than one node we should expect as many responses out of the response 
+// channel as there are targetted nodes
 select {
 case response := <-responseChan:
 	fmt.Println("Success:", response.StandardOut)
@@ -69,9 +69,10 @@ target := newclient.AllNodes()
 // Command factories are here to help you construct various commands
 command := commandfactory.CommandExecute(target, "false", []string{"/opt"})
 
+// Filter out all intermediate responses
 responseChan := newclient.TerminalResponses(client.Execute(command))
 
-// You'll be reciving QUEUED as well as SUCCESS and/or ERROR responses from each targeted agent
+// You'll be reciving terminal responses from each targeted agent
 for {
 	select {
 	case response, isOpen := <-responseChan:
