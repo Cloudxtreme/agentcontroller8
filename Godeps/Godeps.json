@@ -4,7 +4,7 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/Jumpscale/hubble",
-			"Rev": "a315e2d116511d7343ec59a111b779b0ee9dcc6c"
+			"Rev": "c673a91c451b86ac67eec11892cb2bd4c5265bab"
 		},
 		{
 			"ImportPath": "github.com/Jumpscale/pygo",
