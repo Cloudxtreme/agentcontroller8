@@ -72,8 +72,9 @@ command := commandfactory.CommandExecute(target, "ls", []string{"/opt"})
 // Filter out all intermediate responses
 responseChan := newclient.TerminalResponses(client.Execute(command))
 
-// You'll be reciving intermediate and terminal responses from each targeted agent
+// You'll be reciving intermediate as well as terminal responses from each targeted agent
 for {
+
 	// Recieve until channel is closed, or responses time-out
 	
 	select {
@@ -84,7 +85,7 @@ for {
 			return
 		}
 		
-		fmt.Println("Got a response", &response)
+		fmt.Println("Got a response:", &response)
 		
 	case <- time.After(500 * time.Millisecond):
 		fmt.Println("I haven't received a response in so long! Are you sure everything is okay?")
