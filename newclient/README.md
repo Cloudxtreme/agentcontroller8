@@ -67,7 +67,7 @@ client := newclient.NewLowLevelClient("localhost:9999", "")
 target := newclient.AllNodes()
 
 // Command factories are here to help you construct various commands
-command := commandfactory.CommandExecute(target, "false", []string{"/opt"})
+command := commandfactory.CommandExecute(target, "ls", []string{"/opt"})
 
 // Filter out all intermediate responses
 responseChan := newclient.TerminalResponses(client.Execute(command))
