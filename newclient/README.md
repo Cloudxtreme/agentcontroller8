@@ -46,9 +46,9 @@ target := newclient.AnyNode()
 // For example, we'll command the target nodes to execute the "ls" executable with the arguments "/opt"
 responseChan, errChan := client.ExecuteExecutable(target, "ls", []string{"/opt"})
 
-// Since we're targetting a single node, we're expecting a single response
-// If we were targetting more than one node we should expect as many responses out of the response 
-// channel as there are targetted nodes
+// Since we're targeting a single node, we're expecting a single response
+// If we were targeting more than one node we should expect as many responses out of the response 
+// channels as there are targeted nodes
 select {
 case response := <-responseChan:
 	fmt.Println("Success:", response.StandardOut)
