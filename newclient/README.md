@@ -75,7 +75,7 @@ responseChan := newclient.TerminalResponses(client.Execute(command))
 // You'll be reciving intermediate as well as terminal responses from each targeted agent
 for {
 
-	// Recieve until channel is closed, or responses time-out
+	// Recieve until channel is closed, or responses time out
 	
 	select {
 	case response, isOpen := <-responseChan:
