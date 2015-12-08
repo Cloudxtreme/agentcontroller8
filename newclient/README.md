@@ -69,7 +69,7 @@ target := newclient.AllNodes()
 // Command factories are here to help you construct various commands
 command := commandfactory.CommandExecute(target, "false", []string{"/opt"})
 
-responseChan := newclient.DoneResponses(client.Execute(command))
+responseChan := newclient.TerminalResponses(client.Execute(command))
 
 // You'll be reciving QUEUED as well as SUCCESS and/or ERROR responses from each targeted agent
 for {
