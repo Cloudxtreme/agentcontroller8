@@ -18,6 +18,10 @@ func (data *agentData) SetRoles(id core.AgentID, roles []core.AgentRole) {
 	data.roles[id] = nRoles
 }
 
+func (data *agentData) MarkAsAlive(id core.AgentID) {
+	data.SetRoles(id, []core.AgentRole{})
+}
+
 func (data *agentData) GetRoles(id core.AgentID) []core.AgentRole {
 	data.lock.RLock()
 	defer data.lock.RUnlock()

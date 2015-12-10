@@ -40,11 +40,11 @@ type Application struct {
 	rest                     *rest.Manager
 	events                   *events.Handler
 	executedCommandProcessor commandprocessing.CommandProcessor
-	liveAgents               core.AgentInformationStorage
+	agentInformation         core.AgentInformationStorage
 	jumpscriptStore          core.JumpScriptStore
 
-	producers     map[string]chan *core.PollData
-	producersLock sync.Mutex
+	producers                map[string]chan *core.PollData
+	producersLock            sync.Mutex
 }
 
 func NewApplication(settingsPath string) *Application {
@@ -58,7 +58,7 @@ func NewApplication(settingsPath string) *Application {
 	app := Application{
 		redisPool:       redisPool,
 		agentCommands:   redisdata.AgentCommands(redisPool),
-		liveAgents:      agentdata.NewAgentData(),
+		agentInformation:      agentdata.NewAgentData(),
 		producers:       make(map[string]chan *core.PollData),
 		settings:        settings,
 		jumpscriptStore: redisdata.NewJumpScriptStore(redisPool),
@@ -81,7 +81,7 @@ func NewApplication(settingsPath string) *Application {
 	}
 
 	app.scheduler = scheduling.NewScheduler(app.redisPool, app.commandSource)
-	app.internalCommands = internals.NewManager(app.liveAgents, app.scheduler, app.commandResponder)
+	app.internalCommands = internals.NewManager(app.agentInformation, app.scheduler, app.commandResponder)
 
 	jswatcher, err := jswatcher.NewJSWatcher(&app.settings.Jumpscripts, app.scheduler)
 	if err != nil {
@@ -90,7 +90,7 @@ func NewApplication(settingsPath string) *Application {
 
 	app.jswatcher = jswatcher
 
-	eventHandler, err := events.NewEventsHandler(&app.settings.Events, app.getProducerChan)
+	eventHandler, err := events.NewEventsHandler(&app.settings.Events, app.agentInformation)
 	if err != nil {
 		log.Fatal("Failed to load events handlers module", err)
 	}
@@ -236,7 +236,7 @@ func (app *Application) processSingleCommand() {
 		return
 	}
 
-	targetAgents := agentsForCommand(app.liveAgents, command)
+	targetAgents := agentsForCommand(app.agentInformation, command)
 	if len(targetAgents) == 0 {
 		errResponse := core.ErrorResponseFor(command, "No matching connected agents found")
 		err := app.commandResponder.RespondToCommand(errResponse)
@@ -285,7 +285,7 @@ func (app *Application) getProducerChan(agentID core.AgentID) chan<- *core.PollD
 				app.producersLock.Lock()
 				defer app.producersLock.Unlock()
 				delete(app.producers, key)
-				app.liveAgents.DropAgent(agentID)
+				app.agentInformation.DropAgent(agentID)
 			}()
 
 			for {
@@ -303,7 +303,7 @@ func (app *Application) getProducerChan(agentID core.AgentID) chan<- *core.PollD
 					msgChan := data.MsgChan
 					defer close(msgChan)
 
-					app.liveAgents.SetRoles(agentID, data.Roles)
+					app.agentInformation.SetRoles(agentID, data.Roles)
 
 					pendingCommand, err := app.agentCommands.BlockingDequeue(agentID)
 					if err != nil {

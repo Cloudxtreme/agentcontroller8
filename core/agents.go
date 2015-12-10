@@ -13,6 +13,7 @@ const AgentRoleAll = AgentRole("*")
 type AgentInformationStorage interface {
 
 	// Sets the roles associated with an Agent, overwriting any previously-set roles.
+	// Also marks the agent as alive, so no extra call to MarkAsAlive() is needed.
 	SetRoles(id AgentID, roles []AgentRole)
 
 	// Gets the roles associated with an Agent
@@ -20,6 +21,9 @@ type AgentInformationStorage interface {
 
 	// Drops all the known information about an Agent
 	DropAgent(id AgentID)
+
+	// Marks an agent as alive with initially no roles specified
+	MarkAsAlive(AgentID)
 
 	// Checks if the specified agent has the specified role
 	HasRole(id AgentID, role AgentRole) bool
