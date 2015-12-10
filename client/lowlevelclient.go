@@ -1,4 +1,4 @@
-package newclient
+package client
 import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/Jumpscale/agentcontroller2/core"

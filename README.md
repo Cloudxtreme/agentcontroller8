@@ -9,7 +9,7 @@ go run main.go -c agentcontroller2.toml
 ```
 
 # Using it #
-See the [Go client](/newclient).
+See the [Go client](/client).
 
 # Testing #
 ```bash
