@@ -46,9 +46,9 @@ target := client.AnyNode()
 // For example, we'll command the target nodes to execute the "ls" executable with the arguments "/opt"
 responseChan, errChan := client.ExecuteExecutable(target, "ls", []string{"/opt"})
 
-// Since we're targetting a single node, we're expecting a single response
-// If we were targetting more than one node we should expect as many responses out of the response channel as there are
-// targetted nodes
+// Since we're targeting a single node, we're expecting a single response
+// If we were targeting more than one node we should expect as many responses out of the response 
+// channels as there are targeted nodes
 select {
 case response := <-responseChan:
 	fmt.Println("Success:", response.StandardOut)
@@ -67,22 +67,28 @@ client := client.NewLowLevelClient("localhost:9999", "")
 target := client.AllNodes()
 
 // Command factories are here to help you construct various commands
-command := commandfactory.CommandExecute(target, "false", []string{"/opt"})
+command := commandfactory.CommandExecute(target, "ls", []string{"/opt"})
 
-responseChan := client.DoneResponses(client.Execute(command))
+// Filter out all intermediate responses
+responseChan := client.TerminalResponses(client.Execute(command))
 
-// You'll be reciving QUEUED as well as SUCCESS and/or ERROR responses from each targeted agent
+// You'll be reciving terminal responses from each targeted agent individually
 for {
+
+	// Recieve until channel is closed, or responses time out
+	
 	select {
 	case response, isOpen := <-responseChan:
-		// Recieve until channel is closed
-		if !isOpen {
+	
+		if !isOpen { 
+			fmt.Println("No more responses to be received. We're done here.")
 			return
 		}
-		fmt.Println("Got response", &response)
 		
-	case <- time.After(300 * time.Millisecond):
-		fmt.Println("This is taking too much time!")
+		fmt.Println("Got a response:", &response)
+		
+	case <- time.After(500 * time.Millisecond):
+		fmt.Println("I haven't received a response in so long! Are you sure everything is okay?")
 	}
 }
 ```
