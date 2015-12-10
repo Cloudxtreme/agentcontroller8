@@ -42,7 +42,6 @@ func (job *Job) Run() {
 }
 
 func JobFromJSON(data []byte) (*Job, error) {
-	fmt.Println("Unmarshaling scheduling job", string(data))
 	job := Job{}
 	err := json.Unmarshal(data, &job)
 	if err != nil {

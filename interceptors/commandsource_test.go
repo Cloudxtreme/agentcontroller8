@@ -7,7 +7,6 @@ import (
 	"github.com/Jumpscale/agentcontroller2/utils"
 	"github.com/Jumpscale/agentcontroller2/interceptors"
 	"github.com/stretchr/testify/assert"
-	"fmt"
 )
 
 // Tests only the jumpscriptInterceptor
@@ -38,7 +37,6 @@ func TestInterceptingPoppedCommands(t *testing.T) {
 
 	poppedCommand, err := interceptedCommandSource.BlockingPop()
 	assert.NoError(t, err)
-	fmt.Println(poppedCommand)
 
 	poppedCommandData := make(map[string]interface{})
 	utils.MustJsonUnmarshal([]byte(poppedCommand.Raw["data"].(string)), &poppedCommandData)
