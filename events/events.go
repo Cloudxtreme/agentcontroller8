@@ -17,7 +17,7 @@ import (
 type Handler struct {
 	module              pygo.Pygo
 	enabled             bool
-	producerChanFactory core.ProducerChanFactory
+	agentInformation 	core.AgentInformationStorage
 }
 
 //EventRequest event request
@@ -26,7 +26,7 @@ type EventRequest struct {
 	Data string `json:"data"`
 }
 
-func NewEventsHandler(settings *configs.Extension, producerChanFactory core.ProducerChanFactory) (*Handler, error) {
+func NewEventsHandler(settings *configs.Extension, agentInformation core.AgentInformationStorage) (*Handler, error) {
 	opts := pygo.PyOpts{
 		PythonPath: settings.PythonPath,
 		Env: []string{
@@ -53,7 +53,7 @@ func NewEventsHandler(settings *configs.Extension, producerChanFactory core.Prod
 	handler := &Handler{
 		module:              module,
 		enabled:             settings.Enabled,
-		producerChanFactory: producerChanFactory,
+		agentInformation:    agentInformation,
 	}
 
 	return handler, nil
@@ -69,9 +69,8 @@ func (handler *Handler) Event(c *gin.Context) {
 
 	log.Printf("[+] gin: event (%v)\n", agentID)
 
-	//force initializing of producer since the event is the first thing agent sends
 
-	handler.producerChanFactory(agentID)
+	handler.agentInformation.MarkAsAlive(agentID)
 
 	content, err := ioutil.ReadAll(c.Request.Body)
 

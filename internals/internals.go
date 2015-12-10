@@ -3,67 +3,56 @@
 package internals
 import (
 	"github.com/Jumpscale/agentcontroller2/core"
-	"time"
-	"encoding/json"
+	"github.com/Jumpscale/agentcontroller2/scheduling"
 )
 
-type CommandName string
-type CommandFunc func(*Manager, *core.Command) (interface{}, error)
+type InternalCommandName string
+type CommandHandler func(*core.Command) (interface{}, error)
+
+const (
+	ListAgents = InternalCommandName("list_agents")
+	SchedulerAddJob = InternalCommandName("scheduler_add")
+	SchedulerListJobs = InternalCommandName("scheduler_list")
+	SchedulerRemoveJob = InternalCommandName("scheduler_remove")
+	SchedulerRemoveJobByIdPrefix = InternalCommandName("scheduler_remove_prefix")
+)
 
 type Manager struct {
-	commandProcessors map[CommandName]CommandFunc
-	agents            core.AgentInformationStorage
-	commandResponder  core.CommandResponder
+	commandHandlers  map[InternalCommandName]CommandHandler
+	commandResponder core.CommandResponder
 }
 
-func NewManager(agents core.AgentInformationStorage, commandResponder core.CommandResponder) *Manager {
+func NewManager(agents core.AgentInformationStorage,
+	scheduler *scheduling.Scheduler,
+	commandResponder core.CommandResponder) *Manager {
 
-	return &Manager{
-		commandProcessors: map[CommandName]CommandFunc{
-			"list_agents": listAgentsCommand,
-		},
-		agents: agents,
+	manager := &Manager{
+		commandHandlers: map[InternalCommandName]CommandHandler{},
 		commandResponder: commandResponder,
 	}
+
+	manager.setUpAgentCommands(agents)
+	manager.setUpSchedulerCommands(scheduler)
+
+	return manager
 }
 
-func (manager *Manager) RegisterProcessor(command CommandName, processor CommandFunc) {
-	manager.commandProcessors[command] = processor
-}
+func (manager *Manager) ExecuteInternalCommand(command *core.Command) {
 
-func (manager *Manager) ExecuteInternalCommand(commandMessage *core.Command) {
+	var response *core.CommandResponse = nil
 
-	command := commandMessage.Content
-
-	result := &core.CommandReponseContent{
-		ID:        command.ID,
-		Gid:       command.Gid,
-		Nid:       command.Nid,
-		Tags:      command.Tags,
-		State:     core.CommandStateError,
-		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
-	}
-
-	processor, ok := manager.commandProcessors[CommandName(command.Args.Name)]
+	handler, ok := manager.commandHandlers[InternalCommandName(command.Content.Args.Name)]
 	if ok {
-		data, err := processor(manager, commandMessage)
+		data, err := handler(command)
 		if err != nil {
-			result.Data = err.Error()
+			response = core.ErrorResponseFor(command, err.Error())
 		} else {
-			serialized, err := json.Marshal(data)
-			if err != nil {
-				result.Data = err.Error()
-			}
-			result.State = core.CommandStateSuccess
-			result.Data = string(serialized)
-			result.Level = 20
+			response = core.SuccessResponseFor(command, data, 20)
 		}
 	} else {
-		result.State = core.CommandStateErrorUnknownCommand
+		response = core.UnknownCommandResponseFor(command)
 	}
 
-	resultMessage := core.CommandResponseFromContent(result)
-
-	manager.commandResponder.RespondToCommand(resultMessage)
-	manager.commandResponder.SignalAsPickedUp(commandMessage)
+	manager.commandResponder.RespondToCommand(response)
+	manager.commandResponder.SignalAsPickedUp(command)
 }

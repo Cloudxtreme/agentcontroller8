@@ -3,16 +3,12 @@ package scheduling
 import (
 	"encoding/json"
 	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/internals"
 	"github.com/garyburd/redigo/redis"
-	"github.com/pborman/uuid"
 	"github.com/robfig/cron"
 	"log"
 	"strings"
-)
-
-const (
-	hashScheduleKey = "controller.schedule"
+	"fmt"
+	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
 )
 
 //Scheduler schedules cron jobs
@@ -20,128 +16,83 @@ type Scheduler struct {
 	cron            *cron.Cron
 	pool            *redis.Pool
 	commandPipeline core.CommandSource
+	commands        ds.Hash
 }
 
-//SchedulerJob represented a shceduled job as stored in redis
-type Job struct {
-	ID              string                 `json:"id"`
-	Cron            string                 `json:"cron"`
-	Cmd             map[string]interface{} `json:"cmd"`
-	commandPipeline core.CommandSource
-}
-
-//Run runs the scheduled job
-func (job *Job) Run() {
-
-	job.Cmd["id"] = uuid.New()
-
-	dump, _ := json.Marshal(job.Cmd)
-
-	log.Println("Scheduler: Running job", job.ID, job.Cmd["id"])
-
-	command, err := core.CommandFromJSON(dump)
-	if err != nil {
-		panic(err)
-	}
-
-	err = job.commandPipeline.Push(command)
-	if err != nil {
-		log.Println("Failed to run scheduled command", job.ID)
-	}
-}
-
-//NewScheduler created a new instance of the scheduler
 func NewScheduler(pool *redis.Pool, commandPipeline core.CommandSource) *Scheduler {
 	sched := &Scheduler{
 		cron:            cron.New(),
 		pool:            pool,
 		commandPipeline: commandPipeline,
+		commands: ds.GetHash("controller.schedule"),
 	}
 
 	return sched
 }
 
-//AddJob adds a job to the scheduler (overrides old ones)
+// Returns an error on an invalid Cron timing spec
+func validateCronSpec(timing string) error {
+	_, err := cron.Parse(timing)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+
+// Adds a job to the scheduler (overrides old ones)
 func (sched *Scheduler) AddJob(job *Job) error {
-	_, err := cron.Parse(job.Cron)
+
+	err := validateCronSpec(job.Cron)
 	if err != nil {
 		return err
 	}
 
 	defer sched.restart()
 
-	db := sched.pool.Get()
-	defer db.Close()
-
-	data, err := json.Marshal(job)
-	if err != nil {
-		return err
-	}
-
 	//we can safely push the command to the hashset now.
-	_, err = db.Do("HSET", hashScheduleKey, job.ID, data)
+	err = sched.commands.Set(sched.pool, job.ID, JobToJSON(job))
 	return err
 }
 
-//Add create a schdule with the cmd ID (overrides old ones).
-//This add method is compatible withe the 'internals' manager interface so it can be
-//called remotely via the client.
-func (sched *Scheduler) Add(_ *internals.Manager, cmd *core.Command) (interface{}, error) {
-	job := &Job{}
 
-	err := json.Unmarshal([]byte(cmd.Content.Data), job)
-
+// Lists all scheduled jobs
+func (sched *Scheduler) ListJobs() []Job {
+	jobsMap, err := sched.commands.ToStringMap(sched.pool)
 	if err != nil {
-		log.Println("Failed to load command spec", cmd.Content.Data, err)
-		return nil, err
+		panic(fmt.Errorf("Redis failure: %v", err))
 	}
 
-	job.ID = cmd.Content.ID
-
-	err = sched.AddJob(job)
-	if err != nil {
-		return nil, err
+	var jobs []Job
+	for _, jsonJob := range jobsMap {
+		job, err := JobFromJSON([]byte(jsonJob))
+		if err != nil {
+			panic("Corrupted job stored in Redis")
+		}
+		jobs = append(jobs, *job)
 	}
 
-	return true, nil
+	return jobs
 }
 
-//List lists all scheduled jobs
-func (sched *Scheduler) List(_ *internals.Manager, _ *core.Command) (interface{}, error) {
-	db := sched.pool.Get()
-	defer db.Close()
 
-	return redis.StringMap(db.Do("HGETALL", hashScheduleKey))
-}
-
-func (sched *Scheduler) RemoveID(ID string) (int, error) {
-	db := sched.pool.Get()
-	defer db.Close()
-
-	value, err := redis.Int(db.Do("HDEL", hashScheduleKey, ID))
-
-	if value > 0 {
-		//actuall job was deleted. need to restart the scheduler
-		sched.restart()
+func (sched *Scheduler) RemoveByID(id string) (int, error) {
+	deleted, err := sched.commands.Delete(sched.pool, id)
+	if !deleted {
+		return 0, err
 	}
-
-	return value, err
+	return 1, err
 }
 
-//Remove removes the scheduled job that has this cmd.ID
-func (sched *Scheduler) Remove(_ *internals.Manager, cmd *core.Command) (interface{}, error) {
-	return sched.RemoveID(cmd.Content.ID)
-}
-
-//RemovePrefix removes all scheduled jobs that has the cmd.ID as a prefix
-func (sched *Scheduler) RemovePrefix(_ *internals.Manager, cmd *core.Command) (interface{}, error) {
+// Removes all scheduled jobs that have the given ID prefix
+func (sched *Scheduler) RemoveByIdPrefix(idPrefix string) {
 	db := sched.pool.Get()
 	defer db.Close()
 
 	restart := false
 	var cursor int
 	for {
-		slice, err := redis.Values(db.Do("HSCAN", hashScheduleKey, cursor))
+		slice, err := redis.Values(db.Do("HSCAN", sched.commands.Name, cursor))
 		if err != nil {
 			log.Println("Failed to load schedule from redis", err)
 			break
@@ -153,9 +104,9 @@ func (sched *Scheduler) RemovePrefix(_ *internals.Manager, cmd *core.Command) (i
 
 			for key := range set {
 				log.Println("Deleting cron job:", key)
-				if strings.Index(key, cmd.Content.ID) == 0 {
+				if strings.Index(key, idPrefix) == 0 {
 					restart = true
-					db.Do("HDEL", hashScheduleKey, key)
+					sched.commands.Delete(sched.pool, key)
 				}
 			}
 		} else {
@@ -171,8 +122,6 @@ func (sched *Scheduler) RemovePrefix(_ *internals.Manager, cmd *core.Command) (i
 	if restart {
 		sched.restart()
 	}
-
-	return nil, nil
 }
 
 func (sched *Scheduler) restart() {
@@ -188,7 +137,7 @@ func (sched *Scheduler) Start() {
 
 	var cursor int
 	for {
-		slice, err := redis.Values(db.Do("HSCAN", hashScheduleKey, cursor))
+		slice, err := redis.Values(db.Do("HSCAN", sched.commands.Name, cursor))
 		if err != nil {
 			log.Println("Failed to load schedule from redis", err)
 			break

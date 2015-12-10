@@ -5,12 +5,14 @@ import (
 )
 
 const (
-	CommandStateQueued              = "QUEUED"
-	CommandStateRunning             = "RUNNING"
-	CommandStateError               = "ERROR"
-	CommandStateSuccess             = "SUCCESS"
+	CommandStateQueued = "QUEUED"
+	CommandStateRunning = "RUNNING"
+	CommandStateError = "ERROR"
+	CommandStateSuccess = "SUCCESS"
 	CommandStateErrorUnknownCommand = "UNKNOWN_CMD"
 )
+
+type CommandName string
 
 type CommandContent struct {
 	ID     string   `json:"id"`
@@ -21,17 +23,20 @@ type CommandContent struct {
 	Fanout bool     `json:"fanout"`
 	Data   string   `json:"data"`
 	Tags   string   `json:"tags"`
-	Args   struct {
-		Domain  string `json:"domain"`
-		Name    string `json:"name"`
-		Queue   string `json:"queue"`
-		MaxTime int    `json:"max_time"`
-	} `json:"args"`
+	Args   CommandArgs `json:"args"`
+}
+
+type CommandArgs struct {
+	Domain  string    `json:"domain"`
+	Name    string    `json:"name"`
+	Queue   string    `json:"queue"`
+	MaxTime int       `json:"max_time"`
+	Args    []string  `json:"args"`
 }
 
 type RawCommand map[string]interface{}
 
-type CommandReponseContent struct {
+type CommandResponseContent struct {
 	ID        string                 `json:"id"`
 	Gid       int                    `json:"gid"`
 	Nid       int                    `json:"nid"`
@@ -54,7 +59,7 @@ type Command struct {
 }
 
 type CommandResponse struct {
-	Content CommandReponseContent
+	Content CommandResponseContent
 	JSON    []byte
 }
 
@@ -87,7 +92,7 @@ func CommandFromRawCommand(rawCommand RawCommand) (*Command, error) {
 }
 
 func CommandResponseFromJSON(payload []byte) (*CommandResponse, error) {
-	var commandResult CommandReponseContent
+	var commandResult CommandResponseContent
 	err := json.Unmarshal(payload, &commandResult)
 	if err != nil {
 		return nil, err
@@ -99,7 +104,7 @@ func CommandResponseFromJSON(payload []byte) (*CommandResponse, error) {
 	}, nil
 }
 
-func CommandResponseFromContent(content *CommandReponseContent) *CommandResponse {
+func CommandResponseFromContent(content *CommandResponseContent) *CommandResponse {
 	jsonData, err := json.Marshal(content)
 	if err != nil {
 		panic(err)
@@ -149,4 +154,8 @@ func (command *Command) AttachedGID() *uint {
 	}
 	gid := uint(command.Content.Gid)
 	return &gid
+}
+
+func IsTerminalCommandState(state string) bool {
+	return state != CommandStateQueued && state != CommandStateRunning
 }

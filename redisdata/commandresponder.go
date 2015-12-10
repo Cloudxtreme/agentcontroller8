@@ -19,28 +19,28 @@ func NewRedisCommandResponder(connPool *redis.Pool) core.CommandResponder {
 	}
 }
 
-func listForSignal(command *core.Command) ds.List {
+func listForPickedUpSignal(command *core.Command) ds.List {
 	return ds.GetList(fmt.Sprintf("cmd.%s.queued", command.Content.ID))
 }
 
-func hashForCommandResult(commandResult *core.CommandResponse) ds.CommandResultHash {
+func hashForCommandResponses(commandResult *core.CommandResponse) ds.CommandResultHash {
 	return ds.CommandResultHash{Hash: ds.GetHash(fmt.Sprintf("jobresult:%s", commandResult.Content.ID))}
 }
 
-func singletonListForCommandResult(result *core.CommandResponse) ds.CommandResultList {
+func listForDoneSignal(result *core.CommandResponse) ds.CommandResultList {
 	name := fmt.Sprintf("cmd.%s.%d.%d", result.Content.ID, result.Content.Gid, result.Content.Nid)
 	return ds.GetCommandResultList(name)
 }
 
 func (outgoing *commandResponder) SignalAsPickedUp(command *core.Command) {
-	listForSignal(command).RightPush(outgoing.connPool, []byte("queued"))
+	listForPickedUpSignal(command).RightPush(outgoing.connPool, []byte("queued"))
 }
 
-func (outgoing *commandResponder) RespondToCommand(result *core.CommandResponse) error {
+func (outgoing *commandResponder) RespondToCommand(response *core.CommandResponse) error {
 
-	hash := hashForCommandResult(result)
+	hash := hashForCommandResponses(response)
 
-	err := hash.Set(outgoing.connPool, fmt.Sprintf("%d:%d", result.Content.Gid, result.Content.Nid), result)
+	err := hash.Set(outgoing.connPool, fmt.Sprintf("%d:%d", response.Content.Gid, response.Content.Nid), response)
 	if err != nil {
 		return err
 	}
@@ -50,19 +50,25 @@ func (outgoing *commandResponder) RespondToCommand(result *core.CommandResponse)
 		return err
 	}
 
-	if result.Content.State != core.CommandStateQueued && result.Content.State != core.CommandStateRunning {
-		singletonList := singletonListForCommandResult(result)
-
-		singletonList.RightPush(outgoing.connPool, result)
-		if err != nil {
-			return err
-		}
-
-		singletonList.List.Expire(outgoing.connPool, 24 * time.Hour)
-		if err != nil {
-			return err
-		}
+	// Signal as done if appropriate
+	if core.IsTerminalCommandState(response.Content.State) {
+		outgoing.signalAsDone(response)
 	}
 
 	return nil
+}
+
+func (outgoing *commandResponder) signalAsDone(response *core.CommandResponse) {
+
+	list := listForDoneSignal(response)
+
+	err := list.RightPush(outgoing.connPool, response)
+	if err != nil {
+		panic(fmt.Errorf("Redis error: %v", err))
+	}
+
+	list.List.Expire(outgoing.connPool, 24 * time.Hour)
+	if err != nil {
+		panic(fmt.Errorf("Redis error: %v", err))
+	}
 }

@@ -1,0 +1,190 @@
+swagger: '2.0'
+
+info:
+  title: AgentController2 Admin REST API
+  description: JumpScale Agent Controller 2
+  version: 1.0.0  # This spec is actually not versioned
+
+schemes:
+  - https
+
+basePath: /
+
+produces:
+  - application/json
+
+paths:
+
+  '/{gid}/{nid}/cmd':
+    get:
+      summary: Poll for a command
+      parameters:
+        - $ref: "#/parameters/gid"
+        - $ref: "#/parameters/nid"
+        - name: roles
+          in: query
+          description: Self-assigned roles of Agent
+          required: true
+          type: array
+          items:
+            type: string
+      responses:
+        '200':
+          description: The execute command JSON request
+        default:
+          description: Unexpected error
+
+  '/{gid}/{nid}/logs':
+    post:
+      summary: Push a log entry for an Agent
+      parameters:
+        - $ref: "#/parameters/gid"
+        - $ref: "#/parameters/nid"
+        - name: logs
+          in: body
+          schema:
+            type: string
+          required: true
+          description: A log entry for the Agent
+      responses:
+        '200':
+          description: Success
+        default:
+          description: Unexpected error
+
+  '/{gid}/{nid}/result':
+    post:
+      summary: Responds to a command
+      parameters:
+        - $ref: "#/parameters/gid"
+        - $ref: "#/parameters/nid"
+        - name: response
+          in: body
+          schema:
+            $ref: "#/definitions/CommandResponse"
+      responses:
+        '200':
+          description: Success
+        default:
+          description: Unexpected error
+
+  '/{gid}/{nid}/stats':
+    post:
+      summary: Post stats which will be saved in influxdb
+      parameters:
+        - $ref: "#/parameters/gid"
+        - $ref: "#/parameters/nid"
+        - name: stat
+          in: body
+          schema:
+            $ref: "#/definitions/StatsRequest"
+      responses:
+        '200':
+          description: Success
+        default:
+          description: Unexpected error
+
+  '/{gid}/{nid}/event':
+    post:
+      summary: Reports an event
+      parameters:
+        - $ref: "#/parameters/gid"
+        - $ref: "#/parameters/nid"
+        - name: event
+          in: body
+          schema:
+            $ref: "#/definitions/EventRequest"
+      responses:
+        '200':
+          description: Success
+        default:
+          description: Unexpected error
+
+  '/{gid}/{nid}/script':
+    post:
+      summary: Retrieves a JumpScript mentioned in an earlier command
+      parameters:
+        - $ref: "#/parameters/gid"
+        - $ref: "#/parameters/nid"
+        - name: hash
+          in: query
+          description: The script ID
+          type: string
+      responses:
+        '200':
+          description: The script content
+          schema:
+            type: string
+        default:
+          description: Unexpected error
+
+parameters:
+  gid:
+    name: gid
+    in: path
+    description: Grid ID
+    required: true
+    type: integer
+    format: integer
+  nid:
+    name: nid
+    in: path
+    description: Node ID
+    required: true
+    type: integer
+    format: integer
+
+definitions:
+  CommandResponse:
+    description: The response for an issued command to an Agent
+    properties:
+      Gid:
+        type: integer
+        format: ">= 1"
+      Nid:
+        type: integer
+        format: ">= 0"
+      ID:
+        type: string
+      Cmd:
+        type: string
+      Args:
+        type: object
+        additionalProperties:
+          type: string
+      Data:
+        type: string
+      Streams:
+        type: array
+        items:
+          type: string
+      Critical:
+        type: string
+      Tags:
+        type: string
+      Level:
+        type: integer
+      StartTime:
+        type: integer
+      State:
+        type: string
+      Time:
+        type: integer
+
+  StatsRequest:
+    properties:
+      Timestamp:
+        type: integer
+      Series:
+        type: array
+        items:
+          type: array
+          items:
+            type: number
+
+  EventRequest:
+    properties:
+      Name:
+        type: string
+      Data:
+        type: string

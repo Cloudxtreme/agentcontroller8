@@ -50,3 +50,13 @@ func (list List) Expire(connPool *redis.Pool, duration time.Duration) error {
 
 	return conn.Send("EXPIRE", list.Name, duration.Seconds())
 }
+
+// Execute BRPOPLPUSH using this list as a source and the given destination
+func (list List) BlockingRightPopLeftPush(connPool *redis.Pool, timeout time.Duration,
+	destination List) ([]byte, error) {
+	conn := connPool.Get()
+	defer conn.Close()
+
+	return redis.Bytes(conn.Do("BRPOPLPUSH", list.Name, destination.Name, int64(timeout)))
+}
+

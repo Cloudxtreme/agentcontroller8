@@ -9,6 +9,10 @@ type CommandList struct {
 	List List
 }
 
+func GetCommandList(name string) CommandList {
+	return CommandList{GetList(name)}
+}
+
 func (list CommandList) BlockingLeftPop(connPool *redis.Pool, timeout time.Duration) (*core.Command, error) {
 	jsonData, err := list.List.BlockingLeftPop(connPool, timeout)
 	if err != nil {
