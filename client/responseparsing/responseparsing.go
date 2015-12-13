@@ -1,4 +1,4 @@
-package client
+package responseparsing
 import (
 	"github.com/Jumpscale/agentcontroller2/core"
 	"encoding/json"
@@ -13,7 +13,7 @@ type ExecutableResult struct {
 	StandardErr string
 }
 
-func parseCommandInternalListAgents(response *core.CommandResponse) []core.AgentID {
+func InternalListAgents(response *core.CommandResponse) []core.AgentID {
 	agentMap := map[string](interface{}){}
 	err := json.Unmarshal([]byte(response.Content.Data), &agentMap)
 	if err != nil {
@@ -32,7 +32,7 @@ func parseCommandInternalListAgents(response *core.CommandResponse) []core.Agent
 	return agents
 }
 
-func parseCommandExecute(response *core.CommandResponse) ExecutableResult {
+func Execute(response *core.CommandResponse) ExecutableResult {
 	return ExecutableResult{
 		StandardOut: response.Content.Streams[0],
 		StandardErr: response.Content.Streams[1],
@@ -66,7 +66,7 @@ type RunningCommandStats struct {
 }
 
 
-func parseCommandGetProcessStats(response *core.CommandResponse) []RunningCommandStats {
+func GetProcessStats(response *core.CommandResponse) []RunningCommandStats {
 	runningStats := []RunningCommandStats{}
 	err := json.Unmarshal([]byte(response.Content.Data), &runningStats)
 	if err != nil {
@@ -75,7 +75,7 @@ func parseCommandGetProcessStats(response *core.CommandResponse) []RunningComman
 	return runningStats
 }
 
-func parseCommandInternalSchedulerListJobs(response *core.CommandResponse) []scheduling.Job {
+func InternalSchedulerListJobs(response *core.CommandResponse) []scheduling.Job {
 	jobs := []scheduling.Job{}
 	err := json.Unmarshal([]byte(response.Content.Data), &jobs)
 	if err != nil {
@@ -84,6 +84,6 @@ func parseCommandInternalSchedulerListJobs(response *core.CommandResponse) []sch
 	return jobs
 }
 
-func parseCommandInternalSchedulerRemoveJob(response *core.CommandResponse) bool {
+func InternalSchedulerRemoveJob(response *core.CommandResponse) bool {
 	return string(response.Content.Data) == "1"
 }

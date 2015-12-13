@@ -4,6 +4,7 @@ import (
 	"github.com/Jumpscale/agentcontroller2/client/commandfactory"
 	"fmt"
 	"github.com/Jumpscale/agentcontroller2/scheduling"
+  "github.com/Jumpscale/agentcontroller2/client/responseparsing"
 )
 
 // A high-level client with future-based APIs for speaking to AgentController2
@@ -37,7 +38,7 @@ func (client Client) LiveAgents() (<- chan []core.AgentID, <- chan error) {
 			if response.Content.State == core.CommandStateError {
 				errChan <- fmt.Errorf(response.Content.Data)
 			} else {
-				agentsChan <- parseCommandInternalListAgents(&response)
+				agentsChan <- responseparsing.InternalListAgents(&response)
 			}
 		}
 
@@ -50,16 +51,16 @@ func (client Client) LiveAgents() (<- chan []core.AgentID, <- chan error) {
 
 // Only call the returned value if you're going to exhaust the two returned channels
 func (client Client) ExecuteExecutable(target commandfactory.CommandTarget,
-	executable string, args []string) func()(<-chan ExecutableResult, <-chan error) {
+	executable string, args []string) func()(<-chan responseparsing.ExecutableResult, <-chan error) {
 
   // Expecting as many responses as there are targeted agents
 
 	command := commandfactory.CommandExecute(target, executable, args)
 	responses := TerminalResponses(client.LowLevelClient.Execute(command))
 
-	return func() (<-chan ExecutableResult, <-chan error) {
+	return func() (<-chan responseparsing.ExecutableResult, <-chan error) {
 		errChan := make(chan error)
-		responseChan := make(chan ExecutableResult)
+		responseChan := make(chan responseparsing.ExecutableResult)
 
 		go func() {
 			defer close(errChan)
@@ -72,7 +73,7 @@ func (client Client) ExecuteExecutable(target commandfactory.CommandTarget,
 					if response.Content.State == core.CommandStateError {
 						errChan <- fmt.Errorf(response.Content.Data)
 					} else {
-						responseChan <- parseCommandExecute(&response)
+						responseChan <- responseparsing.Execute(&response)
 					}
 				}
 			}
@@ -83,12 +84,12 @@ func (client Client) ExecuteExecutable(target commandfactory.CommandTarget,
 }
 
 // You must make sure you exhaust the returned two channels or else resources will leak
-func (client Client) GetProcessStats(target commandfactory.CommandTarget) (<-chan []RunningCommandStats, <-chan error) {
+func (client Client) GetProcessStats(target commandfactory.CommandTarget) (<-chan []responseparsing.RunningCommandStats, <-chan error) {
 
   // Expecting as many responses as there are targeted agents
 
 	errChan := make(chan error)
-	responseChan := make(chan []RunningCommandStats)
+	responseChan := make(chan []responseparsing.RunningCommandStats)
 
 	command := commandfactory.CommandGetProcessStats(target)
 	responses := TerminalResponses(client.LowLevelClient.Execute(command))
@@ -104,7 +105,7 @@ func (client Client) GetProcessStats(target commandfactory.CommandTarget) (<-cha
 				if response.Content.State == core.CommandStateError {
 					errChan <- fmt.Errorf(response.Content.Data)
 				} else {
-					responseChan <- parseCommandGetProcessStats(&response)
+					responseChan <- responseparsing.GetProcessStats(&response)
 				}
 			}
 		}
@@ -134,7 +135,7 @@ func (client Client) SchedulerListJobs() (<-chan []scheduling.Job, <-chan error)
 				if response.Content.State == core.CommandStateError {
 					errChan <- fmt.Errorf(response.Content.Data)
 				} else {
-					responseChan <- parseCommandInternalSchedulerListJobs(&response)
+					responseChan <- responseparsing.InternalSchedulerListJobs(&response)
 				}
 			}
 		}
@@ -211,7 +212,7 @@ func (client Client) SchedulerRemoveJob(id string) (chan bool, <-chan error) {
 			if response.Content.State == core.CommandStateError {
 				errChan <- fmt.Errorf(response.Content.Data)
 			} else {
-				responseChan <- parseCommandInternalSchedulerRemoveJob(&response)
+				responseChan <- responseparsing.InternalSchedulerRemoveJob(&response)
 			}
 		}
 	}()
