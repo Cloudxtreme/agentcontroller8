@@ -1,11 +1,12 @@
 package responseparsing
+
 import (
-	"github.com/Jumpscale/agentcontroller2/core"
 	"encoding/json"
 	"fmt"
-	"strings"
-	"github.com/Jumpscale/agentcontroller2/utils"
+	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/Jumpscale/agentcontroller2/scheduling"
+	"github.com/Jumpscale/agentcontroller2/utils"
+	"strings"
 )
 
 type ExecutableResult struct {
@@ -39,32 +40,30 @@ func Execute(response *core.CommandResponse) ExecutableResult {
 	}
 }
 
-
 type RunningCommandStats struct {
 	Command struct {
-				Args  struct {
-						  Args          []string `json:"args"`
-						  Domain        string      `json:"domain"`
-						  MaxTime       int         `json:"max_time"`
-						  Name          string      `json:"name"`
-						  Queue         string      `json:"queue"`
-						  StatsInterval int         `json:"stats_interval"`
-					  } `json:"args"`
-				Cmd   string   `json:"cmd"`
-				Data  string   `json:"data"`
-				GID   int      `json:"gid"`
-				ID    string   `json:"id"`
-				NID   int      `json:"nid"`
-				Roles []string `json:"roles"`
-				Tags  string   `json:"tags"`
-			} `json:"cmd"`
-	CPU     float64    `json:"cpu"`
-	Debug   string `json:"debug"`
-	Rss     int    `json:"rss"`
-	Swap    int    `json:"swap"`
-	Vms     int    `json:"vms"`
+		Args struct {
+			Args          []string `json:"args"`
+			Domain        string   `json:"domain"`
+			MaxTime       int      `json:"max_time"`
+			Name          string   `json:"name"`
+			Queue         string   `json:"queue"`
+			StatsInterval int      `json:"stats_interval"`
+		} `json:"args"`
+		Cmd   string   `json:"cmd"`
+		Data  string   `json:"data"`
+		GID   int      `json:"gid"`
+		ID    string   `json:"id"`
+		NID   int      `json:"nid"`
+		Roles []string `json:"roles"`
+		Tags  string   `json:"tags"`
+	} `json:"cmd"`
+	CPU   float64 `json:"cpu"`
+	Debug string  `json:"debug"`
+	Rss   int     `json:"rss"`
+	Swap  int     `json:"swap"`
+	Vms   int     `json:"vms"`
 }
-
 
 func GetProcessStats(response *core.CommandResponse) []RunningCommandStats {
 	runningStats := []RunningCommandStats{}

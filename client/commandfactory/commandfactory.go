@@ -1,4 +1,5 @@
 package commandfactory
+
 import (
 	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/pborman/uuid"
@@ -7,47 +8,45 @@ import (
 type CommandTarget struct {
 
 	// Target grid ID, must be nonzero
-	GID    uint
+	GID uint
 
 	// Target node ID, must be nonzero
-	NID    uint
+	NID uint
 
 	// Target roles
-	Roles  []core.AgentRole
+	Roles []core.AgentRole
 
 	// When Fanout is true all matching agents are targeted, otherwise
 	// an arbitrary agent that matches is targeted
 	Fanout bool
 }
 
-
 // Command-specific argument
 type CommandArguments struct {
+	Name string
 
-	Name                string
-
-	Domain              string
+	Domain string
 
 	// Internal queue on Agent for job execution
-	Queue               string
+	Queue string
 
 	// Maximum time allowed for the command to execute (0 is forever)
-	MaxRunTime          uint
+	MaxRunTime uint
 
 	// Arguments passed down to an executable in the case of the EXECUTE command
-	ExecutableArguments []string }
+	ExecutableArguments []string
+}
 
 type CommandFactory struct {
+	Target CommandTarget
 
-	Target    CommandTarget
-
-	Name      core.CommandName
+	Name core.CommandName
 
 	// Arbitrary labels for commands
-	Tags      []string
+	Tags []string
 
 	// Command-specific data in an a format expected by the command executor
-	Data      string
+	Data string
 
 	Arguments CommandArguments
 }
@@ -79,26 +78,23 @@ func builtRoles(target CommandTarget) []string {
 func (factory CommandFactory) Build() *core.Command {
 
 	content := &core.CommandContent{
-		ID: uuid.New(),
-		Gid: int(factory.Target.GID),
-		Nid: int(factory.Target.NID),
-		Roles: builtRoles(factory.Target),
+		ID:     uuid.New(),
+		Gid:    int(factory.Target.GID),
+		Nid:    int(factory.Target.NID),
+		Roles:  builtRoles(factory.Target),
 		Fanout: factory.Target.Fanout,
 
-		Cmd: string(factory.Name),
+		Cmd:  string(factory.Name),
 		Data: factory.Data,
 		Tags: factory.Data,
 		Args: core.CommandArgs{
-			Name: factory.Arguments.Name,
-			Queue: factory.Arguments.Queue,
+			Name:    factory.Arguments.Name,
+			Queue:   factory.Arguments.Queue,
 			MaxTime: int(factory.Arguments.MaxRunTime),
-			Domain: factory.Arguments.Domain,
-			Args: factory.Arguments.ExecutableArguments,
+			Domain:  factory.Arguments.Domain,
+			Args:    factory.Arguments.ExecutableArguments,
 		},
 	}
 
 	return core.CommandFromContent(content)
 }
-
-
-

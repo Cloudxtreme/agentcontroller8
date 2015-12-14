@@ -1,12 +1,13 @@
 package client
+
 import (
-	"github.com/garyburd/redigo/redis"
+	"fmt"
 	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
-	"fmt"
-	"time"
-	"strings"
 	"github.com/Jumpscale/agentcontroller2/utils"
+	"github.com/garyburd/redigo/redis"
+	"strings"
+	"time"
 )
 
 // The timeout used in each blocking response-receiving step. It is not the total timeout for receiving
@@ -111,7 +112,7 @@ func (c LowLevelClient) isDone(command *core.Command, agentID core.AgentID) bool
 }
 
 // Sends a command and returns a channel for reading the responses
-func (c LowLevelClient) Execute(command *core.Command) <- chan core.CommandResponse {
+func (c LowLevelClient) Execute(command *core.Command) <-chan core.CommandResponse {
 
 	err := c.Send(command)
 	if err != nil {

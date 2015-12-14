@@ -1,14 +1,15 @@
 package client
+
 import (
-	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/client/commandfactory"
 	"fmt"
+	"github.com/Jumpscale/agentcontroller2/client/commandfactory"
+	"github.com/Jumpscale/agentcontroller2/client/responseparsing"
+	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/Jumpscale/agentcontroller2/scheduling"
-  "github.com/Jumpscale/agentcontroller2/client/responseparsing"
 )
 
 // A high-level client with future-based APIs for speaking to AgentController2
-type Client struct{LowLevelClient}
+type Client struct{ LowLevelClient }
 
 func NewClient(address, redisPassword string) Client {
 	return Client{NewLowLevelClient(address, redisPassword)}
@@ -23,9 +24,9 @@ func AllNodes() commandfactory.CommandTarget {
 }
 
 // Retrieves information about the current live agents
-func (client Client) LiveAgents() (<- chan []core.AgentID, <- chan error) {
+func (client Client) LiveAgents() (<-chan []core.AgentID, <-chan error) {
 
-  // Only 1 response expected
+	// Only 1 response expected
 
 	errChan := make(chan error, 1)
 	agentsChan := make(chan []core.AgentID, 1)
@@ -51,9 +52,9 @@ func (client Client) LiveAgents() (<- chan []core.AgentID, <- chan error) {
 
 // Only call the returned value if you're going to exhaust the two returned channels
 func (client Client) ExecuteExecutable(target commandfactory.CommandTarget,
-	executable string, args []string) func()(<-chan responseparsing.ExecutableResult, <-chan error) {
+	executable string, args []string) func() (<-chan responseparsing.ExecutableResult, <-chan error) {
 
-  // Expecting as many responses as there are targeted agents
+	// Expecting as many responses as there are targeted agents
 
 	command := commandfactory.CommandExecute(target, executable, args)
 	responses := TerminalResponses(client.LowLevelClient.Execute(command))
@@ -69,7 +70,9 @@ func (client Client) ExecuteExecutable(target commandfactory.CommandTarget,
 			for {
 				select {
 				case response, isOpen := <-responses:
-					if !isOpen { return }
+					if !isOpen {
+						return
+					}
 					if response.Content.State == core.CommandStateError {
 						errChan <- fmt.Errorf(response.Content.Data)
 					} else {
@@ -86,7 +89,7 @@ func (client Client) ExecuteExecutable(target commandfactory.CommandTarget,
 // You must make sure you exhaust the returned two channels or else resources will leak
 func (client Client) GetProcessStats(target commandfactory.CommandTarget) (<-chan []responseparsing.RunningCommandStats, <-chan error) {
 
-  // Expecting as many responses as there are targeted agents
+	// Expecting as many responses as there are targeted agents
 
 	errChan := make(chan error)
 	responseChan := make(chan []responseparsing.RunningCommandStats)
@@ -101,7 +104,9 @@ func (client Client) GetProcessStats(target commandfactory.CommandTarget) (<-cha
 		for {
 			select {
 			case response, isOpen := <-responses:
-				if !isOpen { return }
+				if !isOpen {
+					return
+				}
 				if response.Content.State == core.CommandStateError {
 					errChan <- fmt.Errorf(response.Content.Data)
 				} else {
@@ -116,7 +121,7 @@ func (client Client) GetProcessStats(target commandfactory.CommandTarget) (<-cha
 
 func (client Client) SchedulerListJobs() (<-chan []scheduling.Job, <-chan error) {
 
-  // Only 1 response expected
+	// Only 1 response expected
 
 	errChan := make(chan error, 1)
 	responseChan := make(chan []scheduling.Job, 1)
@@ -131,7 +136,9 @@ func (client Client) SchedulerListJobs() (<-chan []scheduling.Job, <-chan error)
 		for {
 			select {
 			case response, isOpen := <-responses:
-				if !isOpen { return }
+				if !isOpen {
+					return
+				}
 				if response.Content.State == core.CommandStateError {
 					errChan <- fmt.Errorf(response.Content.Data)
 				} else {
@@ -169,7 +176,7 @@ func (client Client) SchedulerGetJob(id string) (<-chan scheduling.Job, <-chan e
 
 func (client Client) SchedulerAddJob(id string, scheduledCommand *core.Command, timingSpec string) <-chan error {
 
-  // Only 1 response expected
+	// Only 1 response expected
 
 	errChan := make(chan error, 1)
 
@@ -181,7 +188,9 @@ func (client Client) SchedulerAddJob(id string, scheduledCommand *core.Command, 
 
 		select {
 		case response, isOpen := <-responses:
-			if !isOpen { return }
+			if !isOpen {
+				return
+			}
 			if response.Content.State == core.CommandStateError {
 				errChan <- fmt.Errorf(response.Content.Data)
 			}
@@ -193,7 +202,7 @@ func (client Client) SchedulerAddJob(id string, scheduledCommand *core.Command, 
 
 func (client Client) SchedulerRemoveJob(id string) (chan bool, <-chan error) {
 
-  // Only 1 response expected
+	// Only 1 response expected
 
 	errChan := make(chan error, 1)
 	responseChan := make(chan bool, 1)
