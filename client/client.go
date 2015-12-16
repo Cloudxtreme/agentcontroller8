@@ -89,8 +89,8 @@ func (client Client) GetProcessStats(target commandfactory.CommandTarget) (<-cha
 
 	// Expecting as many responses as there are targeted agents
 
-	errChan := make(chan []error)
-	responseChan := make(chan [][]responseparsing.RunningCommandStats)
+	errChan := make(chan []error, 1)
+	responseChan := make(chan [][]responseparsing.RunningCommandStats, 1)
 
 	go func() {
 		defer close(errChan)
