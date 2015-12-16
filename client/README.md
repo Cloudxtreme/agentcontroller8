@@ -10,12 +10,12 @@ responses back to the client from the targeted Agent2 instances.
 ## 1. Choose your target(s) ##
 ```go
 // Target any one node
-target := commandfactory.CommandTarget{}
+target := client.AnyNode()
 ```
 ... or ...
 ```go
 // Target all available nodes
-target := commandfactory.CommandTarget{Fanout: true}
+target := client.AllNodes()
 ```
 ... or ...
 ```go

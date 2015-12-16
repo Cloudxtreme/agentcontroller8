@@ -16,7 +16,7 @@ func NewClient(address, redisPassword string) Client {
 }
 
 func AnyNode() commandfactory.CommandTarget {
-	return commandfactory.CommandTarget{}
+	return commandfactory.CommandTarget{Roles: []core.AgentRole{"*"}}
 }
 
 func AllNodes() commandfactory.CommandTarget {
