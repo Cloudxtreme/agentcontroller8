@@ -152,24 +152,21 @@ func (client Client) SchedulerListJobs() (<-chan []scheduling.Job, <-chan error)
 // The channel of scheduling.Job may return nothing and immediately be closed if there are no jobs with
 // the specified ID.
 func (client Client) SchedulerGetJob(id string) (<-chan scheduling.Job, <-chan error) {
-	jobChan := make(chan scheduling.Job, 1)
-	newErrChan := make(chan error, 1)
-	jobsChan, errChan := client.SchedulerListJobs()
-	go func() {
-		select {
-		case jobs := <-jobsChan:
-			for _, job := range jobs {
-				if job.ID == id {
-					jobChan <- job
-				}
-			}
-		case err := <-errChan:
-			newErrChan <- err
-		}
-		close(jobChan)
-	}()
 
-	return jobChan, newErrChan
+	jobChan := make(chan scheduling.Job, 1)
+	jobsChan, errChan := client.SchedulerListJobs()
+
+	go func() {
+    jobs := <-jobsChan
+    for _, job := range jobs {
+      if job.ID == id {
+        jobChan <- job
+      }
+    }
+    close(jobChan)
+  }()
+
+	return jobChan, errChan
 }
 
 func (client Client) SchedulerAddJob(id string, scheduledCommand *core.Command, timingSpec string) <-chan error {
