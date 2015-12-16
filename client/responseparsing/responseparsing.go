@@ -80,6 +80,10 @@ func InternalSchedulerListJobs(response *core.CommandResponse) []scheduling.Job 
 	if err != nil {
 		panic(fmt.Errorf("Malformed response: %v", err))
 	}
+  if jobs == nil {
+    // Because AC2 sometimes returns the literal "null" and this function should not be returning nils
+    return []scheduling.Job{}
+  }
 	return jobs
 }
 
