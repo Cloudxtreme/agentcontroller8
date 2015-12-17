@@ -10,12 +10,12 @@ responses back to the client from the targeted Agent2 instances.
 ## 1. Choose your target(s) ##
 ```go
 // Target any one node
-target := client.AnyNode()
+target := commandfactory.CommandTarget{}
 ```
 ... or ...
 ```go
 // Target all available nodes
-target := client.AllNodes()
+target := commandfactory.CommandTarget{Fanout: true}
 ```
 ... or ...
 ```go
@@ -49,14 +49,11 @@ responseChan, errChan := client.ExecuteExecutable(target, "ls", []string{"/opt"}
 // Since we're targeting a single node, we're expecting a single response
 // If we were targeting more than one node we should expect as many responses out of the response 
 // channels as there are targeted nodes
-select {
-case response := <-responseChan:
-	fmt.Println("Success:", response.StandardOut)
-case err := <-errChan:
-	fmt.Println("Error:", err)
-case <-time.After(300 * time.Millisecond):
-	fmt.Println("This is taking too long!")
+err := <-errChan
+if err != nil {
+    panic(err)
 }
+fmt.Println("Success:", <-responseChan)
 ```
 
 Alternatively you can manage your own [low-level communication](https://godoc.org/github.com/Jumpscale/agentcontroller2/client#LowLevelClient) by handling command construction and response parsing yourself.
@@ -72,10 +69,10 @@ command := commandfactory.CommandExecute(target, "ls", []string{"/opt"})
 // Filter out all intermediate responses
 responseChan := client.TerminalResponses(client.Execute(command))
 
-// You'll be reciving terminal responses from each targeted agent individually
+// You'll be receiving terminal responses from each targeted agent individually
 for {
 
-	// Recieve until channel is closed, or responses time out
+	// Receive until channel is closed, or responses time out
 	
 	select {
 	case response, isOpen := <-responseChan:

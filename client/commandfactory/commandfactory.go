@@ -62,13 +62,12 @@ func (factory CommandFactory) AddTag(tag string) {
 // Extracts roles from a CommandTarget for usage directly in a core.CommandContent
 func builtRoles(target CommandTarget) []string {
 
-	var stringRoles []string
+	stringRoles := []string{}
 	for _, role := range target.Roles {
 		stringRoles = append(stringRoles, string(role))
 	}
 
-	// If GID is set and nothing else, it should match all roles
-	if target.GID != 0 && len(stringRoles) == 0 && target.NID == 0 {
+	if len(stringRoles) == 0 {
 		return []string{"*"}
 	}
 

@@ -24,6 +24,7 @@ func AllNodes() commandfactory.CommandTarget {
 }
 
 // Retrieves information about the current live agents
+// Returns two buffered channels of size 1. Either of the two channels will be populated with a value for you.
 func (client Client) LiveAgents() (<-chan []core.AgentID, <-chan error) {
 
 	// Only 1 response expected
@@ -50,6 +51,8 @@ func (client Client) LiveAgents() (<-chan []core.AgentID, <-chan error) {
 	return agentsChan, errChan
 }
 
+
+// Returns two buffered channels of size 1. Either of the two channels will be populated with a value for you.
 func (client Client) ExecuteExecutable(target commandfactory.CommandTarget,
 	executable string, args []string) (<-chan []responseparsing.ExecutableResult, <-chan []error) {
 
@@ -85,6 +88,8 @@ func (client Client) ExecuteExecutable(target commandfactory.CommandTarget,
   return responseChan, errChan
 }
 
+
+// Returns two buffered channels of size 1. Either of the two channels will be populated with a value for you.
 func (client Client) GetProcessStats(target commandfactory.CommandTarget) (<-chan [][]responseparsing.RunningCommandStats, <-chan []error) {
 
 	// Expecting as many responses as there are targeted agents
@@ -119,6 +124,8 @@ func (client Client) GetProcessStats(target commandfactory.CommandTarget) (<-cha
 	return responseChan, errChan
 }
 
+
+// Returns two buffered channels of size 1. Either of the two channels will be populated with a value for you.
 func (client Client) SchedulerListJobs() (<-chan []scheduling.Job, <-chan error) {
 
 	// Only 1 response expected
@@ -151,6 +158,7 @@ func (client Client) SchedulerListJobs() (<-chan []scheduling.Job, <-chan error)
 
 // The channel of scheduling.Job may return nothing and immediately be closed if there are no jobs with
 // the specified ID.
+// Returns two buffered channels of size 1. Either of the two channels will be populated with a value for you.
 func (client Client) SchedulerGetJob(id string) (<-chan scheduling.Job, <-chan error) {
 
 	jobChan := make(chan scheduling.Job, 1)
@@ -168,6 +176,7 @@ func (client Client) SchedulerGetJob(id string) (<-chan scheduling.Job, <-chan e
 
 	return jobChan, errChan
 }
+
 
 func (client Client) SchedulerAddJob(id string, scheduledCommand *core.Command, timingSpec string) <-chan error {
 
@@ -195,6 +204,8 @@ func (client Client) SchedulerAddJob(id string, scheduledCommand *core.Command, 
 	return errChan
 }
 
+
+// Returns two buffered channels of size 1. Either of the two channels will be populated with a value for you.
 func (client Client) SchedulerRemoveJob(id string) (chan bool, <-chan error) {
 
 	// Only 1 response expected
