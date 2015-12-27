@@ -66,7 +66,7 @@ def get_url(endpoint):
 
 def openPortForward(client, gid, nid):
     tunnels = client.tunnel_list(gid, nid)
-    synctunnel = filter(lambda t: t['remote'] == 22000 and t['gateway'] == 'controller', tunnels)
+    synctunnel = list(filter(lambda t: t['remote'] == 22000 and t['gateway'] == 'controller', tunnels))
     if synctunnel:
         tunnel = synctunnel[0]
     else:
@@ -107,7 +107,7 @@ def startup(gid, nid):
     api_key = config['gui']['apiKey']
     headers['X-API-Key'] = api_key
 
-    devices = filter(lambda d: d['deviceID'] == agent_device_id, config['devices'])
+    devices = list(filter(lambda d: d['deviceID'] == agent_device_id, config['devices']))
 
     dirty = False
     if not devices:
@@ -126,14 +126,14 @@ def startup(gid, nid):
     # add device to shared folder.
     for folder_id_prefix in SHARE_FOLDERS:
         folder_id = '%s-%s' % (folder_id_prefix, device_id_hash)
-        folders = filter(lambda f: f['id'] == folder_id, config['folders'])
+        folders = list(filter(lambda f: f['id'] == folder_id, config['folders']))
 
         if not folders:
             logging.warn('Folder id "%s" is not shared on syncthing', folder_id)
             continue
 
         folder = folders[0]
-        if not filter(lambda d: d['deviceID'] == agent_device_id, folder['devices']):
+        if not list(filter(lambda d: d['deviceID'] == agent_device_id, folder['devices'])):
             # share folder with device.
 
             folder['devices'].append({
