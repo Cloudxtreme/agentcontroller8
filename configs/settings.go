@@ -20,10 +20,19 @@ type HTTPBinding struct {
 }
 
 type Extension struct {
-	Enabled    bool
-	Module     string
-	PythonPath string
-	Settings   map[string]string
+	Enabled      bool
+	Module       string
+	PythonBinary string
+	PythonPath   string
+	Settings     map[string]string
+}
+
+func (e *Extension) GetPythonBinary() string {
+	if e.PythonBinary != "" {
+		return e.PythonBinary
+	}
+
+	return "python"
 }
 
 //Settings are the configurable options for the AgentController

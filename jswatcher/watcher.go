@@ -46,7 +46,8 @@ func NewJSWatcher(config *configs.Extension, scheduler *scheduling.Scheduler) (J
 		}
 
 		opts := &pygo.PyOpts{
-			PythonPath: config.PythonPath,
+			PythonBinary: config.GetPythonBinary(),
+			PythonPath:   config.PythonPath,
 			Env: []string{
 				fmt.Sprintf("HOME=%s", os.Getenv("HOME")),
 			},
@@ -189,6 +190,11 @@ func (watcher *jsWatcher) watch() {
 func (watcher *jsWatcher) apply() {
 	//process all jumpscripts in the given location.
 	filepath.Walk(watcher.folder, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Println(err)
+			return nil
+		}
+
 		if info.Mode().IsRegular() {
 			if strings.HasSuffix(path, jumpScriptExtension) {
 				domain, name := watcher.getJumpscriptID(path)
@@ -207,6 +213,10 @@ func (watcher *jsWatcher) apply() {
 func (watcher *jsWatcher) start() {
 	if !watcher.enabled {
 		return
+	}
+
+	if _, err := os.Stat(watcher.folder); os.IsNotExist(err) {
+		os.MkdirAll(watcher.folder, 755)
 	}
 
 	watcher.apply()

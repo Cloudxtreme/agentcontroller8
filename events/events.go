@@ -5,19 +5,19 @@ import (
 	"fmt"
 	"github.com/Jumpscale/agentcontroller2/configs"
 	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller2/utils"
 	"github.com/Jumpscale/pygo"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"github.com/Jumpscale/agentcontroller2/utils"
 )
 
 type Handler struct {
-	module              pygo.Pygo
-	enabled             bool
-	agentInformation 	core.AgentInformationStorage
+	module           pygo.Pygo
+	enabled          bool
+	agentInformation core.AgentInformationStorage
 }
 
 //EventRequest event request
@@ -28,7 +28,8 @@ type EventRequest struct {
 
 func NewEventsHandler(settings *configs.Extension, agentInformation core.AgentInformationStorage) (*Handler, error) {
 	opts := pygo.PyOpts{
-		PythonPath: settings.PythonPath,
+		PythonBinary: settings.GetPythonBinary(),
+		PythonPath:   settings.PythonPath,
 		Env: []string{
 			fmt.Sprintf("HOME=%s", os.Getenv("HOME")),
 		},
@@ -51,9 +52,9 @@ func NewEventsHandler(settings *configs.Extension, agentInformation core.AgentIn
 	}
 
 	handler := &Handler{
-		module:              module,
-		enabled:             settings.Enabled,
-		agentInformation:    agentInformation,
+		module:           module,
+		enabled:          settings.Enabled,
+		agentInformation: agentInformation,
 	}
 
 	return handler, nil
@@ -68,7 +69,6 @@ func (handler *Handler) Event(c *gin.Context) {
 	agentID := utils.GetAgentID(c)
 
 	log.Printf("[+] gin: event (%v)\n", agentID)
-
 
 	handler.agentInformation.MarkAsAlive(agentID)
 

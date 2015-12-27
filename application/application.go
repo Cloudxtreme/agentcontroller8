@@ -43,8 +43,8 @@ type Application struct {
 	agentInformation         core.AgentInformationStorage
 	jumpscriptStore          core.JumpScriptStore
 
-	producers                map[string]chan *core.PollData
-	producersLock            sync.Mutex
+	producers     map[string]chan *core.PollData
+	producersLock sync.Mutex
 }
 
 func NewApplication(settingsPath string) *Application {
@@ -56,12 +56,12 @@ func NewApplication(settingsPath string) *Application {
 	panicIfRedisIsNotOK(redisPool)
 
 	app := Application{
-		redisPool:       redisPool,
-		agentCommands:   redisdata.AgentCommands(redisPool),
-		agentInformation:      agentdata.NewAgentData(),
-		producers:       make(map[string]chan *core.PollData),
-		settings:        settings,
-		jumpscriptStore: redisdata.NewJumpScriptStore(redisPool),
+		redisPool:        redisPool,
+		agentCommands:    redisdata.AgentCommands(redisPool),
+		agentInformation: agentdata.NewAgentData(),
+		producers:        make(map[string]chan *core.PollData),
+		settings:         settings,
+		jumpscriptStore:  redisdata.NewJumpScriptStore(redisPool),
 	}
 
 	{
@@ -119,8 +119,6 @@ func NewApplication(settingsPath string) *Application {
 	return &app
 }
 
-
-
 func (app *Application) Run() {
 
 	go func() {
@@ -130,6 +128,7 @@ func (app *Application) Run() {
 	}()
 
 	app.scheduler.Start()
+
 	app.jswatcher.Start()
 
 	app.executedCommandProcessor.Start()

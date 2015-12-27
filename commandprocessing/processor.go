@@ -32,7 +32,8 @@ func NewProcessor(config *configs.Extension, pool *redis.Pool,
 
 	if config.Enabled {
 		opts := &pygo.PyOpts{
-			PythonPath: config.PythonPath,
+			PythonBinary: config.GetPythonBinary(),
+			PythonPath:   config.PythonPath,
 			Env: []string{
 				fmt.Sprintf("HOME=%s", os.Getenv("HOME")),
 			},
@@ -45,11 +46,11 @@ func NewProcessor(config *configs.Extension, pool *redis.Pool,
 	}
 
 	processor := &processorImpl{
-		enabled:       config.Enabled,
-		pool:          pool,
-		commandResults:  commandResults,
-		commands: commands,
-		module:        module,
+		enabled:        config.Enabled,
+		pool:           pool,
+		commandResults: commandResults,
+		commands:       commands,
+		module:         module,
 	}
 
 	return processor, nil
