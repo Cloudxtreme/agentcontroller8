@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/Jumpscale/agentcontroller2",
-	"GoVersion": "go1.4.2",
+	"GoVersion": "go1.5.2",
 	"Deps": [
 		{
 			"ImportPath": "github.com/Jumpscale/hubble",
@@ -16,8 +16,8 @@
 		},
 		{
 			"ImportPath": "github.com/boltdb/bolt",
-			"Comment": "v1.0-111-g04a3e85",
-			"Rev": "04a3e85793043e76d41164037d0d7f9d53eecae3"
+			"Comment": "v1.1.0-32-g827f56d",
+			"Rev": "827f56dfb2091be2edb284ffb6113c198f27b033"
 		},
 		{
 			"ImportPath": "github.com/cjoudrey/gluahttp",
@@ -33,8 +33,8 @@
 		},
 		{
 			"ImportPath": "github.com/gin-gonic/gin",
-			"Comment": "v1.0rc1-110-g4cc2de6",
-			"Rev": "4cc2de6207f4128624cbdd16be30f64966c67c08"
+			"Comment": "v1.0rc1-148-g52fcc5d",
+			"Rev": "52fcc5dbf6e94df33ad313858fb94b713e9d1b4a"
 		},
 		{
 			"ImportPath": "github.com/gogo/protobuf/proto",
@@ -103,6 +103,10 @@
 			"Rev": "40e4aedc8fabf8c23e040057540867186712faa5"
 		},
 		{
+			"ImportPath": "github.com/mattn/go-isatty",
+			"Rev": "ae0b1f8f8004be68d791a576e3d8e7648ab41449"
+		},
+		{
 			"ImportPath": "github.com/naoina/go-stringutil",
 			"Rev": "360db0db4b01d34e12a2ec042c09e7d37fece761"
 		},
@@ -142,6 +146,10 @@
 		{
 			"ImportPath": "golang.org/x/net/context",
 			"Rev": "e0403b4e005737430c05a57aac078479844f919c"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
 		},
 		{
 			"ImportPath": "gopkg.in/bluesuncorp/validator.v5",
