@@ -99,7 +99,7 @@ def startup(gid, nid):
         raise Exception('Invalid response from syncthing', response.reason)
 
     local_device_id = response.headers['x-syncthing-id']
-    device_id_hash = hashlib.md5(local_device_id).hexdigest()
+    device_id_hash = hashlib.md5(local_device_id.encode()).hexdigest()
     config = response.json()
 
     # if auth is off, we still need to use the API key to be able to use POST.
@@ -154,7 +154,7 @@ def startup(gid, nid):
     # Now, the syncthing on AC side knows about the syncthing on Agent side. Now we have
     # to register this instance of syncthing on agent as well. We can do this via a simple agent command
 
-    for folder_id_prefix, remote_path in SHARE_FOLDERS.iteritems():
+    for folder_id_prefix, remote_path in SHARE_FOLDERS.items():
         # NOTE: the address is set to 127.0.0.1:33000 because the agent automatically opens a tunnel
         # to the master node (this machine)
         folder_id = '%s-%s' % (folder_id_prefix, device_id_hash)
