@@ -8,7 +8,7 @@
 		},
 		{
 			"ImportPath": "github.com/Jumpscale/pygo",
-			"Rev": "45bbde4a8588013e9b8659200fb5d24873fcd0f4"
+			"Rev": "5303102a0363b512ec271dc6e229b4b4e6252ba1"
 		},
 		{
 			"ImportPath": "github.com/armon/go-metrics",
