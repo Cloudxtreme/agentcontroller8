@@ -2,13 +2,13 @@ package scheduling
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
 	"github.com/garyburd/redigo/redis"
 	"github.com/robfig/cron"
 	"log"
 	"strings"
-	"fmt"
-	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
 )
 
 //Scheduler schedules cron jobs
@@ -24,7 +24,7 @@ func NewScheduler(pool *redis.Pool, commandPipeline core.CommandSource) *Schedul
 		cron:            cron.New(),
 		pool:            pool,
 		commandPipeline: commandPipeline,
-		commands: ds.GetHash("controller.schedule"),
+		commands:        ds.GetHash("controller.schedule"),
 	}
 
 	return sched
@@ -38,7 +38,6 @@ func validateCronSpec(timing string) error {
 	}
 	return nil
 }
-
 
 // Adds a job to the scheduler (overrides old ones)
 func (sched *Scheduler) AddJob(job *Job) error {
@@ -55,7 +54,6 @@ func (sched *Scheduler) AddJob(job *Job) error {
 	return err
 }
 
-
 // Lists all scheduled jobs
 func (sched *Scheduler) ListJobs() []Job {
 	jobsMap, err := sched.commands.ToStringMap(sched.pool)
@@ -63,7 +61,7 @@ func (sched *Scheduler) ListJobs() []Job {
 		panic(fmt.Errorf("Redis failure: %v", err))
 	}
 
-	var jobs []Job
+	jobs := make([]Job, 0)
 	for _, jsonJob := range jobsMap {
 		job, err := JobFromJSON([]byte(jsonJob))
 		if err != nil {
@@ -75,12 +73,12 @@ func (sched *Scheduler) ListJobs() []Job {
 	return jobs
 }
 
-
 func (sched *Scheduler) RemoveByID(id string) (int, error) {
 	deleted, err := sched.commands.Delete(sched.pool, id)
 	if !deleted {
 		return 0, err
 	}
+	sched.restart()
 	return 1, err
 }
 
