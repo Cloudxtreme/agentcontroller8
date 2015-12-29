@@ -2,23 +2,14 @@ from JumpScale import j # NOQA
 import time
 import json
 
-
-osis = j.clients.osis.getNamespace('system')
-
-
 ERROR_STATES = ('ERROR', 'TIMEOUT')
 
 
 def get_or_create_command(command_guid):
     try:
-        return osis.command.get(command_guid)
-    except Exception as e:
-        if not hasattr(e, 'eco'):
-            raise
-        if e.eco['exceptionclassname'] == 'KeyError':
-            return osis.command.new()
-        raise
-
+        return j.data.models.Command.objects.get(guid=command_guid)
+    except j.data.models.DoesNotExist as e:
+        return j.data.models.Command()
 
 # Entry point called via the controller to process a received command.
 def process_command(command):
@@ -30,7 +21,7 @@ def process_command(command):
         setattr(cmd, key, command[key])
 
     cmd.starttime = int(time.time() * 1000)
-    osis.command.set(cmd)
+    cmd.save()
 
 
 # Entry point called via the controller to process a receieved result.
@@ -47,14 +38,16 @@ def process_result(result):
             break
 
     if job is None:
-        job = cmd.new_job()
+        job = j.data.models.Job()
+        cmd.jobs.append(job)
 
     cmd.guid = result['id']
 
     for key in ('gid', 'nid', 'data', 'streams', 'level', 'state', 'starttime', 'time', 'tags', 'critical'):
         setattr(job, key, result[key])
 
-    osis.command.set(cmd)
+
+    cmd.save()
 
     if result['state'] in ERROR_STATES:
         process_error_result(result)
@@ -82,7 +75,7 @@ def process_error_result(result):
 
     eco = get_eco(result)
 
-    eco_obj = osis.eco.new(gid=gid, nid=nid)
+    eco_obj = j.data.modelss.ErrorCondition()
 
     for key in ('pid', 'masterjid', 'epoch', 'appname', 'level', 'type', 'state', 'errormessage',
                 'errormessagePub', 'category', 'tags', 'code', 'funcname', 'funcfilename', 'funclinenr',
@@ -93,4 +86,4 @@ def process_error_result(result):
     eco_obj.nid = nid
     eco_obj.jid = result['id']
 
-    osis.eco.set(eco_obj)
+    eco_obj.save()
