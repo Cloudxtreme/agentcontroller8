@@ -34,7 +34,7 @@ python_path = "./extensions:/opt/jumpscale7/lib"
     [events.settings]
     syncthing_url = "http://localhost:18384/"
     redis_address = "localhost"
-    redis_port = "9999"
+    redis_port = "6379"
     redis_password = ""
 
 [processor]

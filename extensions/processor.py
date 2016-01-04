@@ -4,6 +4,7 @@ import json
 
 ERROR_STATES = ('ERROR', 'TIMEOUT')
 
+j.data.models.connect2mongo()
 
 def get_or_create_command(command_guid):
     try:
@@ -75,7 +76,7 @@ def process_error_result(result):
 
     eco = get_eco(result)
 
-    eco_obj = j.data.modelss.ErrorCondition()
+    eco_obj = j.data.models.ErrorCondition()
 
     for key in ('pid', 'masterjid', 'epoch', 'appname', 'level', 'type', 'state', 'errormessage',
                 'errormessagePub', 'category', 'tags', 'code', 'funcname', 'funcfilename', 'funclinenr',
