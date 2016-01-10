@@ -84,8 +84,8 @@ def startup(gid, nid):
         'content-type': 'application/json'
     }
 
-    client = j.clients.ac.getAdvanced(**settings['redis'])
-    default = j.clients.ac.getRunArgs(domain='jumpscale')
+    client = j.clients.agentcontroller.getAdvanced(**settings['redis'])
+    default = j.clients.agentcontroller.getRunArgs(domain='jumpscale')
 
     get_id = client.cmd(gid, nid, 'sync', default.update({'name': 'get_id'}))
 
