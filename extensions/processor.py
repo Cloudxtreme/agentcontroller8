@@ -4,13 +4,13 @@ import json
 
 ERROR_STATES = ('ERROR', 'TIMEOUT')
 
-j.data.models.connect2mongo()
+j.data.models.system.connect2mongo()
 
 def get_or_create_command(command_guid):
     try:
-        return j.data.models.Command.objects.get(guid=command_guid)
-    except j.data.models.DoesNotExist as e:
-        return j.data.models.Command()
+        return j.data.models.system.Command.objects.get(guid=command_guid)
+    except j.data.models.system.Command.DoesNotExist as e:
+        return j.data.models.system.Command()
 
 # Entry point called via the controller to process a received command.
 def process_command(command):
@@ -39,7 +39,7 @@ def process_result(result):
             break
 
     if job is None:
-        job = j.data.models.Job()
+        job = j.data.models.system.Job()
         cmd.jobs.append(job)
 
     cmd.guid = result['id']
@@ -76,7 +76,7 @@ def process_error_result(result):
 
     eco = get_eco(result)
 
-    eco_obj = j.data.models.ErrorCondition()
+    eco_obj = j.data.models.system.ErrorCondition()
 
     for key in ('pid', 'masterjid', 'epoch', 'appname', 'level', 'type', 'state', 'errormessage',
                 'errormessagePub', 'category', 'tags', 'code', 'funcname', 'funcfilename', 'funclinenr',
