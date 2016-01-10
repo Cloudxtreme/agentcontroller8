@@ -76,7 +76,7 @@ def process_error_result(result):
 
     eco = get_eco(result)
 
-    eco_obj = j.data.models.system.ErrorCondition()
+    eco_obj = j.data.models.system.Errorcondition()
 
     for key in ('pid', 'masterjid', 'epoch', 'appname', 'level', 'type', 'state', 'errormessage',
                 'errormessagePub', 'category', 'tags', 'code', 'funcname', 'funcfilename', 'funclinenr',
