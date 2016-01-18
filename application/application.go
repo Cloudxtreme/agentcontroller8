@@ -31,7 +31,8 @@ const (
 type Application struct {
 	redisPool                *redis.Pool
 	internalCommands         *internals.Manager
-	commandSource            *logged.CommandSource
+	commandSource            core.CommandSource
+	log                      core.CommandLog
 	commandResponder         *logged.CommandResponder
 	agentCommands            core.AgentCommands
 	settings                 *configs.Settings
@@ -66,13 +67,14 @@ func NewApplication(settingsPath string) *Application {
 
 	{
 		redisSource := redisdata.NewCommandSource(redisPool)
-		interceptedSource := interceptors.NewInterceptedCommandSource(redisSource, app.jumpscriptStore)
-		commandLog := redisdata.NewCommandLog(redisPool)
+		app.log = redisdata.NewCommandLog(redisPool)
 		loggedSource := &logged.CommandSource{
-			CommandSource: interceptedSource,
-			Log:           commandLog,
+			CommandSource: redisSource,
+			Log:           app.log,
 		}
-		app.commandSource = loggedSource
+
+		interceptedSource := interceptors.NewInterceptedCommandSource(loggedSource, app.jumpscriptStore)
+		app.commandSource = interceptedSource
 	}
 
 	app.commandResponder = &logged.CommandResponder{
@@ -108,7 +110,7 @@ func NewApplication(settingsPath string) *Application {
 	commandProcessor, err := commandprocessing.NewProcessor(
 		&app.settings.Processor,
 		app.redisPool,
-		app.commandSource.Log,
+		app.log,
 		app.commandResponder.Log,
 	)
 	if err != nil {

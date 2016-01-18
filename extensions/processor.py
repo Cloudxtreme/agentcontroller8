@@ -47,7 +47,6 @@ def process_result(result):
     for key in ('gid', 'nid', 'data', 'streams', 'level', 'state', 'starttime', 'time', 'tags', 'critical'):
         setattr(job, key, result[key])
 
-
     cmd.save()
 
     if result['state'] in ERROR_STATES:
