@@ -30,7 +30,7 @@ password = "root"
 [events]
 enabled = true
 module = "handlers"
-python_path = "./extensions:/opt/jumpscale7/lib"
+python_path = "./extensions:/opt/jumpscale8/lib"
     [events.settings]
     syncthing_url = "http://localhost:18384/"
     redis_address = "localhost"
@@ -40,12 +40,12 @@ python_path = "./extensions:/opt/jumpscale7/lib"
 [processor]
 enabled = true
 module = "processor"
-python_path = "./extensions:/opt/jumpscale7/lib"
+python_path = "./extensions:/opt/jumpscale8/lib"
 
 [jumpscripts]
 enabled = true
 module = "jumpscript"
-python_path = "./extensions:/opt/jumpscale7/lib"
+python_path = "./extensions:/opt/jumpscale8/lib"
     [jumpscripts.settings]
     jumpscripts_path = "./jumpscripts"
 
