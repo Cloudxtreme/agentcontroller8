@@ -4,7 +4,7 @@ redis_password = ""
 
 #Default http
 [[listen]]
-  Address = ":8966"
+  address = ":8966"
 
 #Example for https with multiple virtual hosts and clientcertificates
 #[[listen]]

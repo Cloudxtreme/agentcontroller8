@@ -78,21 +78,16 @@ type Settings struct {
 func (s *Settings) Validate() []error {
 	errors := make([]error, 0)
 	//1- Validate TCP Addr of redis.
-	redisAddress, err := net.ResolveTCPAddr("tcp", s.Main.RedisHost)
-	if err != nil {
+	if redisAddress, err := net.ResolveTCPAddr("tcp", s.Main.RedisHost); err != nil {
 		errors = append(errors, ValidationError("[main] `redis_host` error", err))
-	}
-	if redisAddress.IP.String() == "" || redisAddress.Port == 0 {
+	} else if redisAddress.IP.String() == "" || redisAddress.Port == 0 {
 		errors = append(errors, ValidationError("[main'] `redis_host` error", fmt.Errorf("Invalid address :%s", redisAddress)))
 	}
 
 	for i, tcpBind := range s.Listen {
-		address, err := net.ResolveTCPAddr("tcp", tcpBind.Address)
-		if err != nil {
+		if address, err := net.ResolveTCPAddr("tcp", tcpBind.Address); err != nil {
 			errors = append(errors, ValidationError(fmt.Sprintf("[listen] [%d] `address` error", i), err))
-		}
-
-		if address.Port == 0 {
+		} else if address.Port == 0 {
 			errors = append(errors, ValidationError(fmt.Sprintf("[listen] [%d] `address` error", i), fmt.Errorf("Invalid address :%s", address)))
 		}
 	}
