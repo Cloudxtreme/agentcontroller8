@@ -2,36 +2,37 @@ package core
 
 import (
 	"encoding/json"
+	"log"
 )
 
 const (
-	CommandStateQueued = "QUEUED"
-	CommandStateRunning = "RUNNING"
-	CommandStateError = "ERROR"
-	CommandStateSuccess = "SUCCESS"
+	CommandStateQueued              = "QUEUED"
+	CommandStateRunning             = "RUNNING"
+	CommandStateError               = "ERROR"
+	CommandStateSuccess             = "SUCCESS"
 	CommandStateErrorUnknownCommand = "UNKNOWN_CMD"
 )
 
 type CommandName string
 
 type CommandContent struct {
-	ID     string   `json:"id"`
-	Gid    int      `json:"gid"`
-	Nid    int      `json:"nid"`
-	Cmd    string   `json:"cmd"`
-	Roles  []string `json:"roles"`
-	Fanout bool     `json:"fanout"`
-	Data   string   `json:"data"`
-	Tags   string   `json:"tags"`
+	ID     string      `json:"id"`
+	Gid    int         `json:"gid"`
+	Nid    int         `json:"nid"`
+	Cmd    string      `json:"cmd"`
+	Roles  []string    `json:"roles"`
+	Fanout bool        `json:"fanout"`
+	Data   string      `json:"data"`
+	Tags   string      `json:"tags"`
 	Args   CommandArgs `json:"args"`
 }
 
 type CommandArgs struct {
-	Domain  string    `json:"domain"`
-	Name    string    `json:"name"`
-	Queue   string    `json:"queue"`
-	MaxTime int       `json:"max_time"`
-	Args    []string  `json:"args"`
+	Domain  string   `json:"domain"`
+	Name    string   `json:"name"`
+	Queue   string   `json:"queue"`
+	MaxTime int      `json:"max_time"`
+	Args    []string `json:"args"`
 }
 
 type RawCommand map[string]interface{}
@@ -107,7 +108,7 @@ func CommandResponseFromJSON(payload []byte) (*CommandResponse, error) {
 func CommandResponseFromContent(content *CommandResponseContent) *CommandResponse {
 	jsonData, err := json.Marshal(content)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	return &CommandResponse{
 		Content: *content,
@@ -118,11 +119,11 @@ func CommandResponseFromContent(content *CommandResponseContent) *CommandRespons
 func CommandFromContent(content *CommandContent) *Command {
 	jsonData, err := json.Marshal(content)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	command, err := CommandFromJSON(jsonData)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	return command
 }

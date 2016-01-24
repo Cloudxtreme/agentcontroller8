@@ -1,8 +1,9 @@
 package core
+
 import (
-	"time"
 	"encoding/json"
-	"fmt"
+	"log"
+	"time"
 )
 
 // Constructs an error response for the specified command
@@ -57,7 +58,7 @@ func SuccessResponseFor(command *Command, result interface{}, level int) *Comman
 
 	jsonResult, err := json.Marshal(result)
 	if err != nil {
-		panic(fmt.Errorf("Failed to serialize: %v", err))
+		log.Fatalf("Failed to serialize: %v", err)
 	}
 
 	content := CommandResponseContent{
@@ -67,7 +68,7 @@ func SuccessResponseFor(command *Command, result interface{}, level int) *Comman
 		Tags:      command.Content.Tags,
 		State:     CommandStateSuccess,
 		Data:      string(jsonResult),
-		Level: 	   level,
+		Level:     level,
 		StartTime: int64(time.Duration(time.Now().UnixNano()) / time.Millisecond),
 	}
 

@@ -1,22 +1,21 @@
 package scheduling
+
 import (
-	"log"
-	"github.com/Jumpscale/agentcontroller2/core"
 	"encoding/json"
+	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/pborman/uuid"
-	"fmt"
+	"log"
 )
 
 //SchedulerJob represented a shceduled job as stored in redis
 type Job struct {
-
-	ID              string                 `json:"id"`
+	ID string `json:"id"`
 
 	// The cron-style spec of the scheduled times
-	Cron            string                 `json:"cron"`
+	Cron string `json:"cron"`
 
 	// The RawCommand of the command being executed
-	Cmd             map[string]interface{} `json:"cmd"`
+	Cmd map[string]interface{} `json:"cmd"`
 
 	// The job will be executed by being pushed to this pipeline
 	commandPipeline core.CommandSource
@@ -32,7 +31,7 @@ func (job *Job) Run() {
 
 	command, err := core.CommandFromJSON(dump)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	err = job.commandPipeline.Push(command)
@@ -53,7 +52,7 @@ func JobFromJSON(data []byte) (*Job, error) {
 func JobToJSON(job *Job) []byte {
 	jsonData, err := json.Marshal(job)
 	if err != nil {
-		panic(fmt.Errorf("Failed to JSON Marshal: %v", err))
+		log.Fatalf("Failed to JSON Marshal: %v", err)
 	}
 	return jsonData
 }

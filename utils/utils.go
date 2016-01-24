@@ -1,10 +1,12 @@
 package utils
+
 import (
+	"crypto/md5"
+	"encoding/json"
 	"fmt"
 	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/gin-gonic/gin"
-	"crypto/md5"
-	"encoding/json"
+	"log"
 )
 
 // Extracts an Agent ID from a Gin context
@@ -26,7 +28,7 @@ func MD5Hex(data []byte) string {
 func MustJsonMarshal(whateves interface{}) []byte {
 	data, err := json.Marshal(whateves)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	return data
 }
@@ -34,6 +36,6 @@ func MustJsonMarshal(whateves interface{}) []byte {
 func MustJsonUnmarshal(data []byte, target interface{}) {
 	err := json.Unmarshal(data, target)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }

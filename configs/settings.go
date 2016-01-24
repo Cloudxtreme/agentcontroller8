@@ -4,7 +4,9 @@ import (
 	"io/ioutil"
 	"os"
 
+	"fmt"
 	"github.com/naoina/toml"
+	"net"
 )
 
 //HTTPBinding defines the address that should be bound on and optional tls certificates
@@ -35,6 +37,19 @@ func (e *Extension) GetPythonBinary() string {
 	return "python"
 }
 
+type validationError struct {
+	base    error
+	message string
+}
+
+func (v *validationError) Error() string {
+	return fmt.Sprintf("%s: %s", v.message, v.base)
+}
+
+func ValidationError(message string, base error) error {
+	return &validationError{base, message}
+}
+
 //Settings are the configurable options for the AgentController
 type Settings struct {
 	Main struct {
@@ -58,6 +73,31 @@ type Settings struct {
 	Syncthing struct {
 		Port int
 	}
+}
+
+func (s *Settings) Validate() []error {
+	errors := make([]error, 0)
+	//1- Validate TCP Addr of redis.
+	redisAddress, err := net.ResolveTCPAddr("tcp", s.Main.RedisHost)
+	if err != nil {
+		errors = append(errors, ValidationError("[main] `redis_host` error", err))
+	}
+	if redisAddress.IP.String() == "" || redisAddress.Port == 0 {
+		errors = append(errors, ValidationError("[main'] `redis_host` error", fmt.Errorf("Invalid address :%s", redisAddress)))
+	}
+
+	for i, tcpBind := range s.Listen {
+		address, err := net.ResolveTCPAddr("tcp", tcpBind.Address)
+		if err != nil {
+			errors = append(errors, ValidationError(fmt.Sprintf("[listen] [%d] `address` error", i), err))
+		}
+
+		if address.Port == 0 {
+			errors = append(errors, ValidationError(fmt.Sprintf("[listen] [%d] `address` error", i), fmt.Errorf("Invalid address :%s", address)))
+		}
+	}
+
+	return errors
 }
 
 //LoadSettingsFromTomlFile does exactly what the name says, it loads a toml in a Settings struct

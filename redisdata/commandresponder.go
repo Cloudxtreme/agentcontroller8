@@ -1,9 +1,11 @@
 package redisdata
+
 import (
-	"github.com/garyburd/redigo/redis"
-	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
 	"fmt"
 	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
+	"github.com/garyburd/redigo/redis"
+	"log"
 	"time"
 )
 
@@ -45,7 +47,7 @@ func (outgoing *commandResponder) RespondToCommand(response *core.CommandRespons
 		return err
 	}
 
-	err = hash.Hash.Expire(outgoing.connPool, 24 * time.Hour)
+	err = hash.Hash.Expire(outgoing.connPool, 24*time.Hour)
 	if err != nil {
 		return err
 	}
@@ -64,11 +66,11 @@ func (outgoing *commandResponder) signalAsDone(response *core.CommandResponse) {
 
 	err := list.RightPush(outgoing.connPool, response)
 	if err != nil {
-		panic(fmt.Errorf("Redis error: %v", err))
+		log.Fatalf("Redis error: %v", err)
 	}
 
-	list.List.Expire(outgoing.connPool, 24 * time.Hour)
+	list.List.Expire(outgoing.connPool, 24*time.Hour)
 	if err != nil {
-		panic(fmt.Errorf("Redis error: %v", err))
+		log.Fatalf("Redis error: %v", err)
 	}
 }

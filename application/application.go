@@ -184,6 +184,15 @@ func loadSettings(settingsPath string) *configs.Settings {
 	if err != nil {
 		log.Fatal("Error loading configuration file:", err)
 	}
+
+	if errors := settings.Validate(); len(errors) > 0 {
+		for _, err := range errors {
+			log.Printf("Validation Error: %s", err)
+		}
+		log.Println("")
+		log.Fatal("Config validation errors, please fix and try again")
+	}
+
 	return settings
 }
 
@@ -192,7 +201,7 @@ func panicIfRedisIsNotOK(redisConnPool *redis.Pool) {
 	defer db.Close()
 
 	if _, err := db.Do("PING"); err != nil {
-		panic(fmt.Sprintf("Failed to connect to redis: %v", err))
+		log.Fatalf("Failed to connect to redis: %v", err)
 	}
 }
 
@@ -204,7 +213,7 @@ func newRedisPool(addr string, password string) *redis.Pool {
 			c, err := redis.DialTimeout("tcp", addr, 0, agentInteractiveAfterOver/2, 0)
 
 			if err != nil {
-				panic(err.Error())
+				log.Fatalf("Failed to connect to redis: %s", err)
 			}
 
 			if password != "" {
@@ -242,7 +251,7 @@ func (app *Application) processSingleCommand() {
 		errResponse := core.ErrorResponseFor(command, "No matching connected agents found")
 		err := app.commandResponder.RespondToCommand(errResponse)
 		if err != nil {
-			panic("Failed to send error response")
+			log.Fatal("Failed to send error response")
 		}
 	} else {
 		app.distributeCommandToAgents(targetAgents, command)
@@ -260,7 +269,7 @@ func (app *Application) distributeCommandToAgents(agents []core.AgentID, command
 		log.Println("Dispatching message to", agentID)
 		err := app.agentCommands.Enqueue(agentID, command)
 		if err != nil {
-			panic(fmt.Errorf("[-] push error: ", err))
+			log.Fatalf("[-] push error: ", err)
 		}
 	}
 }

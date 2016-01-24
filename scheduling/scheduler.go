@@ -2,7 +2,6 @@ package scheduling
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/Jumpscale/agentcontroller2/core"
 	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
 	"github.com/garyburd/redigo/redis"
@@ -58,14 +57,14 @@ func (sched *Scheduler) AddJob(job *Job) error {
 func (sched *Scheduler) ListJobs() []Job {
 	jobsMap, err := sched.commands.ToStringMap(sched.pool)
 	if err != nil {
-		panic(fmt.Errorf("Redis failure: %v", err))
+		log.Fatalf("Redis failure: %v", err)
 	}
 
 	jobs := make([]Job, 0)
 	for _, jsonJob := range jobsMap {
 		job, err := JobFromJSON([]byte(jsonJob))
 		if err != nil {
-			panic("Corrupted job stored in Redis")
+			log.Fatal("Corrupted job stored in Redis")
 		}
 		jobs = append(jobs, *job)
 	}
