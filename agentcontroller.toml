@@ -1,3 +1,5 @@
+#do not replace $base is used in installers
+
 [main]
 redis_host =  "127.0.0.1:6379"
 redis_password = ""
@@ -31,7 +33,7 @@ password = "root"
 enabled = true
 module = "handlers"
 python_binary = "python3.5"
-python_path = "./extensions:/opt/jumpscale8/lib"
+python_path = "./extensions:$base/lib"
     [events.settings]
     syncthing_url = "http://localhost:18384/"
     redis_address = "localhost"
@@ -42,13 +44,13 @@ python_path = "./extensions:/opt/jumpscale8/lib"
 enabled = true
 module = "processor"
 python_binary = "python3.5"
-python_path = "./extensions:/opt/jumpscale8/lib"
+python_path = "./extensions:$base/lib"
 
 [jumpscripts]
 enabled = true
 module = "jumpscript"
 python_binary = "python3.5"
-python_path = "./extensions:/opt/jumpscale8/lib"
+python_path = "./extensions:$base/lib"
     [jumpscripts.settings]
     jumpscripts_path = "./jumpscripts"
 
