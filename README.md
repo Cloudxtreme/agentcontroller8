@@ -1,13 +1,11 @@
-# AgentController2 #
+# AgentController8 #
 [![Build Status](https://travis-ci.org/Jumpscale/agentcontroller2.svg?branch=master)](https://travis-ci.org/Jumpscale/agentcontroller2)
-
-For more information checkout the [docs](https://gig.gitbooks.io/jumpscale8/content/MultiNode/AgentController2/AgentController2.html#).
 
 JumpScale Agentcontroller in Go.
 
-### Functions of a Agent2
+### Functions of a Agent8
 - is a process manager
-- a remote command executor that gets it's jobs and tasks by polling from AC (Agent Controller 2).
+- a remote command executor that gets it's jobs and tasks by polling from AC (Agent Controller 8).
 - tcp portforwarder
 - statistics aggregator & forwarder
 
@@ -33,3 +31,5 @@ TEST_REDIS_PORT=6379 go test ./...
 # Architecture
 
 ![](https://docs.google.com/drawings/d/1qsOzbv2XbwChgsLVV8qCydmH0ki9QLkaB336kt7D1Cg/pub?w=960&h=720)
+
+For more information checkout the [docs](https://gig.gitbooks.io/jumpscale8/content/MultiNode/AgentController2/AgentController2.html#).
