@@ -1,8 +1,8 @@
 package application
 import (
 	"testing"
-	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/agentdata"
+	"github.com/Jumpscale/agentcontroller8/core"
+	"github.com/Jumpscale/agentcontroller8/agentdata"
 	"github.com/stretchr/testify/assert"
 )
 

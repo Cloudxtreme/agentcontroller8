@@ -2,9 +2,9 @@ package commandfactory
 
 import (
 	"fmt"
-	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/internals"
-	"github.com/Jumpscale/agentcontroller2/scheduling"
+	"github.com/Jumpscale/agentcontroller8/core"
+	"github.com/Jumpscale/agentcontroller8/internals"
+	"github.com/Jumpscale/agentcontroller8/scheduling"
 )
 
 // Builds and returns a GetProcessStats command for the given target

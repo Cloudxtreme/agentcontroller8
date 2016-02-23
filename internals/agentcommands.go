@@ -1,7 +1,7 @@
 package internals
 import (
 	"fmt"
-	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller8/core"
 )
 
 

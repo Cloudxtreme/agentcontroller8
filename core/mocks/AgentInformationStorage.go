@@ -1,6 +1,6 @@
 package mocks
 
-import "github.com/Jumpscale/agentcontroller2/core"
+import "github.com/Jumpscale/agentcontroller8/core"
 import "github.com/stretchr/testify/mock"
 
 type AgentInformationStorage struct {

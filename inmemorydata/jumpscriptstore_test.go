@@ -1,8 +1,8 @@
 package inmemorydata_test
 import (
 	"testing"
-	"github.com/Jumpscale/agentcontroller2/inmemorydata"
-	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller8/inmemorydata"
+	"github.com/Jumpscale/agentcontroller8/core"
 	"github.com/stretchr/testify/assert"
 )
 

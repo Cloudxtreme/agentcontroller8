@@ -3,8 +3,8 @@ package commandprocessing
 
 import (
 	"fmt"
-	"github.com/Jumpscale/agentcontroller2/configs"
-	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller8/configs"
+	"github.com/Jumpscale/agentcontroller8/core"
 	"github.com/Jumpscale/pygo"
 	"github.com/garyburd/redigo/redis"
 	"log"

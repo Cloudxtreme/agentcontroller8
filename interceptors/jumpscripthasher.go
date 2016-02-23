@@ -2,7 +2,7 @@ package interceptors
 import (
 "errors"
 "encoding/json"
-"github.com/Jumpscale/agentcontroller2/core"
+"github.com/Jumpscale/agentcontroller8/core"
 )
 
 // Hashes jumpscripts executed by the jumpscript_content and store it in redis. Alters the passed command as needed

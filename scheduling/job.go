@@ -2,7 +2,7 @@ package scheduling
 
 import (
 	"encoding/json"
-	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller8/core"
 	"github.com/pborman/uuid"
 	"log"
 )

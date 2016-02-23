@@ -2,7 +2,7 @@ package ds
 import (
 	"github.com/garyburd/redigo/redis"
 	"time"
-	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller8/core"
 )
 
 type CommandList struct {

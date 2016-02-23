@@ -1,9 +1,9 @@
 package logged_test
 import (
 	"testing"
-	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/core/mocks"
-	"github.com/Jumpscale/agentcontroller2/logged"
+	"github.com/Jumpscale/agentcontroller8/core"
+	"github.com/Jumpscale/agentcontroller8/core/mocks"
+	"github.com/Jumpscale/agentcontroller8/logged"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

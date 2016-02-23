@@ -1,8 +1,8 @@
 package redisdata
 import (
 	"github.com/garyburd/redigo/redis"
-	"github.com/Jumpscale/agentcontroller2/redisdata/ds"
-	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller8/redisdata/ds"
+	"github.com/Jumpscale/agentcontroller8/core"
 )
 
 type loggedCommands struct {
