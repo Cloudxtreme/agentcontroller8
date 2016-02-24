@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
+	"github.com/Jumpscale/agentcontroller8/application"
 	"log"
 	"os"
-	"github.com/Jumpscale/agentcontroller8/application"
 )
 
 // Gets the settings path from a CLI argument
