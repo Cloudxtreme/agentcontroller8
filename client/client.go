@@ -8,7 +8,7 @@ import (
 	"github.com/Jumpscale/agentcontroller8/scheduling"
 )
 
-// A high-level client with future-based APIs for speaking to AgentController2
+// A high-level client with future-based APIs for speaking to AgentController8
 type Client struct{ LowLevelClient }
 
 func NewClient(address, redisPassword string) Client {

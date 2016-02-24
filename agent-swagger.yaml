@@ -1,7 +1,7 @@
 swagger: '2.0'
 
 info:
-  title: AgentController2 Admin REST API
+  title: AgentController8 Admin REST API
   description: JumpScale Agent Controller 2
   version: 1.0.0  # This spec is actually not versioned
 

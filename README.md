@@ -1,5 +1,5 @@
 # AgentController8 #
-[![Build Status](https://travis-ci.org/Jumpscale/agentcontroller2.svg?branch=master)](https://travis-ci.org/Jumpscale/agentcontroller2)
+[![Build Status](https://travis-ci.org/Jumpscale/agentcontroller8.svg?branch=master)](https://travis-ci.org/Jumpscale/agentcontroller8)
 
 JumpScale Agentcontroller in Go.
 
@@ -17,7 +17,7 @@ The Agent will also monitor the jobs, updating the AC with `stats` and `logs`. A
 
 # Running from source code #
 ```
-go run main.go -c agentcontroller2.toml
+go run main.go -c agentcontroller.toml
 ```
 
 # Using it #
@@ -32,4 +32,4 @@ TEST_REDIS_PORT=6379 go test ./...
 
 ![](https://docs.google.com/drawings/d/1qsOzbv2XbwChgsLVV8qCydmH0ki9QLkaB336kt7D1Cg/pub?w=960&h=720)
 
-For more information checkout the [docs](https://gig.gitbooks.io/jumpscale8/content/MultiNode/AgentController2/AgentController2.html#).
+For more information checkout the [docs](https://gig.gitbooks.io/jumpscale8/content/MultiNode/AgentController8/AgentController8.html#).
