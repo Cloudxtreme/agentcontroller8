@@ -1,7 +1,7 @@
 package internals
 import (
-	"github.com/Jumpscale/agentcontroller2/scheduling"
-	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller8/scheduling"
+	"github.com/Jumpscale/agentcontroller8/core"
 	"encoding/json"
 )
 

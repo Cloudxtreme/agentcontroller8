@@ -6,7 +6,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
-	"github.com/Jumpscale/agentcontroller2/configs"
+	"github.com/Jumpscale/agentcontroller8/configs"
 )
 
 func configureClientCertificates(httpBinding configs.HTTPBinding, server *http.Server) (err error) {

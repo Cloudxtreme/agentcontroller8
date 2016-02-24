@@ -4,8 +4,8 @@ import (
 "log"
 "net/http"
 	"time"
-"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/utils"
+"github.com/Jumpscale/agentcontroller8/core"
+	"github.com/Jumpscale/agentcontroller8/utils"
 )
 
 func extractRoles(ctx *gin.Context) []core.AgentRole {

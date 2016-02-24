@@ -2,10 +2,10 @@ package client
 
 import (
 	"fmt"
-	"github.com/Jumpscale/agentcontroller2/client/commandfactory"
-	"github.com/Jumpscale/agentcontroller2/client/responseparsing"
-	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/scheduling"
+	"github.com/Jumpscale/agentcontroller8/client/commandfactory"
+	"github.com/Jumpscale/agentcontroller8/client/responseparsing"
+	"github.com/Jumpscale/agentcontroller8/core"
+	"github.com/Jumpscale/agentcontroller8/scheduling"
 )
 
 // A high-level client with future-based APIs for speaking to AgentController2

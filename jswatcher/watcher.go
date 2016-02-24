@@ -2,9 +2,9 @@ package jswatcher
 
 import (
 	"fmt"
-	"github.com/Jumpscale/agentcontroller2/configs"
-	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/scheduling"
+	"github.com/Jumpscale/agentcontroller8/configs"
+	"github.com/Jumpscale/agentcontroller8/core"
+	"github.com/Jumpscale/agentcontroller8/scheduling"
 	"github.com/Jumpscale/pygo"
 	"github.com/rjeczalik/notify"
 	"log"

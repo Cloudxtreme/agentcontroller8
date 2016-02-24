@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-	"github.com/Jumpscale/agentcontroller2/configs"
+	"github.com/Jumpscale/agentcontroller8/configs"
 )
 
 func TestLoadSettingsFromFile(t *testing.T) {

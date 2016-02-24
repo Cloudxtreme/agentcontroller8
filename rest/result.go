@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/utils"
+	"github.com/Jumpscale/agentcontroller8/core"
+	"github.com/Jumpscale/agentcontroller8/utils"
 )
 
 func (r *Manager) result(c *gin.Context) {

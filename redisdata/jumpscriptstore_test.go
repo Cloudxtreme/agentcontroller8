@@ -1,9 +1,9 @@
 package redisdata_test
 import (
 	"testing"
-	"github.com/Jumpscale/agentcontroller2/redisdata"
+	"github.com/Jumpscale/agentcontroller8/redisdata"
 	"github.com/stretchr/testify/assert"
-	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller8/core"
 )
 
 func TestJumpScriptStore(t *testing.T) {

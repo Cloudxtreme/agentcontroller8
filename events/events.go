@@ -3,9 +3,9 @@ package events
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Jumpscale/agentcontroller2/configs"
-	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/utils"
+	"github.com/Jumpscale/agentcontroller8/configs"
+	"github.com/Jumpscale/agentcontroller8/core"
+	"github.com/Jumpscale/agentcontroller8/utils"
 	"github.com/Jumpscale/pygo"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"

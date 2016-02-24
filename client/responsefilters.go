@@ -1,6 +1,6 @@
 package client
 
-import "github.com/Jumpscale/agentcontroller2/core"
+import "github.com/Jumpscale/agentcontroller8/core"
 
 // Filters responses and only passes through the terminal ones
 // May return more than one terminal response if more than one agent were responding

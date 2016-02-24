@@ -1,6 +1,6 @@
 package application
 import (
-	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller8/core"
 	"math/rand"
 )
 

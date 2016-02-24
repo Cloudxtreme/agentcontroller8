@@ -1,9 +1,9 @@
 package inmemorydata
 import (
-	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller8/core"
 	"sync"
 	"fmt"
-	"github.com/Jumpscale/agentcontroller2/utils"
+	"github.com/Jumpscale/agentcontroller8/utils"
 )
 
 type jumpscriptStore struct {

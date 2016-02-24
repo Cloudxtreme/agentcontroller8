@@ -2,8 +2,8 @@ package agentdata_test
 import (
 	"testing"
 	"github.com/stretchr/testify/assert"
-	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/agentdata"
+	"github.com/Jumpscale/agentcontroller8/core"
+	"github.com/Jumpscale/agentcontroller8/agentdata"
 )
 
 // Note: These tests don't validate the thread-safety aspect of the implementation

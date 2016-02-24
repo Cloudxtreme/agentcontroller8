@@ -1,9 +1,9 @@
 package rest
 
 import (
-	"github.com/Jumpscale/agentcontroller2/configs"
-	"github.com/Jumpscale/agentcontroller2/core"
-	"github.com/Jumpscale/agentcontroller2/events"
+	"github.com/Jumpscale/agentcontroller8/configs"
+	"github.com/Jumpscale/agentcontroller8/core"
+	"github.com/Jumpscale/agentcontroller8/events"
 	"github.com/gin-gonic/gin"
 )
 

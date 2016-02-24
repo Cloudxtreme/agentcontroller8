@@ -1,5 +1,5 @@
 package client
-import "github.com/Jumpscale/agentcontroller2/core"
+import "github.com/Jumpscale/agentcontroller8/core"
 
 // Blocks and exhausts the given channel and returns all the received values in a single array
 func exhaust(respChan <-chan core.CommandResponse) []core.CommandResponse {

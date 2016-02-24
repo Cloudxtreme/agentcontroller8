@@ -10,7 +10,7 @@ import (
 	influxdb "github.com/influxdb/influxdb/client"
 	"strings"
 	"time"
-	"github.com/Jumpscale/agentcontroller2/utils"
+	"github.com/Jumpscale/agentcontroller8/utils"
 )
 
 //StatsRequest stats request

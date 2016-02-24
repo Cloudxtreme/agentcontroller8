@@ -1,7 +1,7 @@
 package ds
 import (
 	"github.com/garyburd/redigo/redis"
-	"github.com/Jumpscale/agentcontroller2/core"
+	"github.com/Jumpscale/agentcontroller8/core"
 )
 
 type CommandResultHash struct {
