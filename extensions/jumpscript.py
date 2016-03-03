@@ -9,7 +9,7 @@ def get_info(path):
     """
     Loads and retrieve jumpscript attributes.
     """
-    module = imp.load_source('js', path)
+    module = imp.load_source(path, path)
 
     attributes = {}
     for attr in ATTRIBUTES:
